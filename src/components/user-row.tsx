@@ -25,7 +25,7 @@ export function UserRow({ user, rank, subtitle, right, highlight, noLink }: Prop
   const content = (
     <Pressable
       disabled={noLink}
-      style={[styles.row, highlight && { backgroundColor: theme.backgroundSelected }]}>
+      style={StyleSheet.flatten([styles.row, highlight && { backgroundColor: theme.backgroundSelected }])}>
       {rank !== undefined && (
         <ThemedText type="smallBold" style={styles.rank} themeColor={rank <= 3 ? 'text' : 'textSecondary'}>
           {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank}
