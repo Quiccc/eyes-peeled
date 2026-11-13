@@ -1,57 +1,56 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, ThemeColor } from '@/constants/theme';
+import { FontFamily, type ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
-  type?: 'default' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code';
+  /**
+   * The type scale: four sizes plus one display size for the big number moments
+   * (countdown, points). Two weights only: Bold (700) and Black (900).
+   */
+  type?: 'default' | 'title' | 'subtitle' | 'small' | 'smallBold' | 'display';
   themeColor?: ThemeColor;
 };
 
 export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
   const theme = useTheme();
 
-  return <Text style={[{ color: theme[themeColor ?? 'text'] }, styles[type], style]} {...rest} />;
+  return <Text style={[styles.base, { color: theme[themeColor ?? 'text'] }, styles[type], style]} {...rest} />;
 }
 
 const styles = StyleSheet.create({
-  small: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 500,
-  },
-  smallBold: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 700,
+  base: {
+    fontFamily: FontFamily,
   },
   default: {
     fontSize: 16,
-    lineHeight: 24,
-    fontWeight: 500,
+    lineHeight: 22,
+    fontWeight: 700,
   },
-  title: {
-    fontSize: 48,
-    fontWeight: 600,
-    lineHeight: 52,
+  small: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: 700,
+  },
+  smallBold: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: 900,
   },
   subtitle: {
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: 900,
+  },
+  title: {
     fontSize: 32,
-    lineHeight: 44,
-    fontWeight: 600,
+    lineHeight: 40,
+    fontWeight: 900,
   },
-  link: {
-    lineHeight: 30,
-    fontSize: 14,
-  },
-  linkPrimary: {
-    lineHeight: 30,
-    fontSize: 14,
-    color: '#3c87f7',
-  },
-  code: {
-    fontFamily: Fonts.mono,
-    fontWeight: Platform.select({ android: 700 }) ?? 500,
-    fontSize: 12,
+  display: {
+    fontSize: 48,
+    lineHeight: 52,
+    fontWeight: 900,
+    fontVariant: ['tabular-nums'],
   },
 });

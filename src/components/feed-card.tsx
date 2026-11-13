@@ -4,31 +4,42 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { FeedItem } from '@/api/types';
 import { Avatar } from '@/components/avatar';
+import { Button } from '@/components/button';
+import { Icon } from '@/components/icon';
+import { DifficultyPill } from '@/components/pill';
 import { openSafetyMenu } from '@/components/safety-menu';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Edge, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { DIFFICULTY_LABEL, displayName, ordinal, timeAgo } from '@/lib/format';
+import { displayName, ordinal, timeAgo } from '@/lib/format';
 
 type Props = {
   item: FeedItem;
   /** Hide the author row (e.g. on that user's own profile) */
   hideAuthor?: boolean;
   onBlocked?: () => void;
+  /** Show a "Share" button. Only pass this for the signed-in user's own finds. */
+  onShare?: () => void;
 };
 
-export function FeedCard({ item, hideAuthor, onBlocked }: Props) {
+export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
   const theme = useTheme();
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+      ]}>
       {!hideAuthor && (
         <View style={styles.header}>
           <Link href={{ pathname: '/user/[userId]', params: { userId: item.user.id } }} asChild>
-            <Pressable style={styles.author}>
-              <Avatar user={item.user} size={32} />
-              <View>
-                <ThemedText type="smallBold">{displayName(item.user)}</ThemedText>
+            <Pressable style={styles.author} accessibilityRole="link">
+              <Avatar user={item.user} size={36} />
+              <View style={styles.authorText}>
+                <ThemedText style={styles.name} numberOfLines={1}>
+                  {displayName(item.user)}
+                </ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
                   {timeAgo(item.createdAt)}
                 </ThemedText>
@@ -36,47 +47,72 @@ export function FeedCard({ item, hideAuthor, onBlocked }: Props) {
             </Pressable>
           </Link>
           <Pressable
-            hitSlop={12}
+            accessibilityRole="button"
             accessibilityLabel="More options"
-            onPress={() => openSafetyMenu({ user: item.user, submissionId: item.submissionId, onBlocked })}>
-            <ThemedText type="subtitle" themeColor="textSecondary" style={styles.more}>
-              ···
-            </ThemedText>
+            onPress={() => openSafetyMenu({ user: item.user, submissionId: item.submissionId, onBlocked })}
+            style={({ pressed }) => [styles.more, { opacity: pressed ? 0.6 : 1 }]}>
+            <Icon name="more" size={22} color={theme.textSecondary} />
           </Pressable>
         </View>
       )}
-      <Image source={item.imageUrl} style={styles.photo} contentFit="cover" transition={200} />
+      <Image
+        source={item.imageUrl}
+        style={[styles.photo, { backgroundColor: theme.backgroundSelected }]}
+        contentFit="cover"
+        transition={200}
+      />
       <View style={styles.footer}>
-        <ThemedText type="smallBold" style={{ color: theme[item.difficulty] }}>
-          {DIFFICULTY_LABEL[item.difficulty]} · {item.word.toUpperCase()}
+        <DifficultyPill difficulty={item.difficulty} />
+        <ThemedText style={styles.word} numberOfLines={1}>
+          {item.word.toUpperCase()}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          +{item.points} pts{item.rank ? ` · ${ordinal(item.rank)}` : ''}
+          <ThemedText type="smallBold">+{item.points} pts</ThemedText>
+          {item.rank ? ` · ${ordinal(item.rank)}` : ''}
         </ThemedText>
       </View>
+      {onShare && (
+        <View style={styles.share}>
+          <Button size="small" variant="secondary" icon="share" title="Share" onPress={onShare} />
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 18,
+    borderRadius: Radius.lg,
+    borderWidth: 2,
+    borderBottomWidth: Edge.card,
     overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Spacing.three,
+    gap: Spacing.two,
+    paddingLeft: Spacing.two + 4,
+    paddingRight: Spacing.one,
+    paddingVertical: Spacing.one + 2,
   },
   author: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: Spacing.two + 2,
+  },
+  authorText: {
+    flex: 1,
+  },
+  name: {
+    fontWeight: 900,
   },
   more: {
-    fontSize: 22,
-    lineHeight: 24,
+    width: 44,
+    height: 44,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   photo: {
     width: '100%',
@@ -84,8 +120,17 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Spacing.three,
+    gap: Spacing.two,
+    padding: Spacing.two + 4,
+  },
+  word: {
+    flex: 1,
+    fontWeight: 900,
+    letterSpacing: 0.5,
+  },
+  share: {
+    paddingHorizontal: Spacing.two + 4,
+    paddingBottom: Spacing.two + 4,
   },
 });

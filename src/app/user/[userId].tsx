@@ -6,9 +6,12 @@ import { api } from '@/api/endpoints';
 import type { UserProfile } from '@/api/types';
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
+import { EmptyState } from '@/components/empty-state';
 import { FeedCard } from '@/components/feed-card';
+import { Icon } from '@/components/icon';
 import { ProfileStats } from '@/components/profile-stats';
 import { openSafetyMenu } from '@/components/safety-menu';
+import { SectionLabel } from '@/components/section-label';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -75,11 +78,10 @@ export default function UserProfileScreen() {
             p ? (
               <Pressable
                 hitSlop={12}
+                accessibilityRole="button"
                 accessibilityLabel="More options"
                 onPress={() => openSafetyMenu({ user: p.user, onBlocked: () => (refresh(), router.back()) })}>
-                <ThemedText type="subtitle" style={styles.more}>
-                  ···
-                </ThemedText>
+                <Icon name="more" size={22} />
               </Pressable>
             ) : null,
         }}
@@ -94,7 +96,9 @@ export default function UserProfileScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.identity}>
             <Avatar user={p.user} size={72} />
-            <ThemedText type="subtitle">{displayName(p.user)}</ThemedText>
+            <ThemedText type="title" style={styles.name} numberOfLines={1} adjustsFontSizeToFit>
+              {p.user.username ?? displayName(p.user)}
+            </ThemedText>
           </View>
 
           {p.friendStatus !== 'blocked' && (
@@ -109,17 +113,11 @@ export default function UserProfileScreen() {
           <ProfileStats profile={p} />
 
           <View style={styles.section}>
-            <ThemedText type="smallBold" themeColor="textSecondary">
-              TODAY&apos;S FINDS
-            </ThemedText>
+            <SectionLabel>TODAY&apos;S FINDS</SectionLabel>
             {p.friendStatus !== 'friends' ? (
-              <ThemedText themeColor="textSecondary" style={styles.muted}>
-                Become friends to see their photos.
-              </ThemedText>
+              <EmptyState icon="lock" title="Photos are for friends" hint="Become friends to see their finds." />
             ) : p.today.length === 0 ? (
-              <ThemedText themeColor="textSecondary" style={styles.muted}>
-                Nothing found yet today.
-              </ThemedText>
+              <EmptyState icon="camera" title="Nothing found yet today" />
             ) : (
               p.today.map((item) => <FeedCard key={item.submissionId} item={item} hideAuthor />)
             )}
@@ -134,23 +132,24 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   loader: { marginTop: Spacing.six },
   content: {
-    padding: Spacing.three,
-    gap: Spacing.four,
+    padding: Spacing.four,
+    gap: 20,
     paddingBottom: Spacing.six,
   },
   identity: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: Spacing.three,
+  },
+  name: {
+    flex: 1,
+    lineHeight: 36,
   },
   section: {
-    gap: Spacing.three,
+    gap: Spacing.two,
   },
   muted: {
     textAlign: 'center',
     marginVertical: Spacing.three,
-  },
-  more: {
-    fontSize: 22,
-    lineHeight: 24,
   },
 });

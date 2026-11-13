@@ -1,3 +1,6 @@
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
 import { clearTokens, getTokens, saveTokens } from '@/auth/token-store';
 
 import type { ApiErrorBody, AuthTokens } from './types';
@@ -32,26 +35,63 @@ type RequestOptions = {
   query?: Record<string, string | number | null | undefined>;
   /** Skip the Authorization header (sign-in / refresh) */
   anonymous?: boolean;
+  /** Abort after this many ms. Defaults to 15 s for JSON and 60 s for uploads. */
+  timeoutMs?: number;
 };
+
+/** Sent on every request so the server can reject outdated builds (426 upgrade_required). */
+const CLIENT_HEADERS = {
+  'X-App-Version': Constants.expoConfig?.version ?? '0.0.0',
+  'X-Platform': Platform.OS,
+};
+
+const JSON_TIMEOUT_MS = 15_000;
+const UPLOAD_TIMEOUT_MS = 60_000;
+
+/**
+ * fetch with a timeout, so a dead network can't hang a screen forever. Network failures and
+ * timeouts become ApiError(0, 'network' | 'timeout') with a message the app can show.
+ */
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch {
+    if (controller.signal.aborted) {
+      throw new ApiError(0, 'timeout', 'The server is taking too long to respond. Please try again.');
+    }
+    throw new ApiError(0, 'network', "You seem to be offline. Check your connection and try again.");
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 let refreshing: Promise<boolean> | null = null;
 
+/**
+ * Resolves true when new tokens were saved, false when the server rejected the refresh token (4xx).
+ * Throws on network errors, timeouts and 5xx, so a flaky connection never signs the user out.
+ */
 async function refreshTokens(): Promise<boolean> {
   const tokens = getTokens();
   if (!tokens) return false;
   // Share one in-flight refresh between concurrent 401s.
   refreshing ??= (async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ refreshToken: tokens.refreshToken }),
-      });
-      if (!res.ok) return false;
+      const res = await fetchWithTimeout(
+        `${API_BASE_URL}/auth/refresh`,
+        {
+          method: 'POST',
+          headers: { ...CLIENT_HEADERS, 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+        },
+        JSON_TIMEOUT_MS,
+      );
+      if (res.status >= 400 && res.status < 500) return false;
+      if (!res.ok) throw new ApiError(res.status, 'http_error', 'Something went wrong on our side. Please try again.');
       await saveTokens((await res.json()) as AuthTokens);
       return true;
-    } catch {
-      return false;
     } finally {
       refreshing = null;
     }
@@ -68,17 +108,21 @@ function buildUrl(path: string, query?: RequestOptions['query']) {
 }
 
 export async function request<T>(path: string, options: RequestOptions = {}, retried = false): Promise<T> {
-  const { method = 'GET', body, form, query, anonymous } = options;
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const { method = 'GET', body, form, query, anonymous, timeoutMs } = options;
+  const headers: Record<string, string> = { ...CLIENT_HEADERS, Accept: 'application/json' };
   if (!form && body !== undefined) headers['Content-Type'] = 'application/json';
   const tokens = getTokens();
   if (!anonymous && tokens) headers.Authorization = `Bearer ${tokens.accessToken}`;
 
-  const res = await fetch(buildUrl(path, query), {
-    method,
-    headers,
-    body: form ?? (body !== undefined ? JSON.stringify(body) : undefined),
-  });
+  const res = await fetchWithTimeout(
+    buildUrl(path, query),
+    {
+      method,
+      headers,
+      body: form ?? (body !== undefined ? JSON.stringify(body) : undefined),
+    },
+    timeoutMs ?? (form ? UPLOAD_TIMEOUT_MS : JSON_TIMEOUT_MS),
+  );
 
   if (res.status === 401 && !anonymous) {
     if (!retried && (await refreshTokens())) {

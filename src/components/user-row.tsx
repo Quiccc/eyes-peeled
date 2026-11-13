@@ -11,30 +11,55 @@ import { displayName } from '@/lib/format';
 
 type Props = {
   user: User;
-  /** Left-hand rank number (leaderboards) */
+  /** Left-hand rank chip (leaderboards). Top three sit on gold, silver and bronze. */
   rank?: number;
   subtitle?: string;
   right?: ReactNode;
+  /** The signed-in user's own row: soft orange with an orange edge. */
   highlight?: boolean;
   /** Disable navigation to the profile (e.g. the signed-in user's own row) */
   noLink?: boolean;
+  /** Replace the name with this label (e.g. "You"). */
+  label?: string;
+  avatarSize?: number;
 };
 
-export function UserRow({ user, rank, subtitle, right, highlight, noLink }: Props) {
+/** A user as a chunky card row: rank, avatar, name, and something on the right. */
+export function UserRow({ user, rank, subtitle, right, highlight, noLink, label, avatarSize = 36 }: Props) {
   const theme = useTheme();
+  const medal = rank !== undefined && rank <= 3 ? [theme.gold, theme.silver, theme.bronze][rank - 1] : null;
+
   const content = (
     <Pressable
       disabled={noLink}
-      style={StyleSheet.flatten([styles.row, highlight && { backgroundColor: theme.backgroundSelected }])}>
+      accessibilityRole={noLink ? undefined : 'link'}
+      // A plain object, not a style function: <Link asChild> merges styles by spreading and drops functions.
+      style={StyleSheet.flatten([
+        styles.row,
+        {
+          backgroundColor: highlight ? theme.backgroundSelected : theme.backgroundElement,
+          borderColor: highlight ? theme.tint : theme.border,
+          borderBottomWidth: highlight ? 5 : 4,
+        },
+      ])}>
       {rank !== undefined && (
-        <ThemedText type="smallBold" style={styles.rank} themeColor={rank <= 3 ? 'text' : 'textSecondary'}>
-          {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank}
-        </ThemedText>
+        <View
+          style={[
+            styles.rank,
+            rank > 99 && styles.rankWide,
+            medal ? { backgroundColor: medal } : highlight ? { backgroundColor: theme.backgroundElement } : null,
+          ]}>
+          <ThemedText
+            type={rank > 99 ? 'smallBold' : 'default'}
+            style={[styles.rankText, { color: medal ? theme.onMedal : highlight ? theme.text : theme.textSecondary }]}>
+            {rank}
+          </ThemedText>
+        </View>
       )}
-      <Avatar user={user} size={36} />
+      {!label && <Avatar user={user} size={avatarSize} />}
       <View style={styles.text}>
-        <ThemedText type="smallBold" numberOfLines={1}>
-          {displayName(user)}
+        <ThemedText style={styles.name} numberOfLines={1}>
+          {label ?? displayName(user)}
         </ThemedText>
         {subtitle ? (
           <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
@@ -58,16 +83,33 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two + 2,
-    borderRadius: 14,
+    gap: Spacing.two + 4,
+    minHeight: 56,
+    paddingHorizontal: Spacing.two + 4,
+    paddingVertical: Spacing.two,
+    borderRadius: 18,
+    borderWidth: 2,
   },
   rank: {
-    width: 28,
-    textAlign: 'center',
+    minWidth: 32,
+    height: 32,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankWide: {
+    minWidth: 44,
+  },
+  rankText: {
+    fontWeight: 900,
+    fontVariant: ['tabular-nums'],
   },
   text: {
     flex: 1,
+    minWidth: 0,
+  },
+  name: {
+    fontWeight: 900,
   },
 });

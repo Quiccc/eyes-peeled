@@ -1,8 +1,8 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { type QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,13 +10,18 @@ import { showInterstitial } from '@/ads/ads';
 import { api } from '@/api/endpoints';
 import type { Submission } from '@/api/types';
 import { Button } from '@/components/button';
+import { Confetti, CountUp } from '@/components/celebration';
+import { Icon } from '@/components/icon';
+import { DifficultyPill } from '@/components/pill';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { difficultyColors, Edge, Radius, Spacing } from '@/constants/theme';
 import { preparePhoto } from '@/features/hunt/prepare-photo';
-import { submitAndWait } from '@/features/hunt/submit';
+import { submitAndWait, waitForVerdict } from '@/features/hunt/submit';
+import { useShareFind } from '@/features/share/share-find-sheet';
+import { fromSubmission } from '@/features/share/types';
 import { useTheme } from '@/hooks/use-theme';
-import { DIFFICULTY_LABEL, errorMessage, ordinal } from '@/lib/format';
+import { errorMessage, ordinal } from '@/lib/format';
 import { queryKeys } from '@/lib/query-client';
 
 type Phase =
@@ -38,8 +43,31 @@ export default function HuntScreen() {
   const [cameraReady, setCameraReady] = useState(false);
   const [phase, setPhase] = useState<Phase>({ kind: 'camera' });
   const [retrying, setRetrying] = useState(false);
+  const { share, sheet: shareSheet } = useShareFind();
 
   const close = () => router.back();
+
+  const showVerdict = (previewUri: string, submission: Submission) => {
+    setPhase({ kind: 'result', previewUri, submission });
+    refreshAfterVerdict(queryClient, submission);
+  };
+
+  // A photo from an earlier session is still being checked (the app was closed mid-analysis):
+  // skip the camera and pick the wait back up.
+  const resumed = useRef(false);
+  const pendingSubmission = word?.status === 'pending' ? word.submission : null;
+  useEffect(() => {
+    if (!pendingSubmission || resumed.current) return;
+    resumed.current = true;
+    const previewUri = pendingSubmission.imageUrl ?? '';
+    setPhase({ kind: 'analyzing', previewUri });
+    waitForVerdict(pendingSubmission)
+      .then((s) => {
+        setPhase({ kind: 'result', previewUri, submission: s });
+        refreshAfterVerdict(queryClient, s);
+      })
+      .catch((e) => setPhase({ kind: 'error', previewUri, message: errorMessage(e) }));
+  }, [pendingSubmission, queryClient]);
 
   const capture = async () => {
     if (!cameraRef.current || !cameraReady || !word) return;
@@ -49,13 +77,7 @@ export default function HuntScreen() {
       const photo = await preparePhoto(raw);
       previewUri = photo.uri;
       setPhase({ kind: 'analyzing', previewUri });
-      const submission = await submitAndWait(word.id, photo);
-      setPhase({ kind: 'result', previewUri, submission });
-      if (submission.status === 'valid') {
-        queryClient.invalidateQueries({ queryKey: queryKeys.daily });
-        queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
-        queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
-      }
+      showVerdict(previewUri, await submitAndWait(word.id, photo));
     } catch (e) {
       setPhase({ kind: 'error', previewUri, message: errorMessage(e) });
     }
@@ -76,10 +98,15 @@ export default function HuntScreen() {
     return (
       <Centered>
         {daily ? (
-          <>
-            <ThemedText>This word isn&apos;t active anymore.</ThemedText>
-            <Button title="Back to today" onPress={close} />
-          </>
+          <View style={styles.stretch}>
+            <ThemedText type="subtitle" style={styles.centerText}>
+              This word isn&apos;t active anymore
+            </ThemedText>
+            <ThemedText themeColor="textSecondary" style={styles.centerText}>
+              New words arrive every day. Head back to see today&apos;s hunt.
+            </ThemedText>
+            <Button title="Back to today" onPress={close} style={styles.stretchButton} />
+          </View>
         ) : (
           <ActivityIndicator />
         )}
@@ -88,12 +115,13 @@ export default function HuntScreen() {
   }
 
   const accent = theme[word.difficulty];
+  const pillColors = difficultyColors(theme, word.difficulty);
   const target = (
     <View style={styles.target}>
-      <ThemedText type="smallBold" style={{ color: accent }}>
-        {DIFFICULTY_LABEL[word.difficulty].toUpperCase()}
+      <DifficultyPill difficulty={word.difficulty} style={styles.centerSelf} />
+      <ThemedText type="title" style={styles.targetWord} accessibilityRole="header">
+        {word.word.toUpperCase()}
       </ThemedText>
-      <ThemedText style={styles.targetWord}>{word.word.toUpperCase()}</ThemedText>
     </View>
   );
 
@@ -101,16 +129,36 @@ export default function HuntScreen() {
   if (phase.kind === 'camera') {
     if (!permission) return <Centered><ActivityIndicator /></Centered>;
     if (!permission.granted) {
+      const canAsk = permission.canAskAgain;
       return (
-        <Centered>
-          {target}
-          <ThemedText style={styles.centerText}>Word Hunt needs your camera to snap your find.</ThemedText>
-          <Button
-            title={permission.canAskAgain ? 'Allow camera' : 'Open settings'}
-            onPress={() => (permission.canAskAgain ? requestPermission() : Linking.openSettings())}
-          />
-          <Button title="Cancel" variant="ghost" onPress={close} />
-        </Centered>
+        <ThemedView style={styles.flex}>
+          <SafeAreaView style={styles.resultRoot}>
+            {target}
+            <View style={[styles.frame, styles.permissionFrame, { borderColor: theme.border, backgroundColor: theme.backgroundSelected }]}>
+              <View style={styles.frameInner}>
+                <Icon name="camera" size={72} color={theme.textSecondary} />
+              </View>
+            </View>
+            <View style={[styles.status, styles.permissionStatus]}>
+              <ThemedText type="subtitle" style={styles.centerText}>
+                {canAsk ? 'Allow the camera' : 'Camera is off'}
+              </ThemedText>
+              <ThemedText themeColor="textSecondary" style={styles.centerText}>
+                {canAsk
+                  ? 'Word Hunt needs your camera to snap your find.'
+                  : 'Turn on camera access for Word Hunt in Settings to snap your find.'}
+              </ThemedText>
+            </View>
+            <View style={styles.actions}>
+              <Button
+                title={canAsk ? 'Allow camera' : 'Open settings'}
+                icon={canAsk ? 'camera' : undefined}
+                onPress={() => (canAsk ? requestPermission() : Linking.openSettings())}
+              />
+              <Button title="Not now" variant="ghost" onPress={close} />
+            </View>
+          </SafeAreaView>
+        </ThemedView>
       );
     }
 
@@ -126,13 +174,19 @@ export default function HuntScreen() {
         />
         <SafeAreaView style={styles.cameraOverlay} pointerEvents="box-none">
           <View style={styles.cameraTop}>
-            <Pressable onPress={close} hitSlop={16} accessibilityLabel="Close" style={styles.closeBtn}>
-              <ThemedText style={styles.closeText}>✕</ThemedText>
+            <Pressable
+              onPress={close}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              style={styles.closeBtn}>
+              <Icon name="close" size={20} color="#FFFFFF" />
             </Pressable>
-            <View style={styles.cameraBadge}>
-              <ThemedText type="smallBold" style={{ color: accent }}>
-                Find: {word.word.toUpperCase()}
+            <View style={[styles.cameraBadge, { backgroundColor: pillColors.bg, borderColor: accent }]}>
+              <ThemedText type="smallBold" style={{ color: pillColors.text }}>
+                FIND
               </ThemedText>
+              <ThemedText style={[styles.badgeWord, { color: theme.text }]}>{word.word.toUpperCase()}</ThemedText>
             </View>
             <View style={styles.closeBtn} />
           </View>
@@ -157,12 +211,32 @@ export default function HuntScreen() {
   const previewUri = phase.previewUri;
   const submission = phase.kind === 'result' ? phase.submission : null;
   const valid = submission?.status === 'valid';
+  const failed = phase.kind === 'error' || (submission !== null && !valid);
+  const frameColor = valid ? theme.success : failed ? theme.hard : theme.border;
 
   return (
     <ThemedView style={styles.flex}>
       <SafeAreaView style={styles.resultRoot}>
         {target}
-        {previewUri ? <Image source={previewUri} style={styles.preview} contentFit="cover" /> : null}
+
+        <View
+          style={[
+            styles.frame,
+            { borderColor: frameColor, backgroundColor: theme.backgroundSelected },
+          ]}>
+          <View style={styles.frameInner}>
+            {previewUri ? (
+              <Image source={previewUri} style={StyleSheet.absoluteFill} contentFit="cover" />
+            ) : (
+              <Icon name="camera" size={72} color={theme.textSecondary} />
+            )}
+          </View>
+          {valid && (
+            <View style={[styles.badge, { backgroundColor: theme.success, borderBottomColor: theme.successEdge }]}>
+              <Icon name="check" size={30} color="#FFFFFF" />
+            </View>
+          )}
+        </View>
 
         {phase.kind === 'analyzing' && (
           <View style={styles.status}>
@@ -173,25 +247,32 @@ export default function HuntScreen() {
 
         {submission && valid && (
           <View style={styles.status}>
-            <ThemedText style={[styles.big, { color: theme.success }]}>+{submission.points} pts</ThemedText>
-            <ThemedText style={styles.centerText}>
-              {submission.rank ? `You were the ${ordinal(submission.rank)} hunter to find it!` : 'Nice find!'}
-            </ThemedText>
+            <CountUp value={submission.points} prefix="+" suffix=" pts" style={[styles.points, { color: theme.successText }]} />
+            <ThemedText type="subtitle">Nice find!</ThemedText>
+            {submission.rank ? (
+              <ThemedText themeColor="textSecondary" style={styles.centerText}>
+                You were the {ordinal(submission.rank)} hunter to find it today.
+              </ThemedText>
+            ) : null}
           </View>
         )}
 
         {submission && !valid && (
           <View style={styles.status}>
-            <ThemedText style={[styles.big, { color: theme.danger }]}>Not quite</ThemedText>
+            <ThemedText type="title" style={{ color: theme.dangerText }}>
+              Not quite
+            </ThemedText>
             <ThemedText themeColor="textSecondary" style={styles.centerText}>
-              {submission.message ?? `We couldn't find a ${word.word} in this photo.`}
+              {submission.message ?? `We couldn't spot a ${word.word}. Get closer and make sure it's in focus.`}
             </ThemedText>
           </View>
         )}
 
         {phase.kind === 'error' && (
           <View style={styles.status}>
-            <ThemedText style={[styles.big, { color: theme.danger }]}>Upload failed</ThemedText>
+            <ThemedText type="title" style={{ color: theme.dangerText }}>
+              Upload failed
+            </ThemedText>
             <ThemedText themeColor="textSecondary" style={styles.centerText}>
               {phase.message}
             </ThemedText>
@@ -200,19 +281,40 @@ export default function HuntScreen() {
 
         {phase.kind !== 'analyzing' && (
           <View style={styles.actions}>
-            {valid ? (
-              <Button title="Done" onPress={close} />
+            {valid && submission ? (
+              <>
+                {previewUri ? (
+                  <Button
+                    title="Share your find"
+                    variant="secondary"
+                    icon="share"
+                    onPress={() => share(fromSubmission(word, submission, previewUri))}
+                  />
+                ) : null}
+                <Button title="Done" onPress={close} />
+              </>
             ) : (
               <>
-                <Button title="Try again" loading={retrying} onPress={retry} />
+                <Button title="Try again" icon="camera" loading={retrying} onPress={retry} />
                 <Button title="Give up for now" variant="ghost" onPress={close} />
               </>
             )}
           </View>
         )}
       </SafeAreaView>
+      {valid && <Confetti />}
+      {shareSheet}
     </ThemedView>
   );
+}
+
+/** Refresh what a verdict changes: the word's status always, scores only for a valid find. */
+function refreshAfterVerdict(queryClient: QueryClient, submission: Submission) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.daily });
+  if (submission.status === 'valid') {
+    queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
+  }
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
@@ -235,14 +337,31 @@ const styles = StyleSheet.create({
   centerText: {
     textAlign: 'center',
   },
+  centerSelf: {
+    alignSelf: 'center',
+  },
+  stretch: {
+    alignSelf: 'stretch',
+    gap: Spacing.two,
+  },
+  stretchButton: {
+    marginTop: Spacing.three,
+  },
+  permissionFrame: {
+    maxHeight: 320,
+  },
+  permissionStatus: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   target: {
     alignItems: 'center',
+    gap: Spacing.two,
   },
   targetWord: {
-    fontSize: 34,
-    lineHeight: 40,
-    fontWeight: 800,
-    letterSpacing: 2,
+    lineHeight: 36,
+    letterSpacing: 1,
+    textAlign: 'center',
   },
   cameraRoot: {
     flex: 1,
@@ -260,22 +379,27 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.two,
   },
   closeBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  closeText: {
-    color: '#fff',
-    fontSize: 18,
-  },
   cameraBadge: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    flexShrink: 1,
+    alignItems: 'center',
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: 999,
+    paddingVertical: Spacing.one + 2,
+    borderRadius: Radius.md,
+    borderWidth: 2,
+    borderBottomWidth: Edge.small,
+  },
+  badgeWord: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: 900,
+    letterSpacing: 1,
   },
   cameraBottom: {
     alignItems: 'center',
@@ -304,23 +428,48 @@ const styles = StyleSheet.create({
   },
   resultRoot: {
     flex: 1,
-    padding: Spacing.four,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.five,
+    paddingBottom: Spacing.four,
     gap: Spacing.four,
   },
-  preview: {
+  frame: {
     flex: 1,
-    borderRadius: 20,
+    minHeight: 220,
+    borderRadius: Radius.lg,
+    borderWidth: 2,
+    borderBottomWidth: Edge.card,
+  },
+  frameInner: {
+    flex: 1,
+    borderRadius: Radius.lg - 2,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badge: {
+    position: 'absolute',
+    right: -10,
+    top: -14,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderBottomWidth: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ rotate: '8deg' }],
   },
   status: {
     alignItems: 'center',
     gap: Spacing.two,
   },
-  big: {
-    fontSize: 32,
-    lineHeight: 40,
-    fontWeight: 800,
+  points: {
+    fontSize: 56,
+    lineHeight: 60,
+    fontWeight: 900,
+    fontVariant: ['tabular-nums'],
   },
   actions: {
-    gap: Spacing.two,
+    gap: Spacing.three,
   },
 });

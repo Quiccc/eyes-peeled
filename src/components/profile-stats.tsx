@@ -5,20 +5,30 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
+/** Month points, global rank and streak as three chunky tiles. */
 export function ProfileStats({ profile }: { profile: UserProfile }) {
   const theme = useTheme();
   const stats = [
-    { label: 'Month pts', value: profile.monthPoints.toLocaleString() },
-    { label: 'Rank', value: profile.monthRank ? `#${profile.monthRank}` : '—' },
-    { label: 'Streak', value: `${profile.streak}🔥` },
-    { label: 'Finds', value: String(profile.totalFinds) },
+    { label: 'pts this month', value: profile.monthPoints.toLocaleString(), color: theme.text },
+    { label: 'global rank', value: profile.monthRank ? `#${profile.monthRank}` : '—', color: theme.text },
+    {
+      label: 'streak',
+      value: `${profile.streak} ${profile.streak === 1 ? 'day' : 'days'}`,
+      color: profile.streak > 0 ? theme.successText : theme.text,
+    },
   ];
   return (
-    <View style={[styles.row, { backgroundColor: theme.backgroundElement }]}>
+    <View style={styles.row}>
       {stats.map((s) => (
-        <View key={s.label} style={styles.stat}>
-          <ThemedText style={styles.value}>{s.value}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
+        <View
+          key={s.label}
+          accessible
+          accessibilityLabel={`${s.value} ${s.label}`}
+          style={[styles.tile, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+          <ThemedText type="subtitle" style={[styles.value, { color: s.color }]} numberOfLines={1} adjustsFontSizeToFit>
+            {s.value}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.label}>
             {s.label}
           </ThemedText>
         </View>
@@ -30,17 +40,22 @@ export function ProfileStats({ profile }: { profile: UserProfile }) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    borderRadius: 18,
-    paddingVertical: Spacing.three,
+    gap: Spacing.two + 4,
   },
-  stat: {
+  tile: {
     flex: 1,
     alignItems: 'center',
     gap: 2,
+    paddingVertical: Spacing.two + 4,
+    paddingHorizontal: Spacing.two,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderBottomWidth: 5,
   },
   value: {
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: 800,
+    fontVariant: ['tabular-nums'],
+  },
+  label: {
+    textAlign: 'center',
   },
 });

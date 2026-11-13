@@ -3,13 +3,17 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 
-import { initAds } from '@/ads/ads';
+import { initAds, setAdsEnabled } from '@/ads/ads';
 import { AuthProvider, useAuth } from '@/auth/auth-provider';
+import { ThemeTransitionOverlay } from '@/components/theme-transition';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { loadAppearance } from '@/lib/appearance';
 import { queryClient } from '@/lib/query-client';
 
 SplashScreen.preventAutoHideAsync();
+// Apply the saved Light/Dark/System choice before the splash screen hides (no wrong-theme flash).
+const appearanceReady = loadAppearance();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -19,6 +23,7 @@ export default function RootLayout() {
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <StatusBar style="auto" />
           <RootNavigator />
+          <ThemeTransitionOverlay />
         </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
@@ -29,15 +34,18 @@ function RootNavigator() {
   const { status, user } = useAuth();
   const signedIn = status === 'signedIn';
   const hasUsername = signedIn && !!user.username;
+  const isPremium = signedIn && user.isPremium;
 
   useEffect(() => {
-    if (status !== 'loading') SplashScreen.hideAsync();
+    if (status !== 'loading') void appearanceReady.then(() => SplashScreen.hideAsync());
   }, [status]);
 
   useEffect(() => {
+    setAdsEnabled(!isPremium);
     // Ask for ad consent / tracking only once the user is in the app, not on the sign-in screen.
-    if (hasUsername) initAds();
-  }, [hasUsername]);
+    // Premium users never see ads, so they never get the consent / tracking prompts either.
+    if (hasUsername && !isPremium) initAds();
+  }, [hasUsername, isPremium]);
 
   if (status === 'loading') return null;
 
@@ -58,6 +66,7 @@ function RootNavigator() {
           options={{ presentation: 'fullScreenModal', headerShown: false, gestureEnabled: false }}
         />
         <Stack.Screen name="user/[userId]" options={{ title: '' }} />
+        <Stack.Screen name="premium" options={{ presentation: 'modal', headerShown: false }} />
       </Stack.Protected>
     </Stack>
   );

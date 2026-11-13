@@ -9,7 +9,11 @@ const POLL_TIMEOUT_MS = 45_000;
  * synchronously (valid/invalid) or with status 'pending' — in that case poll.
  */
 export async function submitAndWait(wordId: string, photo: PhotoFile): Promise<Submission> {
-  let submission = await api.submitPhoto(wordId, photo);
+  return waitForVerdict(await api.submitPhoto(wordId, photo));
+}
+
+/** Poll a pending submission until the server decides. Also used to resume one after an app restart. */
+export async function waitForVerdict(submission: Submission): Promise<Submission> {
   const started = Date.now();
   while (submission.status === 'pending') {
     if (Date.now() - started > POLL_TIMEOUT_MS) {

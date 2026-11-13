@@ -1,9 +1,12 @@
-import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import type { DailyWord } from '@/api/types';
+import { Button } from '@/components/button';
+import { Chunky } from '@/components/chunky';
+import { Icon } from '@/components/icon';
+import { DifficultyPill } from '@/components/pill';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Edge, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { DIFFICULTY_LABEL, ordinal } from '@/lib/format';
 
@@ -11,107 +14,165 @@ type Props = {
   word: DailyWord;
   onPress: () => void;
   busy?: boolean;
+  /** Shown as a "Share" button once the word is found. */
+  onShare?: () => void;
 };
 
-export function WordCard({ word, onPress, busy }: Props) {
+/** One of today's words: a card edged in its difficulty color, with a camera button until it's found. */
+export function WordCard({ word, onPress, busy, onShare }: Props) {
   const theme = useTheme();
   const accent = theme[word.difficulty];
   const found = word.status === 'found';
+  const sub = word.submission;
+
+  return (
+    <Chunky
+      color={theme.backgroundElement}
+      edgeColor={accent}
+      outlined
+      radius={Radius.lg}
+      edge={Edge.card}
+      contentStyle={styles.card}>
+      <View style={styles.info}>
+        <View style={styles.header}>
+          <DifficultyPill difficulty={word.difficulty} />
+          <ThemedText type="small" themeColor="textSecondary">
+            up to {word.maxPoints} pts
+          </ThemedText>
+        </View>
+        <ThemedText style={styles.word} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>
+          {word.word.toUpperCase()}
+        </ThemedText>
+        {found && sub ? (
+          <View style={styles.foundRow}>
+            <Icon name="check" size={16} color={theme.successText} />
+            <ThemedText type="smallBold" style={[styles.shrink, { color: theme.successText }]} numberOfLines={1}>
+              Found · +{sub.points} pts{sub.rank ? ` · ${ordinal(sub.rank)} finder` : ''}
+            </ThemedText>
+          </View>
+        ) : word.status === 'pending' ? (
+          <ThemedText type="smallBold" themeColor="textSecondary" numberOfLines={1}>
+            Checking your photo…
+          </ThemedText>
+        ) : (
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+            {word.foundCount === 0
+              ? 'Nobody has found it yet'
+              : `${word.foundCount.toLocaleString()} ${word.foundCount === 1 ? 'hunter has' : 'hunters have'} found it`}
+          </ThemedText>
+        )}
+      </View>
+
+      {found ? (
+        onShare ? (
+          <Button
+            size="small"
+            variant="secondary"
+            icon="share"
+            title="Share"
+            accessibilityLabel={`Share your ${word.word} find`}
+            onPress={onShare}
+          />
+        ) : null
+      ) : (
+        <Chunky
+          color={theme.tint}
+          edgeColor={theme.tintEdge}
+          radius={18}
+          edge={Edge.button}
+          disabled={busy}
+          onPress={onPress}
+          accessibilityLabel={word.status === 'pending' ? `See the result for ${word.word}` : `Hunt for ${word.word}`}
+          contentStyle={styles.camera}>
+          {busy ? <ActivityIndicator color={theme.onTint} /> : <Icon name="camera" size={26} color={theme.onTint} />}
+        </Chunky>
+      )}
+    </Chunky>
+  );
+}
+
+/** Teaser for the Premium word (the 4th daily word), shown to free users in place of the real card. */
+export function LockedPremiumCard({ onPress }: { onPress: () => void }) {
+  const theme = useTheme();
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${DIFFICULTY_LABEL[word.difficulty]}: ${word.word}${found ? ', found' : ''}`}
-      disabled={found || busy}
+      accessibilityLabel={`${DIFFICULTY_LABEL.expert} word, up to 1000 points, locked. Unlock with Premium.`}
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
-        { backgroundColor: theme.backgroundElement, borderColor: accent, opacity: pressed ? 0.85 : 1 },
+        styles.locked,
+        { backgroundColor: theme.expertBg, borderColor: theme.expert, opacity: pressed ? 0.85 : 1 },
       ]}>
-      <View style={styles.header}>
-        <View style={[styles.pill, { backgroundColor: accent }]}>
-          <ThemedText type="smallBold" style={{ color: theme.onTint }}>
-            {DIFFICULTY_LABEL[word.difficulty]}
-          </ThemedText>
-        </View>
+      <View style={[styles.lockTile, { backgroundColor: theme.backgroundElement }]}>
+        <Icon name="lock" size={22} color={theme.expertText} />
+      </View>
+      <View style={styles.info}>
+        <ThemedText style={[styles.lockTitle, { color: theme.expertText }]}>{DIFFICULTY_LABEL.expert} word · up to 1000 pts</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          up to {word.maxPoints} pts
+          A tougher 4th word every day, and no ads.
         </ThemedText>
       </View>
-
-      <View style={styles.body}>
-        <View style={styles.wordCol}>
-          <ThemedText style={styles.word} numberOfLines={2}>
-            {word.word.toUpperCase()}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {word.foundCount.toLocaleString()} {word.foundCount === 1 ? 'hunter has' : 'hunters have'} found it
-          </ThemedText>
-        </View>
-        {found && word.submission?.imageUrl ? (
-          <Image source={word.submission.imageUrl} style={styles.thumb} contentFit="cover" />
-        ) : null}
-      </View>
-
-      <View style={[styles.footer, { borderTopColor: theme.border }]}>
-        {busy ? (
-          <ActivityIndicator color={accent} />
-        ) : found && word.submission ? (
-          <ThemedText type="smallBold" style={{ color: theme.success }}>
-            ✓ Found · +{word.submission.points} pts
-            {word.submission.rank ? ` · ${ordinal(word.submission.rank)} finder` : ''}
-          </ThemedText>
-        ) : (
-          <ThemedText type="smallBold" style={{ color: accent }}>
-            Tap to start hunting →
-          </ThemedText>
-        )}
-      </View>
+      <ThemedText type="smallBold" style={{ color: theme.expertText }}>
+        Unlock
+      </ThemedText>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
-    borderWidth: 2,
-    padding: Spacing.three,
-    gap: Spacing.two,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 4,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two + 4,
+  },
+  info: {
+    flex: 1,
+    minWidth: 0,
+    gap: 6,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  pill: {
-    paddingHorizontal: Spacing.two + 2,
-    paddingVertical: 2,
-    borderRadius: 999,
-  },
-  body: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-  },
-  wordCol: {
-    flex: 1,
-    gap: Spacing.one,
+    gap: Spacing.two,
   },
   word: {
-    fontSize: 30,
+    fontSize: 32,
     lineHeight: 36,
-    fontWeight: 800,
-    letterSpacing: 1.5,
+    fontWeight: 900,
+    letterSpacing: 1,
   },
-  thumb: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
+  foundRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  footer: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: Spacing.two,
-    minHeight: 30,
+  shrink: {
+    flexShrink: 1,
+  },
+  camera: {
+    width: 56,
+    height: 52,
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+  locked: {
+    borderRadius: Radius.lg,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    minHeight: 76,
+  },
+  lockTile: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockTitle: {
+    fontWeight: 900,
   },
 });

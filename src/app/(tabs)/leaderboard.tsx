@@ -1,21 +1,26 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { api } from '@/api/endpoints';
 import type { LeaderboardScope } from '@/api/types';
 import { useAuth } from '@/auth/auth-provider';
+import { EmptyState, SkeletonRows } from '@/components/empty-state';
+import { SegmentedControl } from '@/components/segmented-control';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { UserRow } from '@/components/user-row';
 import { BottomTabInset, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { daysUntil, errorMessage } from '@/lib/format';
 import { queryKeys } from '@/lib/query-client';
 
+const SCOPES = [
+  { value: 'global', label: 'Global' },
+  { value: 'friends', label: 'Friends' },
+] as const satisfies readonly { value: LeaderboardScope; label: string }[];
+
 export default function LeaderboardScreen() {
-  const theme = useTheme();
   const { user } = useAuth();
   const [scope, setScope] = useState<LeaderboardScope>('global');
 
@@ -30,44 +35,41 @@ export default function LeaderboardScreen() {
   const entries = query.data?.pages.flatMap((p) => p.entries) ?? [];
   const me = first?.me ?? null;
   const meVisible = me && entries.some((e) => e.user.id === me.user.id);
+  const days = first ? daysUntil(first.resetsAt) : 0;
 
   return (
     <ThemedView style={styles.flex}>
       <SafeAreaView edges={['top']} style={styles.flex}>
         <View style={styles.header}>
-          <ThemedText type="subtitle">Leaderboard</ThemedText>
-          {first && (
-            <ThemedText type="small" themeColor="textSecondary">
-              {new Date(`${first.month}-01T00:00:00Z`).toLocaleDateString(undefined, {
-                month: 'long',
-                year: 'numeric',
-                timeZone: 'UTC',
-              })}{' '}
-              · resets in {daysUntil(first.resetsAt)} days
+          <View style={styles.titleBlock}>
+            <ThemedText type="title" accessibilityRole="header">
+              Leaderboard
             </ThemedText>
-          )}
-          <View style={[styles.segment, { backgroundColor: theme.backgroundElement }]}>
-            {(['global', 'friends'] as const).map((s) => (
-              <Pressable
-                key={s}
-                onPress={() => setScope(s)}
-                style={[styles.segmentItem, scope === s && { backgroundColor: theme.background }]}>
-                <ThemedText type="smallBold" themeColor={scope === s ? 'text' : 'textSecondary'}>
-                  {s === 'global' ? 'Global' : 'Friends'}
+            {first && (
+              <ThemedText type="small" themeColor="textSecondary">
+                {new Date(`${first.month}-01T00:00:00Z`).toLocaleDateString(undefined, {
+                  month: 'long',
+                  timeZone: 'UTC',
+                })}{' '}
+                · resets in{' '}
+                <ThemedText type="smallBold">
+                  {days} {days === 1 ? 'day' : 'days'}
                 </ThemedText>
-              </Pressable>
-            ))}
+              </ThemedText>
+            )}
           </View>
+          <SegmentedControl accessibilityLabel="Scope" options={SCOPES} value={scope} onChange={setScope} />
         </View>
 
         {query.isPending ? (
-          <ActivityIndicator style={styles.loader} />
+          <View style={styles.list}>
+            <SkeletonRows count={7} />
+          </View>
         ) : query.error ? (
-          <ThemedText themeColor="textSecondary" style={styles.empty}>
-            {errorMessage(query.error)}
-          </ThemedText>
+          <EmptyState icon="retry" title="Couldn't load the leaderboard" hint={errorMessage(query.error)} />
         ) : (
           <FlatList
+            style={styles.flex}
             data={entries}
             keyExtractor={(e) => e.user.id}
             contentContainerStyle={styles.list}
@@ -75,32 +77,31 @@ export default function LeaderboardScreen() {
             onEndReached={() => query.hasNextPage && !query.isFetchingNextPage && query.fetchNextPage()}
             onEndReachedThreshold={0.5}
             ListEmptyComponent={
-              <ThemedText themeColor="textSecondary" style={styles.empty}>
-                {scope === 'friends' ? 'Add friends to compete with them.' : 'No points yet this month. Be the first!'}
-              </ThemedText>
+              scope === 'friends' ? (
+                <EmptyState icon="users" title="No friends here yet" hint="Add friends to compete with them." />
+              ) : (
+                <EmptyState icon="trophy" title="No points yet this month" hint="Be the first on the board!" />
+              )
             }
             ListFooterComponent={query.isFetchingNextPage ? <ActivityIndicator /> : undefined}
-            renderItem={({ item }) => (
-              <UserRow
-                user={item.user}
-                rank={item.rank}
-                highlight={item.user.id === user?.id}
-                noLink={item.user.id === user?.id}
-                right={<ThemedText type="smallBold">{item.points.toLocaleString()}</ThemedText>}
-              />
-            )}
+            renderItem={({ item }) => {
+              const mine = item.user.id === user?.id;
+              return (
+                <UserRow
+                  user={item.user}
+                  rank={item.rank}
+                  highlight={mine}
+                  noLink={mine}
+                  right={<Points value={item.points} />}
+                />
+              );
+            }}
           />
         )}
 
         {me && !meVisible && (
-          <View style={[styles.mePinned, { borderTopColor: theme.border, backgroundColor: theme.background }]}>
-            <UserRow
-              user={me.user}
-              rank={me.rank}
-              highlight
-              noLink
-              right={<ThemedText type="smallBold">{me.points.toLocaleString()}</ThemedText>}
-            />
+          <View style={styles.mePinned}>
+            <UserRow user={me.user} rank={me.rank} label="You" highlight noLink right={<Points value={me.points} />} />
           </View>
         )}
       </SafeAreaView>
@@ -108,43 +109,32 @@ export default function LeaderboardScreen() {
   );
 }
 
+function Points({ value }: { value: number }) {
+  return <ThemedText style={styles.points}>{value.toLocaleString()}</ThemedText>;
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: {
-    padding: Spacing.three,
-    gap: Spacing.two,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.three,
+    gap: Spacing.three,
   },
-  segment: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    padding: 3,
-    marginTop: Spacing.two,
-  },
-  segmentItem: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.two,
-    borderRadius: 10,
+  titleBlock: {
+    gap: Spacing.one,
   },
   list: {
-    paddingHorizontal: Spacing.two,
-    paddingBottom: BottomTabInset + Spacing.six,
-  },
-  loader: {
-    marginTop: Spacing.six,
-  },
-  empty: {
-    textAlign: 'center',
-    marginTop: Spacing.five,
     paddingHorizontal: Spacing.four,
+    paddingBottom: BottomTabInset + Spacing.two,
+    gap: Spacing.two,
   },
   mePinned: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: BottomTabInset,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.two,
+  },
+  points: {
+    fontWeight: 900,
+    fontVariant: ['tabular-nums'],
   },
 });

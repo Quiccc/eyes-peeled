@@ -1,9 +1,11 @@
 import type { Difficulty } from '@/api/types';
 
+/** What players see. The keys stay `easy/medium/hard/expert` because they're the API contract. */
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
-  easy: 'Easy',
-  medium: 'Medium',
-  hard: 'Hard',
+  easy: 'Rookie',
+  medium: 'Scout',
+  hard: 'Ranger',
+  expert: 'Premium',
 };
 
 /** 3725s -> "01:02:05" */

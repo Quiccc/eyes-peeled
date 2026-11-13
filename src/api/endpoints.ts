@@ -27,6 +27,10 @@ export type Api = {
   deleteMe(): Promise<void>;
   getMyProfile(): Promise<UserProfile>;
 
+  // purchases
+  /** Ask the server to re-check the user's RevenueCat entitlement (after a purchase/restore). Returns the updated user. */
+  syncPurchases(): Promise<User>;
+
   // game
   getDaily(): Promise<Daily>;
   submitPhoto(wordId: string, photo: PhotoFile): Promise<Submission>;
@@ -56,6 +60,8 @@ const httpApi: Api = {
   updateMe: (patch) => request('/me', { method: 'PATCH', body: patch }),
   deleteMe: () => request('/me', { method: 'DELETE' }),
   getMyProfile: () => request('/me/profile'),
+
+  syncPurchases: () => request('/me/purchases/sync', { method: 'POST' }),
 
   getDaily: () => request('/daily'),
   submitPhoto: (wordId, photo) => {

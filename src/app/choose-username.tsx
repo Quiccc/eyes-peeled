@@ -6,7 +6,7 @@ import { useAuth } from '@/auth/auth-provider';
 import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Edge, FontFamily, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { errorMessage } from '@/lib/format';
 
@@ -39,7 +39,9 @@ export default function ChooseUsernameScreen() {
       <SafeAreaView style={styles.flex}>
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.top}>
-            <ThemedText type="subtitle">Pick a username</ThemedText>
+            <ThemedText type="title" accessibilityRole="header">
+              Pick a username
+            </ThemedText>
             <ThemedText themeColor="textSecondary">
               Friends will find you by this name and it shows on the leaderboards.
             </ThemedText>
@@ -54,9 +56,13 @@ export default function ChooseUsernameScreen() {
               placeholderTextColor={theme.textSecondary}
               returnKeyType="done"
               onSubmitEditing={() => valid && submit()}
-              style={[styles.input, { color: theme.text, backgroundColor: theme.backgroundElement }]}
+              accessibilityLabel="Username"
+              style={[
+                styles.input,
+                { color: theme.text, backgroundColor: theme.backgroundElement, borderColor: error ? theme.hard : theme.border },
+              ]}
             />
-            <ThemedText type="small" style={{ color: error ? theme.danger : theme.textSecondary }}>
+            <ThemedText type="small" style={{ color: error ? theme.dangerText : theme.textSecondary }}>
               {error ?? '3–20 characters: letters, numbers and underscores.'}
             </ThemedText>
           </View>
@@ -82,10 +88,14 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.five,
   },
   input: {
+    fontFamily: FontFamily,
     fontSize: 20,
+    fontWeight: 900,
+    height: 56,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
-    borderRadius: 14,
+    borderRadius: Radius.md,
+    borderWidth: 2,
+    borderBottomWidth: Edge.small,
   },
   actions: {
     gap: Spacing.two,

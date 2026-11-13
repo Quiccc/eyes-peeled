@@ -1,18 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { api } from '@/api/endpoints';
 import type { FriendStatus } from '@/api/types';
+import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
+import { EmptyState, SkeletonRows } from '@/components/empty-state';
 import { FeedCard } from '@/components/feed-card';
+import { Icon } from '@/components/icon';
+import { SectionLabel } from '@/components/section-label';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { UserRow } from '@/components/user-row';
-import { BottomTabInset, Spacing } from '@/constants/theme';
+import { BottomTabInset, Edge, FontFamily, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { errorMessage } from '@/lib/format';
+import { displayName, errorMessage } from '@/lib/format';
 import { queryKeys } from '@/lib/query-client';
 
 function useDebounced<T>(value: T, ms: number) {
@@ -57,9 +62,9 @@ export default function FriendsScreen() {
   });
 
   const statusButton = (userId: string, status: FriendStatus) => {
-    if (status === 'friends') return <ThemedText type="small" themeColor="textSecondary">Friends</ThemedText>;
-    if (status === 'outgoing') return <ThemedText type="small" themeColor="textSecondary">Requested</ThemedText>;
-    if (status === 'blocked') return <ThemedText type="small" themeColor="textSecondary">Blocked</ThemedText>;
+    if (status === 'friends') return <ThemedText type="smallBold" themeColor="textSecondary">Friends</ThemedText>;
+    if (status === 'outgoing') return <ThemedText type="smallBold" themeColor="textSecondary">Requested</ThemedText>;
+    if (status === 'blocked') return <ThemedText type="smallBold" themeColor="textSecondary">Blocked</ThemedText>;
     return (
       <Button
         size="small"
@@ -74,20 +79,26 @@ export default function FriendsScreen() {
 
   const header = (
     <View style={styles.headerBlock}>
-      <ThemedText type="subtitle">Friends</ThemedText>
-      <TextInput
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search by username"
-        placeholderTextColor={theme.textSecondary}
-        autoCapitalize="none"
-        autoCorrect={false}
-        clearButtonMode="while-editing"
-        style={[styles.search, { backgroundColor: theme.backgroundElement, color: theme.text }]}
-      />
+      <ThemedText type="title" accessibilityRole="header">
+        Friends
+      </ThemedText>
+      <View style={[styles.search, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+        <Icon name="search" size={20} color={theme.textSecondary} />
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Find hunters by username"
+          placeholderTextColor={theme.textSecondary}
+          accessibilityLabel="Find hunters by username"
+          autoCapitalize="none"
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+          style={[styles.searchInput, { color: theme.text }]}
+        />
+      </View>
 
       {searching ? (
-        <View>
+        <View style={styles.section}>
           {results.isPending ? (
             <ActivityIndicator style={styles.inlineLoader} />
           ) : results.data?.length ? (
@@ -95,48 +106,52 @@ export default function FriendsScreen() {
               <UserRow key={r.user.id} user={r.user} right={statusButton(r.user.id, r.friendStatus)} />
             ))
           ) : (
-            <ThemedText themeColor="textSecondary" style={styles.muted}>
-              No users found.
-            </ThemedText>
+            <EmptyState icon="search" title="No hunters found" hint={`Nobody goes by "${q}" yet.`} />
           )}
         </View>
       ) : (
         <>
           {!!requests.data?.length && (
             <View style={styles.section}>
-              <ThemedText type="smallBold" themeColor="textSecondary">
-                FRIEND REQUESTS
-              </ThemedText>
-              {requests.data.map((r) => (
-                <UserRow
-                  key={r.id}
-                  user={r.from}
-                  subtitle="wants to be friends"
-                  right={
-                    <View style={styles.requestActions}>
-                      <Button
-                        size="small"
-                        title="Accept"
-                        disabled={respond.isPending}
-                        onPress={() => respond.mutate({ id: r.id, action: 'accept' })}
-                      />
-                      <Button
-                        size="small"
-                        variant="secondary"
-                        title="✕"
-                        disabled={respond.isPending}
-                        accessibilityLabel="Decline"
-                        onPress={() => respond.mutate({ id: r.id, action: 'decline' })}
-                      />
-                    </View>
-                  }
-                />
-              ))}
+              <SectionLabel>REQUESTS · {requests.data.length}</SectionLabel>
+              {requests.data.map((r) => {
+                const pendingAction = respond.isPending && respond.variables?.id === r.id ? respond.variables.action : null;
+                return (
+                  <View
+                    key={r.id}
+                    style={[styles.request, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+                    <Link href={{ pathname: '/user/[userId]', params: { userId: r.from.id } }} asChild>
+                      <Pressable accessibilityRole="link" style={styles.requestUser}>
+                        <Avatar user={r.from} size={40} />
+                        <ThemedText style={styles.requestName} numberOfLines={1}>
+                          {r.from.username ?? displayName(r.from)}
+                        </ThemedText>
+                      </Pressable>
+                    </Link>
+                    <Button
+                      size="small"
+                      variant="ghost"
+                      title="Decline"
+                      accessibilityLabel={`Decline ${displayName(r.from)}`}
+                      loading={pendingAction === 'decline'}
+                      disabled={respond.isPending}
+                      style={styles.decline}
+                      onPress={() => respond.mutate({ id: r.id, action: 'decline' })}
+                    />
+                    <Button
+                      size="small"
+                      title="Accept"
+                      accessibilityLabel={`Accept ${displayName(r.from)}`}
+                      loading={pendingAction === 'accept'}
+                      disabled={respond.isPending}
+                      onPress={() => respond.mutate({ id: r.id, action: 'accept' })}
+                    />
+                  </View>
+                );
+              })}
             </View>
           )}
-          <ThemedText type="smallBold" themeColor="textSecondary">
-            TODAY FROM FRIENDS
-          </ThemedText>
+          <SectionLabel>FRIENDS&apos; FINDS TODAY</SectionLabel>
         </>
       )}
     </View>
@@ -162,13 +177,15 @@ export default function FriendsScreen() {
           }
           ListEmptyComponent={
             searching ? undefined : feed.isPending ? (
-              <ActivityIndicator style={styles.inlineLoader} />
+              <SkeletonRows count={2} height={280} />
+            ) : feed.error ? (
+              <EmptyState icon="retry" title="Couldn't load finds" hint={errorMessage(feed.error)} />
             ) : (
-              <ThemedText themeColor="textSecondary" style={styles.muted}>
-                {feed.error
-                  ? errorMessage(feed.error)
-                  : 'No finds from friends yet today. Search above to add friends.'}
-              </ThemedText>
+              <EmptyState
+                icon="camera"
+                title="No finds yet today"
+                hint="When friends snap today's words, their photos show up here. Search above to add friends."
+              />
             )
           }
           renderItem={({ item }) => <FeedCard item={item} onBlocked={refreshSocial} />}
@@ -181,32 +198,60 @@ export default function FriendsScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   list: {
-    padding: Spacing.three,
-    gap: Spacing.three,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.four,
+    gap: Spacing.two,
     paddingBottom: BottomTabInset + Spacing.four,
   },
   headerBlock: {
     gap: Spacing.three,
-    paddingTop: Spacing.two,
+    paddingBottom: Spacing.one,
   },
   search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 2,
+    height: 48,
+    paddingHorizontal: Spacing.three - 2,
+    borderRadius: Radius.md,
+    borderWidth: 2,
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    height: 44,
+    fontFamily: FontFamily,
     fontSize: 16,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two + 4,
-    borderRadius: 12,
+    fontWeight: 700,
   },
   section: {
-    gap: Spacing.one,
-  },
-  requestActions: {
-    flexDirection: 'row',
     gap: Spacing.two,
+    marginTop: Spacing.one,
+  },
+  request: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 4,
+    padding: Spacing.two + 4,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderBottomWidth: Edge.small,
+  },
+  requestUser: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 4,
+  },
+  requestName: {
+    flexShrink: 1,
+    fontWeight: 900,
+  },
+  decline: {
+    paddingHorizontal: Spacing.two + 4,
   },
   inlineLoader: {
-    marginVertical: Spacing.four,
-  },
-  muted: {
-    textAlign: 'center',
     marginVertical: Spacing.four,
   },
 });

@@ -23,11 +23,19 @@ const WORD_POOLS: Record<Difficulty, string[]> = {
   easy: ['chair', 'cup', 'bottle', 'book', 'shoe', 'clock', 'car', 'plant'],
   medium: ['umbrella', 'bicycle', 'backpack', 'scissors', 'teddy bear', 'toaster', 'kite', 'vase'],
   hard: ['fire hydrant', 'stop sign', 'parking meter', 'giraffe', 'skateboard', 'surfboard', 'tennis racket', 'hair drier'],
+  expert: ['zebra', 'snowboard', 'microwave', 'traffic light', 'frisbee', 'baseball glove', 'elephant', 'sailboat'],
 };
-const MAX_POINTS: Record<Difficulty, number> = { easy: 100, medium: 250, hard: 500 };
-const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
+const MAX_POINTS: Record<Difficulty, number> = { easy: 100, medium: 250, hard: 500, expert: 1000 };
+const FREE_DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
+const ALL_DIFFICULTIES: Difficulty[] = [...FREE_DIFFICULTIES, 'expert'];
 
-const user = (id: string, username: string): User => ({ id, username, displayName: null, avatarUrl: null });
+const user = (id: string, username: string): User => ({
+  id,
+  username,
+  displayName: null,
+  avatarUrl: null,
+  isPremium: false,
+});
 const others: User[] = [
   user('u1', 'alex'),
   user('u2', 'sam'),
@@ -60,8 +68,9 @@ function rollDay() {
   mySubmissions = [];
 }
 
-function todaysWords() {
-  return DIFFICULTIES.map((difficulty, i) => {
+/** Every word of the day. Pass includeExpert=false to get only the free three. */
+function todaysWords(includeExpert = true) {
+  return (includeExpert ? ALL_DIFFICULTIES : FREE_DIFFICULTIES).map((difficulty, i) => {
     const pool = WORD_POOLS[difficulty];
     return {
       id: `${dayIndex}-${difficulty}`,
@@ -73,12 +82,35 @@ function todaysWords() {
 
 function foundCountFor(difficulty: Difficulty) {
   const hours = (Date.now() - dayStart) / 3_600_000;
-  const base = { easy: 900, medium: 260, hard: 45 }[difficulty];
+  const base = { easy: 900, medium: 260, hard: 45, expert: 12 }[difficulty];
   return Math.floor(base * Math.min(1, hours / 12 + 0.1));
+}
+
+// Submissions start 'pending' and get their verdict a few seconds later, like an async YOLO queue.
+// The verdict and points are fixed at upload time (the receipt timestamp decides the score).
+const INFERENCE_MS = 2500;
+const verdicts = new Map<string, { at: number; result: Submission }>();
+
+function settlePending() {
+  const now = Date.now();
+  mySubmissions = mySubmissions.map((s) => {
+    const v = verdicts.get(s.id);
+    if (s.status !== 'pending' || !v || now < v.at) return s;
+    verdicts.delete(s.id);
+    if (v.result.status === 'valid') {
+      monthPoints += v.result.points;
+      totalFinds += 1;
+    }
+    return v.result;
+  });
 }
 
 function myValidSubmission(wordId: string) {
   return mySubmissions.find((s) => s.wordId === wordId && s.status === 'valid') ?? null;
+}
+
+function myPendingSubmission(wordId: string) {
+  return mySubmissions.find((s) => s.wordId === wordId && s.status === 'pending') ?? null;
 }
 
 function requireMe(): User {
@@ -91,7 +123,7 @@ function photo(seed: string) {
 }
 
 function feedFor(u: User): FeedItem[] {
-  return todaysWords()
+  return todaysWords(u.isPremium)
     .filter((_, i) => (Number(u.id.slice(1)) + i + dayIndex) % 3 !== 0)
     .map((w, i) => ({
       submissionId: `${u.id}-${w.id}`,
@@ -170,7 +202,7 @@ export const mockApi: Api = {
   async signIn() {
     await latency();
     const isNewUser = !me;
-    me ??= { id: 'me', username: null, displayName: null, avatarUrl: null };
+    me ??= { id: 'me', username: null, displayName: null, avatarUrl: null, isPremium: false };
     return { accessToken: 'mock-access', refreshToken: 'mock-refresh', user: me, isNewUser };
   },
   async signOut() {
@@ -179,7 +211,7 @@ export const mockApi: Api = {
   async getMe() {
     await latency();
     // A restored session after reload: recreate the user so the app can continue.
-    me ??= { id: 'me', username: 'you', displayName: null, avatarUrl: null };
+    me ??= { id: 'me', username: 'you', displayName: null, avatarUrl: null, isPremium: false };
     return me;
   },
   async updateMe({ username }) {
@@ -204,60 +236,85 @@ export const mockApi: Api = {
   },
   async getMyProfile() {
     await latency();
+    settlePending();
     return profileFor(requireMe(), true);
+  },
+
+  async syncPurchases() {
+    await latency();
+    // Mock: treat every sync as a successful Premium purchase / restore.
+    me = { ...requireMe(), isPremium: true };
+    return me;
   },
 
   async getDaily() {
     await latency();
-    requireMe();
+    const self = requireMe();
     rollDay();
+    settlePending();
     return {
       date: new Date(dayStart).toISOString().slice(0, 10),
       nextResetAt: new Date(resetAt).toISOString(),
-      words: todaysWords().map((w) => {
-        const sub = myValidSubmission(w.id);
+      words: todaysWords(self.isPremium).map((w) => {
+        const found = myValidSubmission(w.id);
+        const pending = found ? null : myPendingSubmission(w.id);
         return {
           ...w,
           maxPoints: MAX_POINTS[w.difficulty],
           foundCount: foundCountFor(w.difficulty),
-          status: sub ? 'found' : 'open',
-          submission: sub,
+          status: found ? 'found' : pending ? 'pending' : 'open',
+          submission: found ?? pending,
         };
       }),
     };
   },
 
   async submitPhoto(wordId, file) {
-    await wait(1200 + Math.random() * 800); // upload + inference
-    requireMe();
+    await wait(800 + Math.random() * 400); // upload
+    const self = requireMe();
+    settlePending();
     const word = todaysWords().find((w) => w.id === wordId);
     if (!word) throw new ApiError(404, 'word_not_found', 'This word is no longer active.');
+    if (word.difficulty === 'expert' && !self.isPremium) {
+      throw new ApiError(403, 'premium_required', 'The Premium word is part of Premium.');
+    }
     if (myValidSubmission(wordId)) throw new ApiError(409, 'already_found', 'You already found this one today.');
+    if (myPendingSubmission(wordId)) {
+      throw new ApiError(409, 'submission_pending', "We're still checking your last photo for this word.");
+    }
 
     const valid = Math.random() < 0.6;
     const hours = (Date.now() - dayStart) / 3_600_000;
     const max = MAX_POINTS[word.difficulty];
     const points = valid ? Math.max(Math.round(max * 0.2), Math.round(max * (1 - hours / 24))) : 0;
-    const submission: Submission = {
+    const pending: Submission = {
       id: `s${Date.now()}`,
       wordId,
-      status: valid ? 'valid' : 'invalid',
-      points,
-      rank: valid ? foundCountFor(word.difficulty) + 1 : null,
-      confidence: valid ? 0.82 + Math.random() * 0.15 : 0.1 + Math.random() * 0.3,
-      message: valid ? null : `We couldn't spot a ${word.word} in this photo. Get closer and make sure it's in focus.`,
+      status: 'pending',
+      points: 0,
+      rank: null,
+      confidence: null,
+      message: null,
       imageUrl: file.uri,
       createdAt: new Date().toISOString(),
     };
-    mySubmissions.push(submission);
-    if (valid) {
-      monthPoints += points;
-      totalFinds += 1;
-    }
-    return submission;
+    verdicts.set(pending.id, {
+      at: Date.now() + INFERENCE_MS,
+      result: {
+        ...pending,
+        status: valid ? 'valid' : 'invalid',
+        points,
+        rank: valid ? foundCountFor(word.difficulty) + 1 : null,
+        confidence: valid ? 0.82 + Math.random() * 0.15 : 0.1 + Math.random() * 0.3,
+        message: valid ? null : `We couldn't spot a ${word.word} in this photo. Get closer and make sure it's in focus.`,
+      },
+    });
+    mySubmissions.push(pending);
+    return pending;
   },
   async getSubmission(id) {
     await latency();
+    settlePending();
     const s = mySubmissions.find((x) => x.id === id);
     if (!s) throw new ApiError(404, 'not_found', 'Submission not found');
     return s;
@@ -266,6 +323,7 @@ export const mockApi: Api = {
   async getLeaderboard({ scope, cursor }) {
     await latency();
     const self = requireMe();
+    settlePending();
     const all = leaderboardEntries(scope);
     const start = Number(cursor ?? 0);
     const page = all.slice(start, start + 20);

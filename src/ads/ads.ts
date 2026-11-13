@@ -8,7 +8,8 @@ import MobileAds, { AdEventType, AdsConsent, InterstitialAd, TestIds } from 'rea
  *  2. when the user retries after a rejected photo
  *
  * showInterstitial() always resolves (after the ad closes, fails, or times out)
- * so an ad problem never blocks the game.
+ * so an ad problem never blocks the game. Failures are retried on the next call
+ * rather than disabling ads for the rest of the session.
  */
 
 const PROD_UNIT_ID = Platform.select({
@@ -19,41 +20,92 @@ const UNIT_ID = __DEV__ || !PROD_UNIT_ID ? TestIds.INTERSTITIAL : PROD_UNIT_ID;
 
 /** Max time to wait for an ad that isn't loaded yet before letting the user continue. */
 const LOAD_WAIT_MS = 2500;
+/** Background retry after a failed load. */
+const RETRY_MS = 30_000;
 
 let initPromise: Promise<boolean> | null = null;
 let interstitial: InterstitialAd | null = null;
+/** The current interstitial's last load failed; the next showInterstitial() requests a fresh one. */
+let lastLoadFailed = false;
+/** Turned off for Premium users — then no ad is ever requested or shown. */
+let adsEnabled = true;
+
+/** Dev-only: say why an ad was (not) shown, so "no ads" reports can be diagnosed from the Metro log. */
+function debug(message: string, extra?: unknown) {
+  if (__DEV__) console.log(`[ads] ${message}`, ...(extra === undefined ? [] : [extra]));
+}
+
+export function setAdsEnabled(enabled: boolean) {
+  adsEnabled = enabled;
+  if (!enabled) {
+    interstitial?.removeAllListeners();
+    interstitial = null;
+  }
+}
 
 function createAndLoad() {
   interstitial?.removeAllListeners();
+  lastLoadFailed = false;
   const ad = InterstitialAd.createForAdRequest(UNIT_ID);
-  ad.addAdEventListener(AdEventType.ERROR, () => {
+  ad.addAdEventListener(AdEventType.ERROR, (error) => {
+    debug('load error', error);
+    if (interstitial !== ad) return;
+    lastLoadFailed = true;
     // Retry later; a failed load must not crash or block.
     setTimeout(() => {
-      if (interstitial === ad) createAndLoad();
-    }, 30_000);
+      if (interstitial === ad && adsEnabled) createAndLoad();
+    }, RETRY_MS);
   });
   ad.load();
   interstitial = ad;
 }
 
-/** Consent (UMP / GDPR), then iOS App Tracking Transparency, then SDK init + preload. Safe to call repeatedly. */
+/**
+ * Consent (UMP / GDPR), then iOS App Tracking Transparency, then SDK init + preload.
+ * Safe to call repeatedly: a successful init is cached, a failed one is retried on the next call.
+ */
 export function initAds(): Promise<boolean> {
   initPromise ??= (async () => {
+    const started = Date.now();
+    const step = (name: string) => debug(`init: ${name} (+${Date.now() - started}ms)`);
     try {
-      const consent = await AdsConsent.gatherConsent();
+      step('gathering consent…');
+      let consent;
+      try {
+        consent = await AdsConsent.gatherConsent();
+        step(`consent done, status=${consent.status}, canRequestAds=${consent.canRequestAds}`);
+      } catch (e) {
+        // The consent refresh is a network call to Google (UMP) and can fail (offline, DNS/ad blockers).
+        // Per Google's UMP guidance, consent stored from a previous session may still be used to request ads.
+        consent = await AdsConsent.getConsentInfo();
+        step(`consent refresh failed (${e instanceof Error ? e.message : String(e)}); stored canRequestAds=${consent.canRequestAds}`);
+      }
       if (Platform.OS === 'ios') {
         const { status } = await getTrackingPermissionsAsync();
-        if (status === 'undetermined') await requestTrackingPermissionsAsync();
+        step(`tracking status=${status}`);
+        if (status === 'undetermined') {
+          step('requesting tracking permission…');
+          const res = await requestTrackingPermissionsAsync();
+          step(`tracking permission → ${res.status}`);
+        }
       }
-      if (!consent.canRequestAds) return false;
+      if (!consent.canRequestAds) {
+        debug('consent: canRequestAds=false', consent.status);
+        return false;
+      }
+      step('initializing SDK…');
       await MobileAds().initialize();
-      createAndLoad();
+      step('SDK initialized, loading first ad');
+      if (adsEnabled) createAndLoad();
       return true;
     } catch (e) {
       console.warn('Ads init failed', e);
       return false;
     }
-  })();
+  })().then((ok) => {
+    if (!ok) initPromise = null; // allow a retry instead of disabling ads for the session
+    return ok;
+  });
   return initPromise;
 }
 
@@ -69,18 +121,38 @@ function waitForLoad(ad: InterstitialAd, ms: number) {
 }
 
 export async function showInterstitial(): Promise<void> {
+  if (!adsEnabled) {
+    debug('skipped: disabled (premium)');
+    return;
+  }
   const ready = await Promise.race([initAds(), new Promise<boolean>((r) => setTimeout(() => r(false), LOAD_WAIT_MS))]);
+  if (!ready) {
+    debug(`skipped: init not ready within ${LOAD_WAIT_MS}ms (or consent/init failed)`);
+    return;
+  }
+
+  // No ad, or the preloaded one failed: request a fresh one now instead of waiting for the background retry.
+  if (!interstitial || (lastLoadFailed && !interstitial.loaded)) createAndLoad();
   const ad = interstitial;
-  if (!ready || !ad) return;
-  if (!(await waitForLoad(ad, LOAD_WAIT_MS))) return;
+  if (!ad) return;
+  if (!(await waitForLoad(ad, LOAD_WAIT_MS))) {
+    debug(`skipped: no ad loaded within ${LOAD_WAIT_MS}ms`);
+    return;
+  }
 
   await new Promise<void>((resolve) => {
     ad.addAdEventListener(AdEventType.CLOSED, () => resolve());
-    ad.addAdEventListener(AdEventType.ERROR, () => resolve());
-    ad.show().catch(() => resolve());
+    ad.addAdEventListener(AdEventType.ERROR, (error) => {
+      debug('show error', error);
+      resolve();
+    });
+    ad.show().catch((error: unknown) => {
+      debug('show error', error);
+      resolve();
+    });
   });
-  // Preload the next one.
-  createAndLoad();
+  // Preload the next one (unless the user went Premium meanwhile).
+  if (adsEnabled) createAndLoad();
 }
 
 /** For the "Privacy options" row in Profile (required by Google UMP in regulated regions). */

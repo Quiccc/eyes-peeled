@@ -3,7 +3,8 @@
  * keep both in sync when the backend changes.
  */
 
-export type Difficulty = 'easy' | 'medium' | 'hard';
+/** 'expert' is the premium-only 4th daily word. */
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
 
 export type User = {
   id: string;
@@ -11,6 +12,8 @@ export type User = {
   username: string | null;
   displayName: string | null;
   avatarUrl: string | null;
+  /** Bought the one-time Premium purchase (no ads + the daily Premium word). Set by the server only. */
+  isPremium: boolean;
 };
 
 export type AuthProvider = 'apple' | 'google';
@@ -60,8 +63,9 @@ export type DailyWord = {
   maxPoints: number;
   /** How many players have found it so far today */
   foundCount: number;
-  status: 'open' | 'found';
-  /** The user's valid submission, present when status === 'found' */
+  /** 'pending' = the user has a photo still being checked (e.g. they closed the app mid-analysis). */
+  status: 'open' | 'pending' | 'found';
+  /** The user's valid submission when 'found', or the in-flight one when 'pending'. null when 'open'. */
   submission: Submission | null;
 };
 

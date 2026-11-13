@@ -13,6 +13,9 @@ The mobile app talks to your backend only through the endpoints below. TypeScrip
 - Errors return a non-2xx status with body `{ "code": string, "message": string }`. The app shows `message` to the user, so keep it human-readable.
 - `401` means the access token is invalid or expired. The app calls `/auth/refresh` once and retries. If the refresh also fails, the app signs the user out.
 - `204 No Content` is fine for endpoints that return nothing.
+- The app gives up after **15 s** for JSON requests and **60 s** for the photo upload. Endpoints should answer well within that; use `status: 'pending'` for slow inference.
+- If `/auth/refresh` itself fails with a network error or a 5xx, the app keeps the session and shows an error. Only a **4xx** from `/auth/refresh` signs the user out, so return 4xx only when the refresh token is truly invalid or revoked.
+- Every error `code` is listed in [Error codes](#error-codes).
 
 ## Auth
 
@@ -25,27 +28,36 @@ The mobile app talks to your backend only through the endpoints below. TypeScrip
 - **Apple:** verify `idToken` against Apple's JWKS (`https://appleid.apple.com/auth/keys`), with `aud` = the iOS bundle id (`com.wordhunt.app`). The stable user id is the `sub` claim. Apple sends `fullName` only on the first sign-in, so store it then.
 - **Google:** verify `idToken` against Google's JWKS, with `aud` = your **web** client id (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`). The stable user id is the `sub` claim.
 - New users start with `username: null`. The app then forces the username picker.
+- `displayName` and `avatarUrl` come from the provider and the app never edits them: Google's `name` / `picture` claims, Apple's `fullName` from the first sign-in (Apple never gives an avatar, so `avatarUrl` stays `null` and the app shows initials). Refresh Google's values on each sign-in.
 
 ## Account
+
+`User` = `{ id, username, displayName, avatarUrl, isPremium }`. `isPremium` is true once the user owns the one-time
+Premium purchase (see [Purchases](#purchases-premium)). The app hides ads and shows the Expert word based on it.
 
 | Method | Path | Body | Response |
 |---|---|---|---|
 | GET | `/me` | — | `User` |
 | PATCH | `/me` | `{ username }` | `User`. 400 `invalid_username` (rule: `^[a-z0-9_]{3,20}$`), 409 `username_taken` |
-| DELETE | `/me` | — | 204. Delete the account, photos, friendships and leaderboard rows. Required by the App Store. For Apple users, also revoke the Apple token. |
+| DELETE | `/me` | — | 204. Delete the account, photos, friendships and leaderboard rows. Required by the App Store. For Apple users, also revoke the Apple token. Also delete the RevenueCat customer (`DELETE /v1/subscribers/:id`). |
 | GET | `/me/profile` | — | `UserProfile` (`today` = the user's own valid finds today) |
 
 ## Daily words
 
 | Method | Path | Response |
 |---|---|---|
-| GET | `/daily` | `Daily` `{ date, nextResetAt, words: DailyWord[3] }` |
+| GET | `/daily` | `Daily` `{ date, nextResetAt, words: DailyWord[3 or 4] }` |
 
-- Exactly 3 words a day, one per difficulty (`easy`, `medium`, `hard`), ordered easy → hard.
+- 3 words a day for everyone, one per difficulty (`easy`, `medium`, `hard`), plus a 4th `expert` word for Premium users only. Order: easy → expert.
+- Do **not** include the `expert` word for users without `isPremium`. The app shows a locked teaser card in its place.
+- Players see these levels as **Rookie** (`easy`), **Scout** (`medium`), **Ranger** (`hard`) and **Premium** (`expert`). The names are display-only; the API keys stay as listed here.
 - The day rolls over at **00:00 UTC** for everyone. `nextResetAt` is the next 00:00 UTC, and the app's countdown uses it.
 - Each word should match a class label in your YOLO model, so the backend knows which class to check for.
 - `foundCount` is the number of distinct users with a valid submission for that word today.
-- `status: 'found'` and `submission` are set when the calling user already has a valid submission for that word.
+- `status` is for the calling user:
+  - `'found'`: they have a valid submission; `submission` is it.
+  - `'pending'`: they have a submission still being checked; `submission` is it (with `imageUrl` set). If the app was closed mid-analysis, it uses this to resume polling `GET /submissions/:id` instead of letting the user start over.
+  - `'open'`: neither; `submission` is `null`.
 
 ## Photo submission (YOLO)
 
@@ -55,7 +67,7 @@ The mobile app talks to your backend only through the endpoints below. TypeScrip
 | GET | `/submissions/:id` | — | `Submission` |
 
 Server flow:
-1. Reject if `wordId` isn't one of today's words (`404 word_not_found`) or if the user already has a valid submission for it (`409 already_found`).
+1. Reject if `wordId` isn't one of today's words (`404 word_not_found`), if it's the `expert` word and the user isn't Premium (`403 premium_required`), if the user already has a valid submission for it (`409 already_found`), if they have one still `pending` for it (`409 submission_pending`), or if they've hit the attempt limit (`429 rate_limited`; say in `message` when they can try again, e.g. *"That's 10 tries for this word today. Try again tomorrow!"*).
 2. **Record the receipt timestamp before running inference.** This timestamp decides the score.
 3. Store the image, then call the YOLO service with the image and the target class.
 4. A detection of the target class at or above your confidence threshold is `valid`. Anything else is `invalid` with a helpful `message`, such as *"We couldn't spot a bicycle. Get closer and make sure it's in focus."*
@@ -66,7 +78,7 @@ Server flow:
 ### Scoring (suggested)
 
 ```
-maxPoints = { easy: 100, medium: 250, hard: 500 }
+maxPoints = { easy: 100, medium: 250, hard: 500, expert: 1000 }
 elapsedH  = (receivedAt - dayStartUtc) / 1h
 points    = max(round(maxPoints * 0.2), round(maxPoints * (1 - elapsedH / 24)))
 ```
@@ -80,6 +92,20 @@ You can add a bonus for being in the first N finders by `rank`. The app only dis
   - perceptual-hash images to catch re-uploads of the same photo or other users' photos,
   - optionally run a "photo of a screen" or "photo of a photo" classifier.
 
+## Purchases (Premium)
+
+One non-consumable purchase, **Premium**: no ads + the daily Expert word. It is sold through
+[RevenueCat](https://www.revenuecat.com/). The app uses the backend `User.id` as the RevenueCat app user id.
+
+| Method | Path | Body | Response |
+|---|---|---|---|
+| POST | `/me/purchases/sync` | — | `User` with an up-to-date `isPremium` |
+
+- **Sync:** the app calls this right after a purchase or a restore. Fetch `GET https://api.revenuecat.com/v1/subscribers/{user.id}` with your RevenueCat **secret** API key (server-only, never in the app). Set `isPremium = true` when `subscriber.entitlements.premium` is present and not expired (a lifetime purchase has `expires_date: null`). Return the user.
+- **Webhook:** also configure a RevenueCat webhook (with an `Authorization` header you check) and update `isPremium` on `INITIAL_PURCHASE`, `NON_RENEWING_PURCHASE`, `TRANSFER` and `CANCELLATION` (refunds), so premium stays right without the app.
+- `isPremium` is decided **only** by the server. Never accept it from the client.
+- When a user loses Premium (refund), stop returning the Expert word. Keep points already earned.
+
 ## Leaderboard
 
 | Method | Path | Query | Response |
@@ -89,6 +115,7 @@ You can add a bonus for being in the first N finders by `rank`. The app only dis
 - Points add up per **calendar month (UTC)**. The board wipes at 00:00 UTC on the 1st, and `resetsAt` is that instant.
 - `friends` scope = the user plus their accepted friends. Always include the user, even at 0 points.
 - `me` is the caller's own entry, so the app can pin it when it falls outside the loaded page.
+- **Ties:** two users with the same points never share a rank. Break ties by who reached that total first (the earliest `receivedAt` of their latest valid submission this month), then by user id, so ranks are stable across pages and refreshes.
 - Page size is up to you (the mock uses 20). `nextCursor: null` means this is the last page.
 - Exclude blocked users in both directions.
 
@@ -107,6 +134,12 @@ You can add a bonus for being in the first N finders by `rank`. The app only dis
 
 Image URLs in `FeedItem.imageUrl` and `Submission.imageUrl` should be short-lived signed URLs. Friends' photos are private.
 
+### Profile stats
+
+- `monthPoints` / `monthRank`: the user's entry on the global board for the current month (`monthRank: null` with 0 points).
+- `totalFinds`: all-time count of valid submissions.
+- `streak`: the number of consecutive UTC days, ending today or yesterday, with **at least one valid find**. A streak still counts during today until 00:00 UTC, so it doesn't show 0 in the morning before the user has played. Missing a whole UTC day resets it to 0.
+
 ## Safety (App Store guideline 1.2: user-generated content)
 
 | Method | Path | Body | Response |
@@ -115,3 +148,31 @@ Image URLs in `FeedItem.imageUrl` and `Submission.imageUrl` should be short-live
 | POST | `/blocks` | `{ userId }` | 204. Also removes any friendship and pending requests. |
 
 Apple expects a way to act on reports within 24 hours, such as an admin queue that can remove photos and ban users.
+
+## Error codes
+
+| Status | `code` | When |
+|---|---|---|
+| 400 | `invalid_username` | `PATCH /me` with a username that fails `^[a-z0-9_]{3,20}$` |
+| 400 | `bad_request` | Any other malformed body or query |
+| 401 | `unauthorized` | Missing, invalid or expired access token (the app refreshes once, then signs out) |
+| 403 | `premium_required` | Submitting to the `expert` word without Premium |
+| 403 | `banned` | The account was banned by moderation |
+| 404 | `word_not_found` | Submitting to a word that isn't one of today's |
+| 404 | `not_found` | Unknown submission, user or request id |
+| 409 | `username_taken` | `PATCH /me` with a taken username |
+| 409 | `already_found` | Submitting to a word the user already found today |
+| 409 | `submission_pending` | Submitting while an earlier photo for that word is still being checked |
+| 413 | `photo_too_large` | Upload above your size limit (the app sends ≤1280px JPEGs, usually < 500 KB) |
+| 426 | `upgrade_required` | App version below the minimum (see [Planned](#planned)) |
+| 429 | `rate_limited` | Too many attempts or requests; `message` should say when to try again |
+| 5xx | `server_error` | Anything unexpected. Keep `message` generic. |
+
+The app shows `message` as-is, so write it for players, not developers.
+
+## Planned
+
+Not used by the app yet. Reserved here so the first store build and the backend agree on them.
+
+- **Minimum app version.** The app already sends `X-App-Version: <semver>` (from `app.json` `version`) and `X-Platform: ios|android` on every request. When the version is below your minimum, return `426 upgrade_required`. For now the app shows the error `message`; a dedicated "Please update" screen with a store link is planned. Bump `version` in `app.json` for each store release so this check means something.
+- **Push notifications.** `PUT /me/push-token` `{ token, platform }` → 204, to store an Expo push token. Uses: daily reset ("New words are live"), incoming friend request, a friend passed you on the friends board. `DELETE /me/push-token` on sign-out.

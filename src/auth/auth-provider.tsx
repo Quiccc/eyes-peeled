@@ -4,6 +4,7 @@ import { createContext, use, useEffect, useState, type PropsWithChildren } from 
 import { setAuthFailureListener } from '@/api/client';
 import { api, USE_MOCK_API } from '@/api/endpoints';
 import type { AuthProvider as Provider, User } from '@/api/types';
+import { initPurchases, resetPurchases } from '@/purchases/purchases';
 
 import { getAppleCredential, getGoogleCredential, signOutOfProviders } from './social-sign-in';
 import { clearTokens, loadTokens, saveTokens } from './token-store';
@@ -18,6 +19,8 @@ type AuthContextValue = AuthState & {
   signOut(): Promise<void>;
   deleteAccount(): Promise<void>;
   setUsername(username: string): Promise<void>;
+  /** Replace the signed-in user with a fresh copy from the server (e.g. after a purchase). */
+  updateUser(user: User): void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -26,7 +29,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
   const [state, setState] = useState<AuthState>({ status: 'loading', user: null });
 
+  const signedInUserId = state.status === 'signedIn' ? state.user.id : null;
+  useEffect(() => {
+    if (signedInUserId) void initPurchases(signedInUserId);
+  }, [signedInUserId]);
+
   const resetLocal = async () => {
+    await resetPurchases();
     await clearTokens();
     queryClient.clear();
     setState({ status: 'signedOut', user: null });
@@ -83,6 +92,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     },
     async setUsername(username) {
       const user = await api.updateMe({ username });
+      setState({ status: 'signedIn', user });
+    },
+    updateUser(user) {
       setState({ status: 'signedIn', user });
     },
   };
