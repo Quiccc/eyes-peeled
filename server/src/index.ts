@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { createApp } from './app';
 import type { Ctx } from './context';
@@ -14,7 +15,12 @@ import { requeuePending } from './services/submissions';
 import { httpYoloVerifier, stubVerifier } from './services/verifier';
 
 const env = loadEnv();
-const database = await openDatabase({ databaseUrl: env.DATABASE_URL, dataDir: env.DATA_DIR });
+// Relative folders in .env are relative to server/, wherever the process was started from.
+const SERVER_ROOT = fileURLToPath(new URL('..', import.meta.url));
+const dataDir = path.resolve(SERVER_ROOT, env.DATA_DIR);
+const adminPanelDir = path.resolve(SERVER_ROOT, env.ADMIN_PANEL_DIR);
+
+const database = await openDatabase({ databaseUrl: env.DATABASE_URL, dataDir });
 await seedWords(database.db);
 
 const ctx: Ctx = {
@@ -22,7 +28,7 @@ const ctx: Ctx = {
   env,
   clock: systemClock,
   storage: localStorage({
-    dir: path.join(env.DATA_DIR, 'uploads'),
+    dir: path.join(dataDir, 'uploads'),
     baseUrl: env.PUBLIC_BASE_URL,
     secret: env.FILE_URL_SECRET,
     now: () => systemClock.now(),
@@ -33,14 +39,13 @@ const ctx: Ctx = {
 };
 
 const requeued = await requeuePending(ctx);
-const adminPanelDir = path.resolve(env.ADMIN_PANEL_DIR);
 
 const server = createApp(ctx, { log: true, adminPanelDir }).listen(env.PORT, '0.0.0.0', () => {
   console.log(`Word Hunt API on http://localhost:${env.PORT}`);
-  console.log(`  database: ${env.DATABASE_URL ? 'Postgres (DATABASE_URL)' : `PGlite in ${path.resolve(env.DATA_DIR, 'db')}`}`);
+  console.log(`  database: ${env.DATABASE_URL ? 'Postgres (DATABASE_URL)' : `PGlite in ${path.join(dataDir, 'db')}`}`);
   console.log(`  verifier: ${env.YOLO_URL ? `YOLO at ${env.YOLO_URL}` : 'stub (random ~60% pass). Set YOLO_URL for real checks.'}`);
   if (env.AUTH_DEV_LOGIN) console.log('  dev login: ON (idToken "dev:<name>")');
-  if (env.ADMIN_TOKEN) console.log(`  admin panel: http://localhost:${env.PORT}/admin-panel/ (after building admin/)`);
+  if (env.ADMIN_TOKEN) console.log(`  admin panel: http://localhost:${env.PORT}/admin-panel/ (after building server/admin/)`);
   if (requeued) console.log(`  re-checking ${requeued} pending photo(s)`);
 });
 

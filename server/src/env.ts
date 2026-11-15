@@ -10,7 +10,7 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   PUBLIC_BASE_URL: z.string().default('http://localhost:4000'),
   DATABASE_URL: optional,
-  /** Folder for PGlite data and uploaded photos */
+  /** Folder for PGlite data and uploaded photos. Relative paths are resolved from server/. */
   DATA_DIR: z.string().default('./data'),
   JWT_SECRET: z.string().min(32),
   ACCESS_TOKEN_TTL_SEC: z.coerce.number().int().positive().default(15 * 60),
@@ -29,8 +29,8 @@ const schema = z.object({
   REVENUECAT_SECRET_KEY: optional,
   REVENUECAT_WEBHOOK_AUTH: optional,
   ADMIN_TOKEN: optional,
-  /** Built admin panel, served at /admin-panel. */
-  ADMIN_PANEL_DIR: z.string().default('../admin/dist'),
+  /** Built admin panel, served at /admin-panel. Relative paths are resolved from server/. */
+  ADMIN_PANEL_DIR: z.string().default('admin/dist'),
   /** In the first week of each month, plan next month's words automatically (empty days only). */
   AUTO_SCHEDULE: z
     .string()

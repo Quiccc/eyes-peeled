@@ -38,9 +38,9 @@ yarn-error.*
 
 example
 
-# generated native folders
-/ios
-/android
+# generated native folders (Continuous Native Generation)
+mobile/ios/
+mobile/android/
 graphify-out/
 
 # design mockups
@@ -49,14 +49,6 @@ graphify-out/
 # backend
 server/data/
 server/.env
-# What `npx expo run:*` generates when run by mistake in server/ or admin/ instead of the repo root
-server/android/
-server/ios/
-server/app.json
-admin/android/
-admin/ios/
-admin/app.json
-.expo/
 yolo/.venv/
 __pycache__/
 .pytest_cache/

@@ -1,6 +1,6 @@
 # Word Hunt API
 
-The Express 5 + Drizzle backend that implements [`docs/api-contract.md`](../docs/api-contract.md). Response types come straight from the app's [`src/api/types.ts`](../src/api/types.ts), so the two can't drift apart.
+The Express 5 + Drizzle backend that implements [`docs/api-contract.md`](../docs/api-contract.md). Response types come straight from the app's [`mobile/src/api/types.ts`](../mobile/src/api/types.ts), so the two can't drift apart.
 
 ## Run it locally
 
@@ -17,7 +17,7 @@ Photos are checked by a **stub** that accepts about 60% of them until you run th
 
 ### Point the app at it
 
-In the app's `.env.local`:
+In the app's `mobile/.env.local`:
 
 ```
 EXPO_PUBLIC_USE_MOCK_API=false
@@ -64,11 +64,11 @@ test/
 ## How it works
 
 - **Tokens:** the access token is a JWT valid for 15 min. The refresh token is opaque, valid for 60 days, and stored only as a hash. Each `/auth/refresh` replaces it with a new one.
-- **Daily words:** plan them ahead in the [admin panel](../admin/README.md) (Schedule → "Fill empty slots", then change any future day). A day nobody planned gets its words picked on its first request. Picks use only enabled words the YOLO model knows, avoid repeats within 14 days on either side, and spread repeats as widely as the pool allows. Set `AUTO_SCHEDULE=true` to fill next month automatically during the first week.
+- **Daily words:** plan them ahead in the [admin panel](admin/README.md) (Schedule → "Fill empty slots", then change any future day). A day nobody planned gets its words picked on its first request. Picks use only enabled words the YOLO model knows, avoid repeats within 14 days on either side, and spread repeats as widely as the pool allows. Set `AUTO_SCHEDULE=true` to fill next month automatically during the first week.
 - **Thresholds:** a photo passes at `YOLO_MIN_CONFIDENCE`, or at the word's own threshold when one is set (admin panel → Words).
 - **Photos:** each upload is saved and then checked by the verifier, two at a time. If the verdict takes longer than 8 s, the app gets `pending` and polls. Pending photos left over from a restart are checked again at startup.
 - **Image URLs:** these are signed and expire after 1 h. Files live in `server/data/uploads`. Moving to S3/R2 only means implementing the interface in `services/storage.ts`.
-- **Admin** (needs `ADMIN_TOKEN`; wrong or missing token = 404). Use the [admin panel](../admin/README.md) at `/admin-panel/`, or call the API with `Authorization: Bearer <ADMIN_TOKEN>`:
+- **Admin** (needs `ADMIN_TOKEN`; wrong or missing token = 404). Use the [admin panel](admin/README.md) at `/admin-panel/`, or call the API with `Authorization: Bearer <ADMIN_TOKEN>`:
   - Moderation: `GET /admin/reports?status=open|resolved`, `POST /admin/reports/:id/resolve`, `POST /admin/submissions/:id/remove`, `POST /admin/users/:id/ban`, `POST /admin/users/:id/unban`
   - Schedule: `GET /admin/schedule?month=YYYY-MM`, `POST /admin/schedule { month }` (fills empty days only), `PUT /admin/schedule/:date/:difficulty { wordId }` (future days only)
   - Words: `GET /admin/words`, `POST /admin/words { label, difficulty }`, `PATCH /admin/words/:id { enabled?, minConfidence? }`

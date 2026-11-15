@@ -52,7 +52,7 @@
     "ios": "expo run:ios",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "server": "npm --prefix server run dev"
+    "server": "npm --prefix ../server run dev"
   },
   "private": true
 }

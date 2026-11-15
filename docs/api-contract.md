@@ -1,8 +1,8 @@
 # Word Hunt — Backend API contract
 
 The mobile app talks to your backend only through the endpoints below. TypeScript shapes live in
-[`src/api/types.ts`](../src/api/types.ts) (the source of truth). The app-side implementation is
-`src/api/endpoints.ts`. A full in-memory reference implementation is in `src/api/mock.ts`.
+[`mobile/src/api/types.ts`](../mobile/src/api/types.ts) (the source of truth). The app-side implementation is
+`mobile/src/api/endpoints.ts`. A full in-memory reference implementation is in `mobile/src/api/mock.ts`.
 
 ## Conventions
 
@@ -54,7 +54,7 @@ Premium purchase (see [Purchases](#purchases-premium)). The app hides ads and sh
 - Do **not** include the `expert` word for users without `isPremium`. The app shows a locked teaser card in its place.
 - Players see these levels as **Rookie** (`easy`), **Scout** (`medium`), **Ranger** (`hard`) and **Premium** (`expert`). The names are display-only; the API keys stay as listed here.
 - The day rolls over at **00:00 UTC** for everyone. `nextResetAt` is the next 00:00 UTC, and the app's countdown uses it.
-- Each word must be a class label in the YOLO model, so the backend knows which class to check for. One shared model knows every word; words are planned a month ahead in the admin panel (`admin/`), which only offers enabled words the running model knows. See [`yolo/README.md`](../yolo/README.md) for adding words.
+- Each word must be a class label in the YOLO model, so the backend knows which class to check for. One shared model knows every word; words are planned a month ahead in the admin panel (`server/admin/`), which only offers enabled words the running model knows. See [`yolo/README.md`](../yolo/README.md) for adding words.
 - `foundCount` is the number of distinct users with a valid submission for that word today.
 - `status` is for the calling user:
   - `'found'`: they have a valid submission; `submission` is it.
@@ -176,5 +176,5 @@ The app shows `message` as-is, so write it for players, not developers.
 
 Not used by the app yet. Reserved here so the first store build and the backend agree on them.
 
-- **Minimum app version.** The app already sends `X-App-Version: <semver>` (from `app.json` `version`) and `X-Platform: ios|android` on every request. When the version is below your minimum, return `426 upgrade_required`. For now the app shows the error `message`; a dedicated "Please update" screen with a store link is planned. Bump `version` in `app.json` for each store release so this check means something.
+- **Minimum app version.** The app already sends `X-App-Version: <semver>` (from `mobile/app.json` `version`) and `X-Platform: ios|android` on every request. When the version is below your minimum, return `426 upgrade_required`. For now the app shows the error `message`; a dedicated "Please update" screen with a store link is planned. Bump `version` in `mobile/app.json` for each store release so this check means something.
 - **Push notifications.** `PUT /me/push-token` `{ token, platform }` → 204, to store an Expo push token. Uses: daily reset ("New words are live"), incoming friend request, a friend passed you on the friends board. `DELETE /me/push-token` on sign-out.

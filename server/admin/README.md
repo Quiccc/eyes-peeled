@@ -16,7 +16,7 @@ with the server's `ADMIN_TOKEN`.
 Set `ADMIN_TOKEN` in `server/.env` (any long random string) and start the server first.
 
 ```bash
-cd admin
+cd server/admin
 npm install
 npm run dev          # http://localhost:5174/admin-panel/ , proxies /admin/* to http://localhost:4000
 ```
