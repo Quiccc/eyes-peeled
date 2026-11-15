@@ -21,7 +21,15 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # run as a script from anywhere
 
-from wordhunt_yolo.common import DEFAULT_WEIGHTS, MODELS_DIR, ROOT, TRAINING_DIR, load_classes  # noqa: E402
+from wordhunt_yolo.common import (  # noqa: E402
+    DEFAULT_WEIGHTS,
+    MODELS_DIR,
+    ROOT,
+    TRAINING_DIR,
+    is_own_release,
+    load_classes,
+    weights_ref,
+)
 
 
 def main() -> int:
@@ -48,10 +56,10 @@ def main() -> int:
 
     from ultralytics import YOLO
 
-    model = YOLO(args.base)
+    model = YOLO(weights_ref(args.base))
     base_names = list(model.names.values())
     # One of our own releases: its classes must be the start of the current list (append-only rule).
-    if Path(args.base).parent.parent == MODELS_DIR and classes[: len(base_names)] != base_names:
+    if is_own_release(args.base) and classes[: len(base_names)] != base_names:
         sys.exit("classes.yaml no longer starts with the base model's classes. Only append to it.")
 
     model.train(data=str(args.data), epochs=args.epochs, imgsz=args.imgsz, batch=args.batch,

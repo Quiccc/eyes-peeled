@@ -34,9 +34,24 @@ def weights_ref(name: str) -> str:
     return str(local) if local.is_file() else name
 
 
+#: File names Ultralytics gives every trained model; they say nothing about the version.
+_GENERIC_WEIGHTS = {"best", "last"}
+
+
 def version_from_weights(name: str) -> str:
-    """Version shown when MODEL_VERSION isn't set: the weights file name, e.g. "yolo11s"."""
-    return Path(name).stem
+    """Version shown when MODEL_VERSION isn't set. Our releases live in models/<version>/best.pt, so
+    a generic file name takes its folder's name ("v2"); stock weights keep their own ("yolo11s")."""
+    p = Path(name)
+    if p.stem.lower() in _GENERIC_WEIGHTS and p.parent.name:
+        return p.parent.name
+    return p.stem
+
+
+def is_own_release(weights: str) -> bool:
+    """True for weights in models/<version>/ (ours, bound by the append-only class rule), however
+    the path was written: relative to yolo/, relative to the cwd, or absolute."""
+    path = Path(weights_ref(weights)).resolve()
+    return path.is_file() and path.parent.parent == MODELS_DIR.resolve()
 
 
 def load_classes() -> list[str]:

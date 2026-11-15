@@ -35,7 +35,7 @@ The first start downloads `yolo11s.pt` (about 19 MB). Then set `YOLO_URL=http://
 | Env | Default | |
 |---|---|---|
 | `YOLO_MODEL` | `yolo11s.pt` | Weights file, e.g. `models/v2/best.pt` |
-| `MODEL_VERSION` | weights file name | Shown in `/health` and the admin panel |
+| `MODEL_VERSION` | from the weights path | Shown in `/health` and the admin panel. `models/v2/best.pt` → `v2`, `yolo11s.pt` → `yolo11s` |
 | `YOLO_KEY` | empty (no check) | Shared secret, sent by the server as `X-Yolo-Key` |
 | `MIN_CONFIDENCE` | `0.25` | Lowest score reported. The server decides pass/fail with `YOLO_MIN_CONFIDENCE` (default 0.5) or a per-word threshold |
 | `EVAL_REPORT` | `eval/latest.json` | Word-test report served at `/eval/report` |
