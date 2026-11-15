@@ -65,7 +65,7 @@ function RootNavigator() {
           name="hunt/[wordId]"
           options={{ presentation: 'fullScreenModal', headerShown: false, gestureEnabled: false }}
         />
-        <Stack.Screen name="user/[userId]" options={{ title: '' }} />
+        <Stack.Screen name="user/[userId]" options={{ headerShown: false }} />
         <Stack.Screen name="premium" options={{ presentation: 'modal', headerShown: false }} />
       </Stack.Protected>
     </Stack>

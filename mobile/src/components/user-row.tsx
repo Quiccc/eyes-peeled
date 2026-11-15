@@ -38,6 +38,8 @@ export function UserRow({ user, rank, right, highlight, noLink, label }: Props) 
           backgroundColor: highlight ? theme.backgroundSelected : theme.backgroundElement,
           borderColor: highlight ? theme.tint : theme.border,
           borderBottomWidth: highlight ? 5 : 4,
+          // A 56px face plus the 2px top and bottom borders.
+          minHeight: ROW_FACE + 2 + (highlight ? 5 : 4),
         },
       ])}>
       {rank !== undefined && (
@@ -45,6 +47,7 @@ export function UserRow({ user, rank, right, highlight, noLink, label }: Props) 
           style={[
             styles.rank,
             rank > 99 && styles.rankWide,
+            highlight && styles.rankMine,
             medal ? { backgroundColor: medal } : highlight ? { backgroundColor: theme.backgroundElement } : null,
           ]}>
           <ThemedText
@@ -72,12 +75,13 @@ export function UserRow({ user, rank, right, highlight, noLink, label }: Props) 
   );
 }
 
+const ROW_FACE = 56;
+
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two + 4,
-    minHeight: 56,
     paddingHorizontal: Spacing.two + 4,
     paddingVertical: Spacing.two,
     borderRadius: 18,
@@ -93,6 +97,9 @@ const styles = StyleSheet.create({
   },
   rankWide: {
     minWidth: 44,
+  },
+  rankMine: {
+    paddingHorizontal: 6,
   },
   rankText: {
     fontWeight: 900,

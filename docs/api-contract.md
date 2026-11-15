@@ -34,8 +34,9 @@ The mobile app talks to your backend only through the endpoints below. TypeScrip
 
 ## Account
 
-`User` = `{ id, username, displayName, avatarUrl, isPremium }`. `isPremium` is true once the user owns the one-time
+`User` = `{ id, username, displayName, avatarUrl, isPremium, joinedAt }`. `isPremium` is true once the user owns the one-time
 Premium purchase (see [Purchases](#purchases-premium)). The app hides ads and shows the Expert word based on it.
+`joinedAt` is when the account was created (ISO 8601). Profiles show it as "Hunting since November".
 
 | Method | Path | Body | Response |
 |---|---|---|---|

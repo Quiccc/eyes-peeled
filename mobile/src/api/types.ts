@@ -14,6 +14,8 @@ export type User = {
   avatarUrl: string | null;
   /** Bought the one-time Premium purchase (no ads + the daily Premium word). Set by the server only. */
   isPremium: boolean;
+  /** When the account was created (ISO 8601). Shown as "Hunting since November". */
+  joinedAt: string;
 };
 
 export type AuthProvider = 'apple' | 'google';

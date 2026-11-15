@@ -12,9 +12,11 @@ type Props<T extends string> = {
   value: T;
   onChange: (value: T) => void;
   accessibilityLabel?: string;
+  /** Segment height: 44 by default, 40 for the compact control above the leaderboard. */
+  height?: 40 | 44;
 };
 
-export function SegmentedControl<T extends string>({ options, value, onChange, accessibilityLabel }: Props<T>) {
+export function SegmentedControl<T extends string>({ options, value, onChange, accessibilityLabel, height = 44 }: Props<T>) {
   const theme = useTheme();
 
   return (
@@ -36,7 +38,9 @@ export function SegmentedControl<T extends string>({ options, value, onChange, a
             }}
             style={({ pressed }) => [
               styles.segment,
-              selected && { backgroundColor: theme.tint, borderBottomWidth: 3, borderBottomColor: theme.tintEdge },
+              { height },
+              // The edge sits below the face, so the label stays centered.
+              selected && { backgroundColor: theme.tint, boxShadow: `0 3px 0 ${theme.tintEdge}` },
               { opacity: pressed && !selected ? 0.6 : 1 },
             ]}>
             <ThemedText style={[styles.label, { color: selected ? theme.onTint : theme.textSecondary }]}>
@@ -59,7 +63,6 @@ const styles = StyleSheet.create({
   },
   segment: {
     flex: 1,
-    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radius.sm,

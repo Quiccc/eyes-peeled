@@ -5,6 +5,8 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } fr
 import { Edge, Radius } from '@/constants/theme';
 import { tap } from '@/lib/haptics';
 
+const OUTLINE = 2;
+
 type Props = Omit<PressableProps, 'style' | 'children'> & {
   /** Face color. */
   color: string;
@@ -13,7 +15,10 @@ type Props = Omit<PressableProps, 'style' | 'children'> & {
   /** Draw a 2px outline in the edge color around the face (cards). */
   outlined?: boolean;
   radius?: number;
-  /** Edge height in px. */
+  /**
+   * Height of the solid bottom band in px. With `outlined`, the 2px outline counts toward it,
+   * like CSS `border: 2px; border-bottom-width: 6px`.
+   */
   edge?: number;
   /** Outer box: margins, flex, width. */
   style?: StyleProp<ViewStyle>;
@@ -41,19 +46,21 @@ export function Chunky({
   disabled,
   ...rest
 }: Props) {
+  /** How far the face sits above the edge layer (and sinks when pressed). */
+  const drop = outlined ? Math.max(0, edge - OUTLINE) : edge;
   const pressed = useSharedValue(0);
-  const faceMotion = useAnimatedStyle(() => ({ transform: [{ translateY: pressed.value * edge }] }));
+  const faceMotion = useAnimatedStyle(() => ({ transform: [{ translateY: pressed.value * drop }] }));
 
   const edgeLayer = (
     <View
-      style={[styles.edge, { top: edge, borderRadius: radius, backgroundColor: edgeColor }]}
+      style={[styles.edge, { top: drop, borderRadius: radius, backgroundColor: edgeColor }]}
       importantForAccessibility="no"
     />
   );
   const faceStyle = [
     styles.face,
-    { backgroundColor: color, borderRadius: radius, marginBottom: edge },
-    outlined && { borderWidth: 2, borderColor: edgeColor },
+    { backgroundColor: color, borderRadius: radius, marginBottom: drop },
+    outlined && { borderWidth: OUTLINE, borderColor: edgeColor },
     contentStyle,
   ];
 

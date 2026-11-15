@@ -19,7 +19,7 @@ export async function setUsername(ctx: Ctx, user: UserRow, username: string): Pr
     if (!row) throw new Error('user vanished');
     return row;
   } catch (e) {
-    if (isUniqueViolation(e)) throw new HttpError(409, 'username_taken', 'That username is taken.');
+    if (isUniqueViolation(e)) throw new HttpError(409, 'username_taken', 'That username is taken. Try another one.');
     throw e;
   }
 }

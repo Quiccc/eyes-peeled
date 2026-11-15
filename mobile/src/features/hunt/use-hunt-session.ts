@@ -3,13 +3,20 @@ import type { CameraView } from 'expo-camera';
 import { useEffect, useRef, useState } from 'react';
 
 import { showInterstitial } from '@/ads/ads';
+import { ApiError } from '@/api/client';
 import { invalidateAfterVerdict } from '@/api/queries';
 import type { DailyWord, Submission } from '@/api/types';
 import { preparePhoto } from '@/features/hunt/prepare-photo';
 import { submitAndWait, waitForVerdict } from '@/features/hunt/submit';
-import { errorMessage } from '@/lib/format';
 
 /** Where a hunt is: aiming the camera, waiting for the verdict, showing it, or showing a failure. */
+/** Shown when a photo never got a verdict; a specific server refusal (word closed, rate limit) keeps its own text. */
+const UPLOAD_FAILED = "Your photo didn't reach us. Check your connection and try again.";
+
+function uploadErrorMessage(e: unknown) {
+  return e instanceof ApiError && e.code !== 'http_error' ? e.message : UPLOAD_FAILED;
+}
+
 export type HuntPhase =
   | { kind: 'camera' }
   | { kind: 'analyzing'; previewUri: string }
@@ -43,7 +50,7 @@ export function useHuntSession(word: DailyWord | undefined) {
         setPhase({ kind: 'result', previewUri, submission: s });
         invalidateAfterVerdict(queryClient, s);
       })
-      .catch((e) => setPhase({ kind: 'error', previewUri, message: errorMessage(e) }));
+      .catch((e) => setPhase({ kind: 'error', previewUri, message: uploadErrorMessage(e) }));
   }, [pendingSubmission, queryClient]);
 
   const capture = async () => {
@@ -56,7 +63,7 @@ export function useHuntSession(word: DailyWord | undefined) {
       setPhase({ kind: 'analyzing', previewUri });
       showVerdict(previewUri, await submitAndWait(word.id, photo));
     } catch (e) {
-      setPhase({ kind: 'error', previewUri, message: errorMessage(e) });
+      setPhase({ kind: 'error', previewUri, message: uploadErrorMessage(e) });
     }
   };
 

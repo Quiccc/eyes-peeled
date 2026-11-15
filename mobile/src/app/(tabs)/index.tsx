@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useDaily } from '@/api/queries';
@@ -24,6 +24,7 @@ export default function TodayScreen() {
   return (
     <ThemedView style={styles.flex}>
       <SafeAreaView edges={['top']} style={styles.flex}>
+        {/* Like the design, the cards share the screen's height; it only scrolls when they don't fit. */}
         <ScrollView
           contentContainerStyle={styles.content}
           refreshControl={<RefreshControl refreshing={daily.isRefetching} onRefresh={() => void daily.refetch()} />}>
@@ -31,7 +32,7 @@ export default function TodayScreen() {
 
           <QueryState query={daily} loading={<SkeletonRows count={3} height={104} />} errorTitle="Couldn't load today's words">
             {(data) => (
-              <>
+              <View style={styles.cards}>
                 {data.words.map((word) => {
                   const shareable = fromDailyWord(word);
                   return (
@@ -41,11 +42,12 @@ export default function TodayScreen() {
                       busy={openingId === word.id}
                       onPress={() => startHunt(word)}
                       onShare={shareable ? () => share(shareable) : undefined}
+                      style={styles.card}
                     />
                   );
                 })}
-                {!user?.isPremium && <LockedPremiumCard onPress={() => router.push('/premium')} />}
-              </>
+                {!user?.isPremium && <LockedPremiumCard onPress={() => router.push('/premium')} style={styles.card} />}
+              </View>
             )}
           </QueryState>
         </ScrollView>
@@ -58,8 +60,18 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: {
+    flexGrow: 1,
     padding: Spacing.three,
+    gap: Spacing.three,
+    paddingBottom: BottomTabInset,
+  },
+  cards: {
+    flexGrow: 1,
     gap: Spacing.two + 2,
-    paddingBottom: BottomTabInset + Spacing.three,
+  },
+  card: {
+    flexGrow: 1,
+    flexBasis: 0,
+    minHeight: 96,
   },
 });

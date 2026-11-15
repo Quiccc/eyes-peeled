@@ -52,7 +52,7 @@ export default function LeaderboardScreen() {
               </ThemedText>
             )}
           </View>
-          <SegmentedControl accessibilityLabel="Scope" options={SCOPES} value={scope} onChange={setScope} />
+          <SegmentedControl accessibilityLabel="Scope" options={SCOPES} value={scope} onChange={setScope} height={40} />
         </View>
 
         <QueryState

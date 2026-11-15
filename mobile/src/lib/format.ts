@@ -60,8 +60,17 @@ export function monthName(month: string) {
 /** Lowercase letters, digits and underscores, 3–20 long. Same rule as the server. */
 export const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
+/** How a player is named in lists and headers: their username, bare (no "@"). */
 export function displayName(u: { username: string | null; displayName: string | null }) {
-  return u.username ? `@${u.username}` : (u.displayName ?? 'Player');
+  return u.username ?? u.displayName ?? 'Player';
+}
+
+/** "Hunting since November", with the year when it isn't this year: "Hunting since March 2025". */
+export function joinedLabel(iso: string) {
+  const d = new Date(iso);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  const when = d.toLocaleDateString(undefined, sameYear ? { month: 'long' } : { month: 'long', year: 'numeric' });
+  return `Hunting since ${when}`;
 }
 
 export function errorMessage(e: unknown) {

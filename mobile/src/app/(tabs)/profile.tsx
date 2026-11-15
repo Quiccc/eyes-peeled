@@ -94,7 +94,7 @@ export default function ProfileScreen() {
             />
           </View>
 
-          <View style={styles.section}>
+          <View style={[styles.section, styles.account]}>
             <SectionLabel>ACCOUNT</SectionLabel>
             <SettingsGroup rows={accountRows} />
             <DangerLink title="Delete account" loading={deletion.busy === 'delete'} onPress={confirmDelete} />
@@ -119,6 +119,9 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: Spacing.two,
+  },
+  account: {
+    gap: 12,
   },
   version: {
     textAlign: 'center',

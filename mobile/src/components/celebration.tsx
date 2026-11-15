@@ -13,38 +13,41 @@ import { ThemedText, type ThemedTextProps } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { success } from '@/lib/haptics';
 
-/** x: horizontal start (0–1 of the width), dx: sideways drift in px, fall: distance in px, rot: final rotation. */
+/**
+ * Where each piece comes to rest, from the design (a 390×844 screen), turned into fractions of the screen.
+ * size in px, rot in degrees, c = index into the confetti colors. Pieces drop in from above and stay.
+ */
 const BITS = [
-  { x: 0.08, dx: -30, fall: 260, rot: 200, size: 12, c: 0 },
-  { x: 0.18, dx: 24, fall: 340, rot: -160, size: 10, c: 1 },
-  { x: 0.27, dx: -12, fall: 220, rot: 280, size: 12, c: 2 },
-  { x: 0.36, dx: 30, fall: 380, rot: -220, size: 10, c: 3 },
-  { x: 0.45, dx: -24, fall: 300, rot: 140, size: 12, c: 4 },
-  { x: 0.54, dx: 16, fall: 240, rot: -300, size: 10, c: 0 },
-  { x: 0.63, dx: -34, fall: 360, rot: 240, size: 12, c: 1 },
-  { x: 0.72, dx: 22, fall: 280, rot: -180, size: 10, c: 2 },
-  { x: 0.81, dx: -16, fall: 400, rot: 320, size: 12, c: 3 },
-  { x: 0.9, dx: 28, fall: 250, rot: -260, size: 10, c: 4 },
-  { x: 0.14, dx: 10, fall: 420, rot: 180, size: 10, c: 2 },
-  { x: 0.5, dx: -8, fall: 440, rot: -140, size: 12, c: 3 },
-  { x: 0.68, dx: 12, fall: 320, rot: 260, size: 10, c: 4 },
-  { x: 0.86, dx: -22, fall: 300, rot: -200, size: 12, c: 0 },
-] as const;
+  { x: 28, y: 96, size: 12, c: 0, rot: 18 },
+  { x: 70, y: 150, size: 10, c: 2, rot: -24 },
+  { x: 330, y: 110, size: 12, c: 4, rot: 30 },
+  { x: 352, y: 190, size: 10, c: 1, rot: -12 },
+  { x: 14, y: 300, size: 10, c: 3, rot: 40 },
+  { x: 366, y: 330, size: 12, c: 0, rot: -30 },
+  { x: 40, y: 470, size: 12, c: 1, rot: 14 },
+  { x: 338, y: 480, size: 10, c: 3, rot: -40 },
+  { x: 84, y: 520, size: 10, c: 4, rot: 60 },
+  { x: 300, y: 536, size: 12, c: 2, rot: 20 },
+  { x: 190, y: 470, size: 10, c: 0, rot: -16 },
+  { x: 240, y: 76, size: 10, c: 1, rot: 48 },
+].map((b, i) => ({ ...b, x: b.x / 390, y: b.y / 844, delay: (i % 6) * 0.04 }));
 
-function Bit({ t, bit, color }: { t: SharedValue<number>; bit: (typeof BITS)[number]; color: string }) {
-  const style = useAnimatedStyle(() => ({
-    opacity: t.value < 0.75 ? 1 : (1 - t.value) * 4,
-    transform: [
-      { translateX: bit.dx * t.value },
-      { translateY: -40 + bit.fall * t.value },
-      { rotate: `${bit.rot * t.value}deg` },
-    ],
-  }));
+type BitSpec = (typeof BITS)[number];
+
+function Bit({ t, bit, color }: { t: SharedValue<number>; bit: BitSpec; color: string }) {
+  const style = useAnimatedStyle(() => {
+    // Each piece starts a little after the last and settles in place, no fade-out.
+    const p = Math.min(1, Math.max(0, (t.value - bit.delay) / (1 - bit.delay)));
+    return {
+      opacity: Math.min(1, p * 3),
+      transform: [{ translateY: -160 * (1 - p) }, { rotate: `${bit.rot + 180 * (1 - p)}deg` }],
+    };
+  });
   return (
     <Animated.View
       style={[
         styles.bit,
-        { left: `${bit.x * 100}%`, width: bit.size, height: bit.size + 6, backgroundColor: color },
+        { left: `${bit.x * 100}%`, top: `${bit.y * 100}%`, width: bit.size, height: bit.size + 6, backgroundColor: color },
         style,
       ]}
     />
@@ -52,8 +55,8 @@ function Bit({ t, bit, color }: { t: SharedValue<number>; bit: (typeof BITS)[num
 }
 
 /**
- * One confetti burst plus a success haptic, for the moment a photo is accepted.
- * Lay it over the screen (it fills its parent and ignores touches). Skipped under Reduce Motion.
+ * Confetti that drops in around the photo, plus a success haptic, for the moment a photo is accepted.
+ * Lay it over the screen (it fills its parent and ignores touches). Under Reduce Motion the pieces just appear.
  */
 export function Confetti() {
   const theme = useTheme();
@@ -63,10 +66,9 @@ export function Confetti() {
 
   useEffect(() => {
     success();
-    if (!reduced) t.value = withTiming(1, { duration: 1400, easing: Easing.out(Easing.quad) });
+    t.value = reduced ? 1 : withTiming(1, { duration: 900, easing: Easing.out(Easing.back(1.2)) });
   }, [reduced, t]);
 
-  if (reduced) return null;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none" importantForAccessibility="no-hide-descendants">
       {BITS.map((bit, i) => (
@@ -109,7 +111,6 @@ export function CountUp({ value, prefix = '', suffix = '', ...textProps }: Count
 const styles = StyleSheet.create({
   bit: {
     position: 'absolute',
-    top: 0,
     borderRadius: 3,
   },
 });

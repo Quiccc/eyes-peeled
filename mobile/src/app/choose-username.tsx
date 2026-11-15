@@ -45,23 +45,31 @@ export default function ChooseUsernameScreen() {
             <ThemedText themeColor="textSecondary">
               Friends will find you by this name and it shows on the leaderboards.
             </ThemedText>
-            <TextField
-              size="large"
-              invalid={!!error}
-              value={value}
-              onChangeText={setValue}
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoFocus
-              maxLength={20}
-              placeholder="username"
-              returnKeyType="done"
-              onSubmitEditing={() => valid && submit()}
-              accessibilityLabel="Username"
-            />
-            <ThemedText type="small" style={{ color: error ? theme.dangerText : theme.textSecondary }}>
-              {error ?? '3–20 characters: letters, numbers and underscores.'}
-            </ThemedText>
+            <View style={styles.fieldGroup}>
+              <ThemedText type="smallBold" themeColor="textSecondary" style={styles.label} nativeID="username-label">
+                USERNAME
+              </ThemedText>
+              <TextField
+                size="large"
+                prefix="@"
+                accent
+                invalid={!!error}
+                value={value}
+                onChangeText={setValue}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+                maxLength={20}
+                placeholder="username"
+                returnKeyType="done"
+                onSubmitEditing={() => valid && submit()}
+                accessibilityLabel="Username"
+                accessibilityLabelledBy="username-label"
+              />
+              <ThemedText type="small" style={{ color: error ? theme.dangerText : theme.textSecondary }}>
+                {error ?? '3–20 characters: letters, numbers and underscores.'}
+              </ThemedText>
+            </View>
           </View>
           <View style={styles.actions}>
             <Button title="Continue" disabled={!valid} loading={saving} onPress={submit} />
@@ -82,9 +90,15 @@ const styles = StyleSheet.create({
   },
   top: {
     gap: Spacing.three,
-    paddingTop: Spacing.five,
+    paddingTop: 48,
+  },
+  fieldGroup: {
+    gap: Spacing.two,
+  },
+  label: {
+    letterSpacing: 1,
   },
   actions: {
-    gap: Spacing.two,
+    gap: 10,
   },
 });

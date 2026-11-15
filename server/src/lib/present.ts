@@ -11,6 +11,7 @@ export const toUser = (u: UserRow): User => ({
   displayName: u.displayName,
   avatarUrl: u.avatarUrl,
   isPremium: u.isPremium,
+  joinedAt: u.createdAt.toISOString(),
 });
 
 export function toSubmission(s: SubmissionRow, storage: Storage): Submission {

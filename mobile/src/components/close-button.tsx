@@ -6,7 +6,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
   onPress: () => void;
-  /** surface: a small card (on screens). overlay: white X on a dark glass square (on the camera). */
+  /** surface: a small card (on screens). overlay: white X on a dark round glass button (on the camera). */
   variant?: 'surface' | 'overlay';
 };
 
@@ -28,7 +28,7 @@ export function CloseButton({ onPress, variant = 'surface' }: Props) {
           ? styles.overlay
           : [styles.surface, { backgroundColor: theme.backgroundElement, borderColor: theme.border, opacity: pressed ? 0.7 : 1 }],
       ]}>
-      <Icon name="close" size={20} color={overlay ? '#FFFFFF' : theme.text} />
+      <Icon name="close" size={overlay ? 22 : 20} color={overlay ? '#FFFFFF' : theme.text} />
     </Pressable>
   );
 }
@@ -46,6 +46,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: Edge.small,
   },
   overlay: {
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: CLOSE_BUTTON_SIZE / 2,
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
 });

@@ -1,5 +1,5 @@
 import type { PermissionResponse } from 'expo-camera';
-import { Linking, StyleSheet } from 'react-native';
+import { Linking } from 'react-native';
 
 import type { DailyWord } from '@/api/types';
 import { Button } from '@/components/button';
@@ -22,10 +22,10 @@ export function CameraPermissionPrompt({ word, permission, requestPermission, on
   return (
     <HuntScreenShell>
       <HuntTarget word={word} />
-      <PhotoFrame borderColor={theme.border} style={styles.frame}>
-        <Icon name="camera" size={72} color={theme.textSecondary} />
+      <PhotoFrame borderColor={theme.border}>
+        <Icon name={canAsk ? 'camera' : 'camera-off'} size={72} color={theme.textSecondary} />
       </PhotoFrame>
-      <HuntStatus style={styles.status}>
+      <HuntStatus>
         <ThemedText type="subtitle" style={huntStyles.centerText}>
           {canAsk ? 'Allow the camera' : 'Camera is off'}
         </ThemedText>
@@ -47,12 +47,3 @@ export function CameraPermissionPrompt({ word, permission, requestPermission, on
   );
 }
 
-const styles = StyleSheet.create({
-  frame: {
-    maxHeight: 320,
-  },
-  status: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-});

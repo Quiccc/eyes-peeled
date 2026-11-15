@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import type { DailyWord } from '@/api/types';
 import { Button } from '@/components/button';
@@ -16,10 +16,12 @@ type Props = {
   busy?: boolean;
   /** Shown as a "Share" button once the word is found. */
   onShare?: () => void;
+  /** Outer box, e.g. flex so the cards share the screen's height. */
+  style?: StyleProp<ViewStyle>;
 };
 
 /** One of today's words: a card edged in its difficulty color, with a camera button until it's found. */
-export function WordCard({ word, onPress, busy, onShare }: Props) {
+export function WordCard({ word, onPress, busy, onShare, style }: Props) {
   const theme = useTheme();
   const accent = theme[word.difficulty];
   const found = word.status === 'found';
@@ -32,6 +34,7 @@ export function WordCard({ word, onPress, busy, onShare }: Props) {
       outlined
       radius={Radius.lg}
       edge={Edge.card}
+      style={style}
       contentStyle={styles.card}>
       <View style={styles.info}>
         <View style={styles.header}>
@@ -92,7 +95,7 @@ export function WordCard({ word, onPress, busy, onShare }: Props) {
 }
 
 /** Teaser for the Premium word (the 4th daily word), shown to free users in place of the real card. */
-export function LockedPremiumCard({ onPress }: { onPress: () => void }) {
+export function LockedPremiumCard({ onPress, style }: { onPress: () => void; style?: StyleProp<ViewStyle> }) {
   const theme = useTheme();
 
   return (
@@ -104,11 +107,12 @@ export function LockedPremiumCard({ onPress }: { onPress: () => void }) {
         styles.card,
         styles.locked,
         { backgroundColor: theme.expertBg, borderColor: theme.expert, opacity: pressed ? 0.85 : 1 },
+        style,
       ]}>
       <View style={[styles.lockTile, { backgroundColor: theme.backgroundElement }]}>
         <Icon name="lock" size={22} color={theme.expertText} />
       </View>
-      <View style={styles.info}>
+      <View style={[styles.info, styles.lockInfo]}>
         <ThemedText style={[styles.lockTitle, { color: theme.expertText }]}>{DIFFICULTY_LABEL.expert} word · up to 1000 pts</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           A tougher 4th word every day, and no ads.
@@ -127,7 +131,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two + 4,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two + 4,
+    paddingVertical: Spacing.two + 2,
   },
   info: {
     flex: 1,
@@ -163,7 +167,9 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     borderWidth: 2,
     borderStyle: 'dashed',
-    minHeight: 76,
+  },
+  lockInfo: {
+    gap: 2,
   },
   lockTile: {
     width: 44,
