@@ -54,9 +54,19 @@ src/
   env.ts          every setting, validated (see .env.example)
   db/             schema.ts (tables) and client.ts (PGlite or Postgres)
   auth/           Apple / Google / dev sign-in, access + refresh tokens
-  routes/         one file per area of the contract
-  services/       game logic: daily words, submissions, scoring, leaderboard, social, RevenueCat
+  domain/         fixed value sets (difficulties, statuses, report reasons) used by schema, validation and admin
+  dto/admin.ts    /admin/* response types, imported by the admin panel
+  lib/            errors, validation (ids, months, dates), UTC date math, presenters, SQL helpers
+  middleware/     auth (players), admin (ADMIN_TOKEN), app version
+  routes/         thin HTTP layer: parse the request, call a service, send the result
+    admin/        moderation.ts and panel.ts (schedule, words, model, stats)
+  services/       all game logic, one concern per file:
+                  users / account, daily-words / schedule / words / model-labels,
+                  submissions + verification (the verdict worker), scoring, leaderboard, profile,
+                  relationships / friend-requests / feed / search, moderation, revenuecat,
+                  yolo-http + verifier + model-info (the YOLO service client), storage, queue
   seed/words.ts   the word pool. Every label must be a class your YOLO model detects
+admin/            the admin panel (Vite + React), see admin/README.md
 drizzle/          SQL migrations (generated, committed)
 test/
 ```

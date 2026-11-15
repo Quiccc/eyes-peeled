@@ -1,22 +1,22 @@
-import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm';
+import { and, eq, gte, inArray, lte } from 'drizzle-orm';
 
 import type { Difficulty } from '@shared/types';
 
 import type { Ctx } from '../context';
-import { dailyWords, difficulties, words, type WordRow } from '../db/schema';
-import { addDays, utcDate } from '../lib/time';
+import { dailyWords, words, type WordRow } from '../db/schema';
+import { byDifficulty, difficulties } from '../domain/enums';
+import { addDays, daysBetween, todayUtc } from '../lib/time';
 
-export type TodayWord = {
+type TodayWord = {
   dailyWordId: string;
   wordId: string;
   label: string;
   difficulty: Difficulty;
 };
 
-export const NO_REPEAT_DAYS = 14;
+const NO_REPEAT_DAYS = 14;
 
 const SPACING_WINDOW_DAYS = 90;
-const DAY_MS = 86_400_000;
 
 /**
  * A random enabled word of `difficulty` for `date`. Words used within 14 days on either side (future
@@ -47,10 +47,9 @@ export async function pickWord(
         lte(dailyWords.date, addDays(date, SPACING_WINDOW_DAYS)),
       ),
     );
-  const at = Date.parse(`${date}T00:00:00Z`);
   const gap = new Map<string, number>();
   for (const r of nearby) {
-    const days = Math.abs(Date.parse(`${r.date}T00:00:00Z`) - at) / DAY_MS;
+    const days = Math.abs(daysBetween(date, r.date));
     gap.set(r.wordId, Math.min(gap.get(r.wordId) ?? Infinity, days));
   }
   const gapOf = (w: WordRow) => gap.get(w.id) ?? Infinity;
@@ -66,7 +65,7 @@ export async function pickWord(
  * missing rows gets them picked on its first request. ON CONFLICT DO NOTHING keeps concurrent first
  * requests safe.
  */
-export async function wordsForDate(ctx: Ctx, date = utcDate(ctx.clock.now())): Promise<TodayWord[]> {
+export async function wordsForDate(ctx: Ctx, date = todayUtc(ctx.clock)): Promise<TodayWord[]> {
   let rows = await loadDay(ctx, date);
   if (rows.length < difficulties.length) {
     const have = new Set(rows.map((r) => r.difficulty));
@@ -78,8 +77,7 @@ export async function wordsForDate(ctx: Ctx, date = utcDate(ctx.clock.now())): P
     }
     rows = await loadDay(ctx, date);
   }
-  const order = (d: Difficulty) => difficulties.indexOf(d);
-  return rows.sort((a, b) => order(a.difficulty) - order(b.difficulty));
+  return rows.sort(byDifficulty);
 }
 
 function loadDay(ctx: Ctx, date: string): Promise<TodayWord[]> {
@@ -92,8 +90,7 @@ function loadDay(ctx: Ctx, date: string): Promise<TodayWord[]> {
     })
     .from(dailyWords)
     .innerJoin(words, eq(words.id, dailyWords.wordId))
-    .where(eq(dailyWords.date, date))
-    .orderBy(asc(dailyWords.difficulty));
+    .where(eq(dailyWords.date, date));
 }
 
 /** Label + difficulty for a set of daily word ids (for feeds and profiles). */
@@ -118,6 +115,6 @@ export async function dailyWordById(ctx: Ctx, dailyWordId: string) {
     })
     .from(dailyWords)
     .innerJoin(words, eq(words.id, dailyWords.wordId))
-    .where(and(eq(dailyWords.id, dailyWordId)));
+    .where(eq(dailyWords.id, dailyWordId));
   return row ?? null;
 }

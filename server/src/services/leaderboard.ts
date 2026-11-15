@@ -7,10 +7,9 @@ import { users, type UserRow } from '../db/schema';
 import { toUser } from '../lib/present';
 import { rowsOf } from '../lib/sql';
 import { monthStartUtc, nextMonthStartUtc, utcMonth } from '../lib/time';
+import { friendIds } from './relationships';
 
-import { friendIds } from './social';
-
-export const PAGE_SIZE = 20;
+const PAGE_SIZE = 20;
 
 type Ranked = { user_id: string; points: number; rank: number };
 
@@ -55,10 +54,11 @@ export async function getLeaderboard(
   ctx: Ctx,
   me: UserRow,
   scope: LeaderboardScope,
+  /** Offset from the previous page's nextCursor (validated digits), or none for the first page. */
   cursor: string | undefined,
 ): Promise<Leaderboard> {
   const now = ctx.clock.now();
-  const offset = cursor && /^\d+$/.test(cursor) ? Number(cursor) : 0;
+  const offset = cursor ? Number(cursor) : 0;
   const members = scope === 'friends' ? [me.id, ...(await friendIds(ctx, me.id))] : [];
   const ranked = rankedQuery(ctx, me, scope, members);
 

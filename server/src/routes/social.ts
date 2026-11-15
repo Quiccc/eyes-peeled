@@ -2,20 +2,15 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import type { Ctx } from '../context';
-import { reports } from '../db/schema';
-import { HttpError } from '../lib/errors';
+import { reportReasons } from '../domain/enums';
+import { badRequest } from '../lib/errors';
 import { me, requireAuth } from '../middleware/auth';
+import { feedToday } from '../services/feed';
+import { block, incomingRequests, removeFriend, respond, sendRequest } from '../services/friend-requests';
+import { fileReport } from '../services/moderation';
 import { profileOf } from '../services/profile';
-import {
-  block,
-  feedToday,
-  incomingRequests,
-  removeFriend,
-  respond,
-  search,
-  sendRequest,
-  visibleUser,
-} from '../services/social';
+import { profileSubject } from '../services/relationships';
+import { search } from '../services/search';
 
 const userIdBody = z.object({ userId: z.uuid() });
 
@@ -54,25 +49,15 @@ export function socialRoutes(ctx: Ctx) {
 
   r.get('/users/:id', auth, async (req, res) => {
     const viewer = me(req);
-    const id = String(req.params.id);
-    const subject = id === viewer.id ? viewer : await visibleUser(ctx, viewer.id, id);
-    res.json(await profileOf(ctx, viewer, subject));
+    res.json(await profileOf(ctx, viewer, await profileSubject(ctx, viewer, String(req.params.id))));
   });
 
   r.post('/reports', auth, async (req, res) => {
     const body = z
-      .object({
-        submissionId: z.uuid().optional(),
-        userId: z.uuid().optional(),
-        reason: z.enum(['inappropriate', 'spam', 'cheating', 'other']),
-      })
+      .object({ submissionId: z.uuid().optional(), userId: z.uuid().optional(), reason: z.enum(reportReasons) })
       .parse(req.body);
-    if (!body.submissionId && !body.userId) throw new HttpError(400, 'bad_request', 'Say what you are reporting.');
-    try {
-      await ctx.db.insert(reports).values({ reporterId: me(req).id, ...body });
-    } catch {
-      // Unknown submission or user id (foreign key). Nothing to moderate, so accept quietly.
-    }
+    if (!body.submissionId && !body.userId) throw badRequest('Say what you are reporting.');
+    await fileReport(ctx, me(req), body);
     res.status(204).end();
   });
 

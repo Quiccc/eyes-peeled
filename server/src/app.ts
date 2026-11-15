@@ -13,6 +13,7 @@ import { fileRoutes } from './routes/files';
 import { gameRoutes } from './routes/game';
 import { meRoutes } from './routes/me';
 import { socialRoutes } from './routes/social';
+import { webhookRoutes } from './routes/webhooks';
 
 export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean; adminPanelDir?: string } = {}) {
   const app = express();
@@ -39,7 +40,7 @@ export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean; 
     res.json({ ok: true });
   });
 
-  // The admin panel (admin/), once built. Same origin as the API, so no CORS.
+  // The admin panel (server/admin/), once built. Same origin as the API, so no CORS.
   if (opts.adminPanelDir && existsSync(path.join(opts.adminPanelDir, 'index.html'))) {
     const dir = opts.adminPanelDir;
     app.use('/admin-panel', express.static(dir, { index: 'index.html' }), (req, res, next) => {
@@ -72,6 +73,7 @@ export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean; 
   app.use(meRoutes(ctx));
   app.use(gameRoutes(ctx));
   app.use(socialRoutes(ctx));
+  app.use(webhookRoutes(ctx));
   app.use(adminRoutes(ctx));
 
   app.use(notFoundHandler);

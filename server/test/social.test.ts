@@ -50,6 +50,51 @@ describe('friends', () => {
     expect(((await t.http().get(`/users/${b.id}`).set(a.auth)).body as UserProfile).friendStatus).toBe('none');
   });
 
+  it('declines a request without becoming friends', async () => {
+    const a = await t.signIn('alex');
+    const b = await t.signIn('bob');
+    await t.http().post('/friends/requests').set(a.auth).send({ userId: b.id });
+    const [request] = (await t.http().get('/friends/requests').set(b.auth)).body;
+
+    expect((await t.http().post(`/friends/requests/${request.id}/decline`).set(b.auth)).status).toBe(204);
+    expect((await t.http().get('/friends/requests').set(b.auth)).body).toEqual([]);
+    expect(((await t.http().get(`/users/${a.id}`).set(b.auth)).body as UserProfile).friendStatus).toBe('none');
+  });
+
+  it('accepting a request that is not yours is a 404', async () => {
+    const a = await t.signIn('alex');
+    const b = await t.signIn('bob');
+    const c = await t.signIn('cara');
+    await t.http().post('/friends/requests').set(a.auth).send({ userId: b.id });
+    const [request] = (await t.http().get('/friends/requests').set(b.auth)).body;
+    expect((await t.http().post(`/friends/requests/${request.id}/accept`).set(c.auth)).status).toBe(404);
+    expect((await t.http().post('/friends/requests/not-an-id/accept').set(c.auth)).status).toBe(404);
+  });
+
+  it('asking someone who already asked you makes you friends', async () => {
+    const a = await t.signIn('alex');
+    const b = await t.signIn('bob');
+    await befriend(a, b);
+    expect((await t.http().get('/friends/requests').set(b.auth)).body).toEqual([]);
+    expect(((await t.http().get(`/users/${b.id}`).set(a.auth)).body as UserProfile).friendStatus).toBe('friends');
+  });
+
+  it('search shows each relationship', async () => {
+    const a = await t.signIn('alex');
+    const b = await t.signIn('bob');
+    const c = await t.signIn('bea');
+    await befriend(a, b);
+    await t.http().post('/friends/requests').set(c.auth).send({ userId: a.id });
+    const results = (await t.http().get('/users/search').query({ q: 'b' }).set(a.auth)).body as {
+      user: { username: string };
+      friendStatus: string;
+    }[];
+    expect(Object.fromEntries(results.map((r) => [r.user.username, r.friendStatus]))).toEqual({
+      bea: 'incoming',
+      bob: 'friends',
+    });
+  });
+
   it("shows friends' finds in the feed and profile, but not strangers'", async () => {
     const a = await t.signIn('alex');
     const b = await t.signIn('bob');

@@ -4,7 +4,7 @@ import type { Daily, Difficulty } from '@shared/types';
 
 import { WORD_POOL } from '../src/seed/words';
 import { fakeModelInfo, type ModelInfo } from '../src/services/model-info';
-import type { AdminWord, MonthSchedule } from '../src/services/schedule';
+import type { AdminWord, MonthSchedule } from '../src/dto/admin';
 import { jpeg, startTestServer, type TestServer } from './helpers';
 
 const ADMIN = { Authorization: 'Bearer test-admin-token' };

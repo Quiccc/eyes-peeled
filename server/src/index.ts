@@ -7,12 +7,12 @@ import { openDatabase } from './db/client';
 import { loadEnv } from './env';
 import { systemClock } from './lib/clock';
 import { seedWords } from './seed/words';
-import { httpModelInfo, noModelInfo } from './services/model-info';
+import { wordsUnknownToModel } from './services/model-labels';
 import { createQueue } from './services/queue';
-import { autoSchedule, wordsUnknownToModel } from './services/schedule';
+import { autoSchedule } from './services/schedule';
 import { localStorage } from './services/storage';
-import { requeuePending } from './services/submissions';
-import { httpYoloVerifier, stubVerifier } from './services/verifier';
+import { requeuePending } from './services/verification';
+import { yoloClients } from './services/yolo-client';
 
 const env = loadEnv();
 // Relative folders in .env are relative to server/, wherever the process was started from.
@@ -33,8 +33,7 @@ const ctx: Ctx = {
     secret: env.FILE_URL_SECRET,
     now: () => systemClock.now(),
   }),
-  verifier: env.YOLO_URL ? httpYoloVerifier({ url: env.YOLO_URL, key: env.YOLO_KEY }) : stubVerifier(),
-  model: env.YOLO_URL ? httpModelInfo({ url: env.YOLO_URL, key: env.YOLO_KEY }) : noModelInfo(),
+  ...yoloClients(env),
   queue: createQueue(2),
 };
 

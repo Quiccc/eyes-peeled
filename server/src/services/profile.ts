@@ -5,10 +5,10 @@ import type { UserProfile } from '@shared/types';
 import type { Ctx } from '../context';
 import { submissions, type UserRow } from '../db/schema';
 import { toUser } from '../lib/present';
-import { addDays, utcDate } from '../lib/time';
-
+import { addDays, todayUtc } from '../lib/time';
+import { todaysFinds } from './feed';
 import { monthStanding } from './leaderboard';
-import { relation, todaysFinds } from './social';
+import { relation } from './relationships';
 
 /**
  * Consecutive UTC days with at least one valid find, ending today or yesterday
@@ -51,7 +51,7 @@ export async function profileOf(ctx: Ctx, viewer: UserRow, subject: UserRow): Pr
     monthRank: standing.monthRank,
     streak: streakFrom(
       dayRows.map((r) => r.day),
-      utcDate(ctx.clock.now()),
+      todayUtc(ctx.clock),
     ),
     totalFinds,
     today: isSelf || rel.status === 'friends' ? await todaysFinds(ctx, [subject.id]) : [],

@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { Ctx } from '../context';
 import { users, type UserRow } from '../db/schema';
 import { HttpError } from '../lib/errors';
+import { isUuid } from '../lib/validation';
 
 const API = 'https://api.revenuecat.com/v1';
 const ENTITLEMENT = 'premium';
@@ -25,7 +26,7 @@ async function hasPremium(ctx: Ctx, userId: string): Promise<boolean> {
   return ent.expires_date === null || new Date(ent.expires_date) > ctx.clock.now();
 }
 
-export async function setPremium(ctx: Ctx, userId: string, isPremium: boolean): Promise<UserRow | null> {
+async function setPremium(ctx: Ctx, userId: string, isPremium: boolean): Promise<UserRow | null> {
   const [row] = await ctx.db.update(users).set({ isPremium }).where(eq(users.id, userId)).returning();
   return row ?? null;
 }
@@ -53,7 +54,7 @@ export async function deleteCustomer(ctx: Ctx, userId: string): Promise<void> {
 const GRANT = new Set(['INITIAL_PURCHASE', 'NON_RENEWING_PURCHASE', 'RENEWAL', 'UNCANCELLATION', 'PRODUCT_CHANGE']);
 const REVOKE = new Set(['CANCELLATION', 'EXPIRATION']);
 
-type WebhookEvent = {
+export type WebhookEvent = {
   type?: string;
   app_user_id?: string;
   original_app_user_id?: string;
@@ -65,7 +66,6 @@ type WebhookEvent = {
 
 /** RevenueCat webhook. Keeps isPremium right without the app (refunds, transfers). */
 export async function handleWebhook(ctx: Ctx, event: WebhookEvent): Promise<void> {
-  const isUuid = (id: string | undefined): id is string => !!id && /^[0-9a-f-]{36}$/i.test(id);
   const type = event.type ?? '';
 
   if (type === 'TRANSFER') {

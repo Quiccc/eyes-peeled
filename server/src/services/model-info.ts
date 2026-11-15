@@ -1,9 +1,12 @@
+import type { EvalReport, ModelHealth } from '../dto/admin';
+import { classesResponse, healthResponse, METADATA_TIMEOUT_MS, yoloFetcher, YoloHttpError, type YoloHttpOptions } from './yolo-http';
+
+export type { ModelHealth };
+
 /**
  * What the YOLO service's model knows, for scheduling checks and the admin panel.
  * Separate from the Verifier (which only judges photos) so tests can fake each one.
  */
-export type ModelHealth = { ok: boolean; model: string; modelVersion: string; classes: number };
-
 export type ModelInfo = {
   /** True when a real YOLO service is configured. When false, label checks are skipped. */
   readonly configured: boolean;
@@ -11,40 +14,42 @@ export type ModelInfo = {
   classes(): Promise<Set<string> | null>;
   health(): Promise<ModelHealth | null>;
   /** Latest word-test report (yolo/eval), or null if there is none. */
-  report(): Promise<unknown | null>;
+  report(): Promise<EvalReport | null>;
 };
 
-const CLASSES_TTL_MS = 60_000;
+/** The label list changes only when a new model is deployed; don't ask on every scheduling call. */
+export const CLASSES_TTL_MS = 60_000;
 
-export function httpModelInfo(opts: { url: string; key?: string; timeoutMs?: number }): ModelInfo {
-  const base = opts.url.replace(/\/$/, '');
-  const get = (path: string) =>
-    fetch(`${base}${path}`, {
-      headers: opts.key ? { 'X-Yolo-Key': opts.key } : {},
-      signal: AbortSignal.timeout(opts.timeoutMs ?? 5_000),
-    });
+export function httpModelInfo(opts: YoloHttpOptions & { now?: () => number }): ModelInfo {
+  const request = yoloFetcher(opts);
+  const now = opts.now ?? Date.now;
+  const get = async (path: string) => {
+    const res = await request(path, METADATA_TIMEOUT_MS);
+    if (!res.ok && res.status !== 404) throw new YoloHttpError(path, res.status);
+    return res;
+  };
   let cached: { at: number; labels: Set<string> } | null = null;
 
   return {
     configured: true,
     async classes() {
-      if (cached && Date.now() - cached.at < CLASSES_TTL_MS) return cached.labels;
+      if (cached && now() - cached.at < CLASSES_TTL_MS) return cached.labels;
       const res = await get('/classes');
-      if (!res.ok) throw new Error(`YOLO /classes returned ${res.status}`);
-      const labels = new Set(((await res.json()) as string[]).map((l) => l.toLowerCase()));
-      cached = { at: Date.now(), labels };
+      if (!res.ok) throw new YoloHttpError('/classes', res.status);
+      const labels = new Set(classesResponse.parse(await res.json()).map((l) => l.toLowerCase()));
+      cached = { at: now(), labels };
       return labels;
     },
     async health() {
       const res = await get('/health');
-      if (!res.ok) throw new Error(`YOLO /health returned ${res.status}`);
-      return (await res.json()) as ModelHealth;
+      if (!res.ok) throw new YoloHttpError('/health', res.status);
+      return healthResponse.parse(await res.json());
     },
     async report() {
       const res = await get('/eval/report');
       if (res.status === 404) return null;
-      if (!res.ok) throw new Error(`YOLO /eval/report returned ${res.status}`);
-      return res.json();
+      // Written by yolo/eval/evaluate.py and only displayed, so it's passed through as is.
+      return (await res.json()) as EvalReport;
     },
   };
 }
@@ -65,6 +70,6 @@ export function fakeModelInfo(labels: string[], extra: { report?: unknown } = {}
     configured: true,
     classes: async () => new Set(labels.map((l) => l.toLowerCase())),
     health: async () => ({ ok: true, model: 'fake.pt', modelVersion: 'fake', classes: labels.length }),
-    report: async () => extra.report ?? null,
+    report: async () => (extra.report as EvalReport | undefined) ?? null,
   };
 }

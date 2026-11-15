@@ -10,7 +10,7 @@ import { createApp } from '../src/app';
 import type { Daily } from '@shared/types';
 
 import { fakeModelInfo, type ModelInfo } from '../src/services/model-info';
-import type { WordDayStats } from '../src/services/admin-stats';
+import type { WordDayStats } from '../src/dto/admin';
 import { jpeg, startTestServer, type TestServer } from './helpers';
 
 const ADMIN = { Authorization: 'Bearer test-admin-token' };
@@ -95,6 +95,38 @@ describe('GET /admin/model', () => {
     const res = await t.http().get('/admin/model').set(ADMIN);
     expect(res.status).toBe(200);
     expect(res.body.error).toContain('ECONNREFUSED');
+  });
+
+  it('keeps the parts that worked when one call fails', async () => {
+    const report = { modelVersion: 'fake', words: [] };
+    await start({ ...fakeModelInfo(['cup'], { report }), health: () => Promise.reject(new Error('timeout')) });
+    const res = await t.http().get('/admin/model').set(ADMIN);
+    expect(res.body).toMatchObject({ health: null, report, error: 'timeout' });
+    expect(res.body.unknownWords).toContain('chair');
+  });
+});
+
+describe('reports', () => {
+  it('resolves a report and moves it to the resolved list', async () => {
+    await start();
+    const a = await t.signIn('alex');
+    const b = await t.signIn('bob');
+    await t.http().post('/reports').set(a.auth).send({ userId: b.id, reason: 'spam' });
+
+    const [report] = (await t.http().get('/admin/reports').set(ADMIN)).body;
+    expect(report).toMatchObject({ reason: 'spam', submission: null, target: { id: b.id } });
+    expect((await t.http().post(`/admin/reports/${report.id}/resolve`).set(ADMIN)).status).toBe(204);
+
+    expect((await t.http().get('/admin/reports').set(ADMIN)).body).toEqual([]);
+    expect((await t.http().get('/admin/reports?status=resolved').set(ADMIN)).body).toHaveLength(1);
+  });
+
+  it('accepts a report about an unknown user quietly', async () => {
+    await start();
+    const a = await t.signIn('alex');
+    const res = await t.http().post('/reports').set(a.auth).send({ userId: crypto.randomUUID(), reason: 'spam' });
+    expect(res.status).toBe(204);
+    expect((await t.http().get('/admin/reports').set(ADMIN)).body).toEqual([]);
   });
 });
 

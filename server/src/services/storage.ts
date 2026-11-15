@@ -1,6 +1,8 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+
+import { safeEqual } from '../lib/safe-equal';
 
 /** Photo storage. Local disk for now; swap for S3/R2 by implementing this interface. */
 export type Storage = {
@@ -46,9 +48,7 @@ export function localStorage(opts: { dir: string; baseUrl: string; secret: strin
     resolveSigned(key, exp, sig) {
       if (!SAFE_KEY.test(key) || !exp || !sig || !/^\d+$/.test(exp)) return null;
       if (Number(exp) < opts.now().getTime() / 1000) return null;
-      const expected = Buffer.from(sign(key, Number(exp)));
-      const given = Buffer.from(sig);
-      if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
+      if (!safeEqual(sign(key, Number(exp)), sig)) return null;
       return fileFor(key);
     },
   };

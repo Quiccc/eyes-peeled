@@ -15,6 +15,13 @@ export class HttpError extends Error {
 
 export const notFound = (message = 'Not found.') => new HttpError(404, 'not_found', message);
 
+export const badRequest = (message: string) => new HttpError(400, 'bad_request', message);
+
+/** Missing, invalid or revoked token, or the user is gone: the app signs out and asks to sign in again. */
+export const sessionExpired = () => new HttpError(401, 'unauthorized', 'Your session has expired. Please sign in again.');
+
+export const banned = () => new HttpError(403, 'banned', 'This account has been suspended.');
+
 export const notFoundHandler: RequestHandler = (_req, _res, next) => {
   next(new HttpError(404, 'not_found', 'Not found.'));
 };

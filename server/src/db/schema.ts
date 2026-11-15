@@ -14,6 +14,8 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
+import { difficulties, reportReasons, reportStatuses, submissionStatuses } from '../domain/enums';
+
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
 
 export const users = pgTable(
@@ -50,7 +52,6 @@ export const refreshTokens = pgTable(
   (t) => [uniqueIndex('refresh_tokens_hash_idx').on(t.tokenHash)],
 );
 
-export const difficulties = ['easy', 'medium', 'hard', 'expert'] as const;
 
 export const words = pgTable(
   'words',
@@ -91,7 +92,7 @@ export const submissions = pgTable(
     dailyWordId: uuid('daily_word_id')
       .notNull()
       .references(() => dailyWords.id),
-    status: text('status', { enum: ['pending', 'valid', 'invalid', 'removed'] }).notNull(),
+    status: text('status', { enum: submissionStatuses }).notNull(),
     points: integer('points').notNull().default(0),
     rank: integer('rank'),
     confidence: real('confidence'),
@@ -160,12 +161,11 @@ export const reports = pgTable('reports', {
   reporterId: uuid('reporter_id').references(() => users.id, { onDelete: 'set null' }),
   submissionId: uuid('submission_id').references(() => submissions.id, { onDelete: 'set null' }),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
-  reason: text('reason', { enum: ['inappropriate', 'spam', 'cheating', 'other'] }).notNull(),
-  status: text('status', { enum: ['open', 'resolved'] }).notNull().default('open'),
+  reason: text('reason', { enum: reportReasons }).notNull(),
+  status: text('status', { enum: reportStatuses }).notNull().default('open'),
   createdAt: createdAt(),
 });
 
 export type UserRow = typeof users.$inferSelect;
 export type SubmissionRow = typeof submissions.$inferSelect;
-export type DailyWordRow = typeof dailyWords.$inferSelect;
 export type WordRow = typeof words.$inferSelect;

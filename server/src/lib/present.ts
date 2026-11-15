@@ -3,7 +3,7 @@ import type { Difficulty, FeedItem, Submission, User } from '@shared/types';
 import type { SubmissionRow, UserRow } from '../db/schema';
 import type { Storage } from '../services/storage';
 
-/** DB rows -> the shapes in src/api/types.ts. */
+/** DB rows -> the shapes in mobile/src/api/types.ts. */
 
 export const toUser = (u: UserRow): User => ({
   id: u.id,
@@ -13,11 +13,11 @@ export const toUser = (u: UserRow): User => ({
   isPremium: u.isPremium,
 });
 
-export function toSubmission(s: SubmissionRow, wordId: string, storage: Storage): Submission {
+export function toSubmission(s: SubmissionRow, storage: Storage): Submission {
   const valid = s.status === 'valid';
   return {
     id: s.id,
-    wordId,
+    wordId: s.dailyWordId,
     // 'removed' (by moderation) looks invalid to the player
     status: s.status === 'removed' ? 'invalid' : s.status,
     points: valid ? s.points : 0,
