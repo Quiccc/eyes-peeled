@@ -1,6 +1,6 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useEffect, useState } from 'react';
-import { Alert, Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { USE_MOCK_API } from '@/api/endpoints';
@@ -8,13 +8,12 @@ import type { AuthProvider, Difficulty } from '@/api/types';
 import { useAuth } from '@/auth/auth-provider';
 import { isAppleSignInAvailable, SignInCancelled } from '@/auth/social-sign-in';
 import { Button } from '@/components/button';
-import { Icon } from '@/components/icon';
+import { HeroBadge } from '@/components/hero-badge';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Edge, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAsyncAction } from '@/hooks/use-async-action';
 import { useTheme } from '@/hooks/use-theme';
-import { errorMessage } from '@/lib/format';
 
 const SAMPLE_WORDS: readonly { word: string; hue: Difficulty; tilt: string }[] = [
   { word: 'BOTTLE', hue: 'easy', tilt: '-3deg' },
@@ -27,30 +26,23 @@ export default function SignInScreen() {
   const theme = useTheme();
   const scheme = useColorScheme();
   const [appleAvailable, setAppleAvailable] = useState(false);
-  const [pending, setPending] = useState<AuthProvider | null>(null);
+  const { busy: pending, run } = useAsyncAction<AuthProvider>();
 
   useEffect(() => {
     isAppleSignInAvailable().then(setAppleAvailable);
   }, []);
 
-  const handle = async (provider: AuthProvider) => {
-    setPending(provider);
-    try {
-      await signIn(provider);
-    } catch (e) {
-      if (!(e instanceof SignInCancelled)) Alert.alert('Sign-in failed', errorMessage(e));
-    } finally {
-      setPending(null);
-    }
-  };
+  const handle = (provider: AuthProvider) =>
+    run(provider, () => signIn(provider), {
+      errorTitle: 'Sign-in failed',
+      ignore: (e) => e instanceof SignInCancelled,
+    });
 
   return (
     <ThemedView style={styles.flex}>
       <SafeAreaView style={styles.container}>
         <View style={styles.hero}>
-          <View style={[styles.logo, { backgroundColor: theme.tint, borderBottomColor: theme.tintEdge }]}>
-            <Icon name="search" size={60} color={theme.onTint} />
-          </View>
+          <HeroBadge icon="search" size="large" />
           <View style={styles.copy}>
             <ThemedText type="title" style={styles.center} accessibilityRole="header">
               Word Hunt
@@ -133,15 +125,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.four,
-  },
-  logo: {
-    width: 112,
-    height: 112,
-    borderRadius: 36,
-    borderBottomWidth: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    transform: [{ rotate: '-6deg' }],
   },
   copy: {
     gap: Spacing.two,

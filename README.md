@@ -31,7 +31,7 @@ npx expo run:ios                    # npx expo run:android
 npx expo start                      # then open the app in the dev client
 ```
 
-With `EXPO_PUBLIC_USE_MOCK_API=true`, or with no `EXPO_PUBLIC_API_URL` set, the app runs against an in-memory mock backend (`mobile/src/api/mock.ts`). Sign-in is simulated, and each photo is randomly accepted about 60% of the time. Without RevenueCat keys, buying Premium is simulated too. Set `EXPO_PUBLIC_MOCK_RESET_IN_SECONDS=30` to test the daily rollover.
+With `EXPO_PUBLIC_USE_MOCK_API=true`, or with no `EXPO_PUBLIC_API_URL` set, the app runs against an in-memory mock backend (`mobile/src/api/mock/`). Sign-in is simulated, and each photo is randomly accepted about 60% of the time. Without RevenueCat keys, buying Premium is simulated too. Set `EXPO_PUBLIC_MOCK_RESET_IN_SECONDS=30` to test the daily rollover.
 
 ## Backend
 
@@ -64,13 +64,15 @@ Purchases need a development build and a sandbox / test-track account, or Revenu
 ## Layout
 
 ```
-mobile/src/app/            routes: sign-in, choose-username, (tabs)/{index,leaderboard,friends,profile}, hunt/[wordId], user/[userId], premium
-mobile/src/api/            types, HTTP client (token refresh), endpoints, mock backend
+mobile/src/app/            routes (thin): sign-in, choose-username, (tabs)/{index,leaderboard,friends,profile}, hunt/[wordId], user/[userId], premium
+mobile/src/api/            types, HTTP client (token refresh), endpoints, queries.ts (shared query hooks + cache invalidation), mock/ backend
 mobile/src/auth/           AuthProvider, Apple/Google sign-in, SecureStore tokens
 mobile/src/ads/            consent + ATT + interstitials (shown on word selection and on retry; off for Premium)
 mobile/src/purchases/      RevenueCat Premium purchase / restore
-mobile/src/features/hunt/  photo resize/compress, upload + poll
-mobile/src/components/     UI building blocks
+mobile/src/features/       one folder per feature: hunt (camera, verdict state machine, upload + poll), today, social,
+                           premium, safety (report / block), share
+mobile/src/components/     UI building blocks shared by features
+mobile/src/hooks/          generic hooks (theme, debounce, async button actions)
 ```
 
 ## Checks

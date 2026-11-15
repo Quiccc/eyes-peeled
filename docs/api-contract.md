@@ -2,7 +2,7 @@
 
 The mobile app talks to your backend only through the endpoints below. TypeScript shapes live in
 [`mobile/src/api/types.ts`](../mobile/src/api/types.ts) (the source of truth). The app-side implementation is
-`mobile/src/api/endpoints.ts`. A full in-memory reference implementation is in `mobile/src/api/mock.ts`.
+`mobile/src/api/endpoints.ts`. A full in-memory reference implementation is in `mobile/src/api/mock/`.
 
 ## Conventions
 

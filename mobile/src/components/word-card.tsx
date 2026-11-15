@@ -8,7 +8,7 @@ import { DifficultyPill } from '@/components/pill';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { DIFFICULTY_LABEL, ordinal } from '@/lib/format';
+import { DIFFICULTY_LABEL, displayWord, formatNumber, ordinal } from '@/lib/format';
 
 type Props = {
   word: DailyWord;
@@ -41,7 +41,7 @@ export function WordCard({ word, onPress, busy, onShare }: Props) {
           </ThemedText>
         </View>
         <ThemedText style={styles.word} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>
-          {word.word.toUpperCase()}
+          {displayWord(word.word)}
         </ThemedText>
         {found && sub ? (
           <View style={styles.foundRow}>
@@ -58,7 +58,7 @@ export function WordCard({ word, onPress, busy, onShare }: Props) {
           <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
             {word.foundCount === 0
               ? 'Nobody has found it yet'
-              : `${word.foundCount.toLocaleString()} ${word.foundCount === 1 ? 'hunter has' : 'hunters have'} found it`}
+              : `${formatNumber(word.foundCount)} ${word.foundCount === 1 ? 'hunter has' : 'hunters have'} found it`}
           </ThemedText>
         )}
       </View>

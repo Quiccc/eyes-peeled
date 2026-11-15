@@ -4,16 +4,17 @@ import type { UserProfile } from '@/api/types';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { formatNumber, plural } from '@/lib/format';
 
 /** Month points, global rank and streak as three chunky tiles. */
 export function ProfileStats({ profile }: { profile: UserProfile }) {
   const theme = useTheme();
   const stats = [
-    { label: 'pts this month', value: profile.monthPoints.toLocaleString(), color: theme.text },
+    { label: 'pts this month', value: formatNumber(profile.monthPoints), color: theme.text },
     { label: 'global rank', value: profile.monthRank ? `#${profile.monthRank}` : '—', color: theme.text },
     {
       label: 'streak',
-      value: `${profile.streak} ${profile.streak === 1 ? 'day' : 'days'}`,
+      value: plural(profile.streak, 'day'),
       color: profile.streak > 0 ? theme.successText : theme.text,
     },
   ];

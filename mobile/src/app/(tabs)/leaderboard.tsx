@@ -7,12 +7,13 @@ import { api } from '@/api/endpoints';
 import type { LeaderboardScope } from '@/api/types';
 import { useAuth } from '@/auth/auth-provider';
 import { EmptyState, SkeletonRows } from '@/components/empty-state';
+import { QueryState } from '@/components/query-state';
 import { SegmentedControl } from '@/components/segmented-control';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { UserRow } from '@/components/user-row';
 import { BottomTabInset, Spacing } from '@/constants/theme';
-import { daysUntil, errorMessage } from '@/lib/format';
+import { daysUntil, formatNumber, monthName, plural } from '@/lib/format';
 import { queryKeys } from '@/lib/query-client';
 
 const SCOPES = [
@@ -35,7 +36,6 @@ export default function LeaderboardScreen() {
   const entries = query.data?.pages.flatMap((p) => p.entries) ?? [];
   const me = first?.me ?? null;
   const meVisible = me && entries.some((e) => e.user.id === me.user.id);
-  const days = first ? daysUntil(first.resetsAt) : 0;
 
   return (
     <ThemedView style={styles.flex}>
@@ -47,27 +47,23 @@ export default function LeaderboardScreen() {
             </ThemedText>
             {first && (
               <ThemedText type="small" themeColor="textSecondary">
-                {new Date(`${first.month}-01T00:00:00Z`).toLocaleDateString(undefined, {
-                  month: 'long',
-                  timeZone: 'UTC',
-                })}{' '}
-                · resets in{' '}
-                <ThemedText type="smallBold">
-                  {days} {days === 1 ? 'day' : 'days'}
-                </ThemedText>
+                {monthName(first.month)} · resets in{' '}
+                <ThemedText type="smallBold">{plural(daysUntil(first.resetsAt), 'day')}</ThemedText>
               </ThemedText>
             )}
           </View>
           <SegmentedControl accessibilityLabel="Scope" options={SCOPES} value={scope} onChange={setScope} />
         </View>
 
-        {query.isPending ? (
-          <View style={styles.list}>
-            <SkeletonRows count={7} />
-          </View>
-        ) : query.error ? (
-          <EmptyState icon="retry" title="Couldn't load the leaderboard" hint={errorMessage(query.error)} />
-        ) : (
+        <QueryState
+          query={query}
+          loading={
+            <View style={styles.list}>
+              <SkeletonRows count={7} />
+            </View>
+          }
+          errorTitle="Couldn't load the leaderboard">
+          {() => (
           <FlatList
             style={styles.flex}
             data={entries}
@@ -97,7 +93,8 @@ export default function LeaderboardScreen() {
               );
             }}
           />
-        )}
+          )}
+        </QueryState>
 
         {me && !meVisible && (
           <View style={styles.mePinned}>
@@ -110,7 +107,7 @@ export default function LeaderboardScreen() {
 }
 
 function Points({ value }: { value: number }) {
-  return <ThemedText style={styles.points}>{value.toLocaleString()}</ThemedText>;
+  return <ThemedText style={styles.points}>{formatNumber(value)}</ThemedText>;
 }
 
 const styles = StyleSheet.create({

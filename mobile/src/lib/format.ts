@@ -37,6 +37,29 @@ export function ordinal(n: number) {
   return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
 }
 
+/** 1234 -> "1,234" in the player's locale. */
+export function formatNumber(n: number) {
+  return n.toLocaleString();
+}
+
+/** 1 -> "1 day", 3 -> "3 days" */
+export function plural(n: number, one: string, many = `${one}s`) {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+/** Words are shown in capitals everywhere: cards, camera badge, share card. */
+export function displayWord(word: string) {
+  return word.toUpperCase();
+}
+
+/** "June" for "2026-06" (leaderboard month, always UTC). */
+export function monthName(month: string) {
+  return new Date(`${month}-01T00:00:00Z`).toLocaleDateString(undefined, { month: 'long', timeZone: 'UTC' });
+}
+
+/** Lowercase letters, digits and underscores, 3–20 long. Same rule as the server. */
+export const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+
 export function displayName(u: { username: string | null; displayName: string | null }) {
   return u.username ? `@${u.username}` : (u.displayName ?? 'Player');
 }

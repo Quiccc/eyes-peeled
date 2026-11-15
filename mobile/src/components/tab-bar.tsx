@@ -1,16 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
 import type { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { api } from '@/api/endpoints';
+import { useFriendRequests } from '@/api/queries';
 import { Icon, type IconName } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { tap } from '@/lib/haptics';
-import { queryKeys } from '@/lib/query-client';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
@@ -25,7 +23,7 @@ const TABS: Record<string, { label: string; icon: IconName }> = {
 export function TabBar({ state, navigateToTab }: TabBarProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { data: requests } = useQuery({ queryKey: queryKeys.friendRequests, queryFn: api.getFriendRequests });
+  const { data: requests } = useFriendRequests();
   const pending = requests?.length ?? 0;
 
   return (

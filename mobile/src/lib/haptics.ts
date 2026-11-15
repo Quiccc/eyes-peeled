@@ -11,8 +11,3 @@ export function tap() {
 export function success() {
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
 }
-
-/** A photo was rejected. */
-export function warning() {
-  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-}

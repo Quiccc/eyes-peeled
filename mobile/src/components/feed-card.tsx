@@ -7,11 +7,11 @@ import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
 import { Icon } from '@/components/icon';
 import { DifficultyPill } from '@/components/pill';
-import { openSafetyMenu } from '@/components/safety-menu';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Radius, Spacing } from '@/constants/theme';
+import { openSafetyMenu } from '@/features/safety/safety-menu';
 import { useTheme } from '@/hooks/use-theme';
-import { displayName, ordinal, timeAgo } from '@/lib/format';
+import { displayName, displayWord, ordinal, timeAgo } from '@/lib/format';
 
 type Props = {
   item: FeedItem;
@@ -64,7 +64,7 @@ export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
       <View style={styles.footer}>
         <DifficultyPill difficulty={item.difficulty} />
         <ThemedText style={styles.word} numberOfLines={1}>
-          {item.word.toUpperCase()}
+          {displayWord(item.word)}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           <ThemedText type="smallBold">+{item.points} pts</ThemedText>

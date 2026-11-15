@@ -3,7 +3,7 @@ import type { ComponentRef, Ref } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
-import { DIFFICULTY_LABEL, ordinal } from '@/lib/format';
+import { DIFFICULTY_LABEL, displayWord, ordinal } from '@/lib/format';
 
 import type { ShareFind } from './types';
 
@@ -45,7 +45,7 @@ export function ShareCard({ find, onImageLoad, ref }: Props) {
           <Text style={styles.points}>+{find.points} pts</Text>
         </View>
         <Text style={styles.word} numberOfLines={1} adjustsFontSizeToFit>
-          {find.word.toUpperCase()}
+          {displayWord(find.word)}
         </Text>
         <View style={styles.row}>
           <Text style={styles.muted}>{find.rank ? `${ordinal(find.rank)} hunter to find it today` : 'Found it today'}</Text>

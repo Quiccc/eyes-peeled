@@ -12,7 +12,6 @@ type Props = Omit<PressableProps, 'style' | 'children'> & {
   edgeColor: string;
   /** Draw a 2px outline in the edge color around the face (cards). */
   outlined?: boolean;
-  dashed?: boolean;
   radius?: number;
   /** Edge height in px. */
   edge?: number;
@@ -31,7 +30,6 @@ export function Chunky({
   color,
   edgeColor,
   outlined,
-  dashed,
   radius = Radius.md,
   edge = Edge.button,
   style,
@@ -56,14 +54,13 @@ export function Chunky({
     styles.face,
     { backgroundColor: color, borderRadius: radius, marginBottom: edge },
     outlined && { borderWidth: 2, borderColor: edgeColor },
-    dashed && styles.dashed,
     contentStyle,
   ];
 
   if (!onPress) {
     return (
       <View style={style} {...(rest as object)}>
-        {!dashed && edgeLayer}
+        {edgeLayer}
         <View style={faceStyle}>{children}</View>
       </View>
     );
@@ -85,7 +82,7 @@ export function Chunky({
       }}
       style={[style, disabled && styles.disabled]}
       {...rest}>
-      {!dashed && edgeLayer}
+      {edgeLayer}
       <Animated.View style={[faceStyle, faceMotion]}>{children}</Animated.View>
     </Pressable>
   );
@@ -100,9 +97,6 @@ const styles = StyleSheet.create({
   },
   face: {
     flexGrow: 1,
-  },
-  dashed: {
-    borderStyle: 'dashed',
   },
   disabled: {
     opacity: 0.5,

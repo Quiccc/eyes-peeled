@@ -13,7 +13,6 @@ type Props = {
   user: User;
   /** Left-hand rank chip (leaderboards). Top three sit on gold, silver and bronze. */
   rank?: number;
-  subtitle?: string;
   right?: ReactNode;
   /** The signed-in user's own row: soft orange with an orange edge. */
   highlight?: boolean;
@@ -21,11 +20,10 @@ type Props = {
   noLink?: boolean;
   /** Replace the name with this label (e.g. "You"). */
   label?: string;
-  avatarSize?: number;
 };
 
 /** A user as a chunky card row: rank, avatar, name, and something on the right. */
-export function UserRow({ user, rank, subtitle, right, highlight, noLink, label, avatarSize = 36 }: Props) {
+export function UserRow({ user, rank, right, highlight, noLink, label }: Props) {
   const theme = useTheme();
   const medal = rank !== undefined && rank <= 3 ? [theme.gold, theme.silver, theme.bronze][rank - 1] : null;
 
@@ -56,16 +54,11 @@ export function UserRow({ user, rank, subtitle, right, highlight, noLink, label,
           </ThemedText>
         </View>
       )}
-      {!label && <Avatar user={user} size={avatarSize} />}
+      {!label && <Avatar user={user} size={36} />}
       <View style={styles.text}>
         <ThemedText style={styles.name} numberOfLines={1}>
           {label ?? displayName(user)}
         </ThemedText>
-        {subtitle ? (
-          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-            {subtitle}
-          </ThemedText>
-        ) : null}
       </View>
       {right}
     </Pressable>

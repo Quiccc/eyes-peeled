@@ -3,10 +3,6 @@
  * and solid bottom edges on every raised surface. Light and dark share the same keys.
  */
 
-import '@/global.css';
-
-import { Platform } from 'react-native';
-
 import type { Difficulty } from '@/api/types';
 
 export const Colors = {
@@ -110,29 +106,7 @@ export function difficultyColors(theme: Theme, difficulty: Difficulty) {
 /** Nunito is embedded at build time by the expo-font config plugin (see app.json). */
 export const FontFamily = 'Nunito';
 
-export const Fonts = Platform.select({
-  ios: {
-    sans: FontFamily,
-    serif: 'ui-serif',
-    rounded: FontFamily,
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: FontFamily,
-    serif: 'serif',
-    rounded: FontFamily,
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
-
 export const Spacing = {
-  half: 2,
   one: 4,
   two: 8,
   three: 16,
@@ -160,4 +134,3 @@ export const Edge = {
  * so screens need no extra bottom inset for it.
  */
 export const BottomTabInset = 0;
-export const MaxContentWidth = 800;

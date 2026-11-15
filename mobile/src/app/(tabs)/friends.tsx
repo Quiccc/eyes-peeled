@@ -1,70 +1,51 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, TextInput, View } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { api } from '@/api/endpoints';
+import { invalidateSocial, MIN_SEARCH_LENGTH, useFeedToday, useFriendRequests, useUserSearch } from '@/api/queries';
 import type { FriendStatus } from '@/api/types';
-import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
 import { EmptyState, SkeletonRows } from '@/components/empty-state';
 import { FeedCard } from '@/components/feed-card';
-import { Icon } from '@/components/icon';
 import { SectionLabel } from '@/components/section-label';
+import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { UserRow } from '@/components/user-row';
-import { BottomTabInset, Edge, FontFamily, Radius, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
-import { displayName, errorMessage } from '@/lib/format';
-import { queryKeys } from '@/lib/query-client';
+import { BottomTabInset, Spacing } from '@/constants/theme';
+import { FriendRequestRow } from '@/features/social/friend-request-row';
+import { useRespondFriendRequest, useSendFriendRequest } from '@/features/social/use-friend-mutations';
+import { useDebounced } from '@/hooks/use-debounced';
+import { errorMessage } from '@/lib/format';
 
-function useDebounced<T>(value: T, ms: number) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(id);
-  }, [value, ms]);
-  return debounced;
-}
+const STATUS_LABEL: Partial<Record<FriendStatus, string>> = {
+  friends: 'Friends',
+  outgoing: 'Requested',
+  blocked: 'Blocked',
+};
 
 export default function FriendsScreen() {
-  const theme = useTheme();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const q = useDebounced(search.trim(), 300);
+  const searching = q.length >= MIN_SEARCH_LENGTH;
 
-  const feed = useQuery({ queryKey: queryKeys.feed, queryFn: api.getFeedToday });
-  const requests = useQuery({ queryKey: queryKeys.friendRequests, queryFn: api.getFriendRequests });
-  const results = useQuery({
-    queryKey: queryKeys.search(q),
-    queryFn: () => api.searchUsers(q),
-    enabled: q.length >= 2,
-  });
+  const feed = useFeedToday();
+  const requests = useFriendRequests();
+  const results = useUserSearch(q);
+  const respond = useRespondFriendRequest();
+  const add = useSendFriendRequest();
 
-  const refreshSocial = () => {
-    queryClient.invalidateQueries({ queryKey: ['friends'] });
-    queryClient.invalidateQueries({ queryKey: ['users'] });
-    queryClient.invalidateQueries({ queryKey: queryKeys.feed });
-    queryClient.invalidateQueries({ queryKey: ['leaderboard', 'friends'] });
-  };
-
-  const respond = useMutation({
-    mutationFn: ({ id, action }: { id: string; action: 'accept' | 'decline' }) => api.respondFriendRequest(id, action),
-    onSuccess: refreshSocial,
-    onError: (e) => Alert.alert('Something went wrong', errorMessage(e)),
-  });
-  const add = useMutation({
-    mutationFn: (userId: string) => api.sendFriendRequest(userId),
-    onSuccess: refreshSocial,
-    onError: (e) => Alert.alert('Could not send request', errorMessage(e)),
-  });
-
-  const statusButton = (userId: string, status: FriendStatus) => {
-    if (status === 'friends') return <ThemedText type="smallBold" themeColor="textSecondary">Friends</ThemedText>;
-    if (status === 'outgoing') return <ThemedText type="smallBold" themeColor="textSecondary">Requested</ThemedText>;
-    if (status === 'blocked') return <ThemedText type="smallBold" themeColor="textSecondary">Blocked</ThemedText>;
+  const statusAction = (userId: string, status: FriendStatus) => {
+    const label = STATUS_LABEL[status];
+    if (label) {
+      return (
+        <ThemedText type="smallBold" themeColor="textSecondary">
+          {label}
+        </ThemedText>
+      );
+    }
     return (
       <Button
         size="small"
@@ -75,27 +56,21 @@ export default function FriendsScreen() {
     );
   };
 
-  const searching = q.length >= 2;
-
   const header = (
     <View style={styles.headerBlock}>
       <ThemedText type="title" accessibilityRole="header">
         Friends
       </ThemedText>
-      <View style={[styles.search, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-        <Icon name="search" size={20} color={theme.textSecondary} />
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Find hunters by username"
-          placeholderTextColor={theme.textSecondary}
-          accessibilityLabel="Find hunters by username"
-          autoCapitalize="none"
-          autoCorrect={false}
-          clearButtonMode="while-editing"
-          style={[styles.searchInput, { color: theme.text }]}
-        />
-      </View>
+      <TextField
+        icon="search"
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Find hunters by username"
+        accessibilityLabel="Find hunters by username"
+        autoCapitalize="none"
+        autoCorrect={false}
+        clearButtonMode="while-editing"
+      />
 
       {searching ? (
         <View style={styles.section}>
@@ -103,7 +78,7 @@ export default function FriendsScreen() {
             <ActivityIndicator style={styles.inlineLoader} />
           ) : results.data?.length ? (
             results.data.map((r) => (
-              <UserRow key={r.user.id} user={r.user} right={statusButton(r.user.id, r.friendStatus)} />
+              <UserRow key={r.user.id} user={r.user} right={statusAction(r.user.id, r.friendStatus)} />
             ))
           ) : (
             <EmptyState icon="search" title="No hunters found" hint={`Nobody goes by "${q}" yet.`} />
@@ -114,41 +89,15 @@ export default function FriendsScreen() {
           {!!requests.data?.length && (
             <View style={styles.section}>
               <SectionLabel>REQUESTS · {requests.data.length}</SectionLabel>
-              {requests.data.map((r) => {
-                const pendingAction = respond.isPending && respond.variables?.id === r.id ? respond.variables.action : null;
-                return (
-                  <View
-                    key={r.id}
-                    style={[styles.request, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-                    <Link href={{ pathname: '/user/[userId]', params: { userId: r.from.id } }} asChild>
-                      <Pressable accessibilityRole="link" style={styles.requestUser}>
-                        <Avatar user={r.from} size={40} />
-                        <ThemedText style={styles.requestName} numberOfLines={1}>
-                          {r.from.username ?? displayName(r.from)}
-                        </ThemedText>
-                      </Pressable>
-                    </Link>
-                    <Button
-                      size="small"
-                      variant="ghost"
-                      title="Decline"
-                      accessibilityLabel={`Decline ${displayName(r.from)}`}
-                      loading={pendingAction === 'decline'}
-                      disabled={respond.isPending}
-                      style={styles.decline}
-                      onPress={() => respond.mutate({ id: r.id, action: 'decline' })}
-                    />
-                    <Button
-                      size="small"
-                      title="Accept"
-                      accessibilityLabel={`Accept ${displayName(r.from)}`}
-                      loading={pendingAction === 'accept'}
-                      disabled={respond.isPending}
-                      onPress={() => respond.mutate({ id: r.id, action: 'accept' })}
-                    />
-                  </View>
-                );
-              })}
+              {requests.data.map((r) => (
+                <FriendRequestRow
+                  key={r.id}
+                  request={r}
+                  pendingAction={respond.isPending && respond.variables?.id === r.id ? respond.variables.action : null}
+                  disabled={respond.isPending}
+                  onRespond={(action) => respond.mutate({ id: r.id, action })}
+                />
+              ))}
             </View>
           )}
           <SectionLabel>FRIENDS&apos; FINDS TODAY</SectionLabel>
@@ -179,7 +128,12 @@ export default function FriendsScreen() {
             searching ? undefined : feed.isPending ? (
               <SkeletonRows count={2} height={280} />
             ) : feed.error ? (
-              <EmptyState icon="retry" title="Couldn't load finds" hint={errorMessage(feed.error)} />
+              <EmptyState
+                icon="retry"
+                title="Couldn't load finds"
+                hint={errorMessage(feed.error)}
+                action={<Button title="Try again" variant="secondary" onPress={() => feed.refetch()} />}
+              />
             ) : (
               <EmptyState
                 icon="camera"
@@ -188,7 +142,7 @@ export default function FriendsScreen() {
               />
             )
           }
-          renderItem={({ item }) => <FeedCard item={item} onBlocked={refreshSocial} />}
+          renderItem={({ item }) => <FeedCard item={item} onBlocked={() => invalidateSocial(queryClient)} />}
         />
       </SafeAreaView>
     </ThemedView>
@@ -207,49 +161,9 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     paddingBottom: Spacing.one,
   },
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two + 2,
-    height: 48,
-    paddingHorizontal: Spacing.three - 2,
-    borderRadius: Radius.md,
-    borderWidth: 2,
-  },
-  searchInput: {
-    flex: 1,
-    minWidth: 0,
-    height: 44,
-    fontFamily: FontFamily,
-    fontSize: 16,
-    fontWeight: 700,
-  },
   section: {
     gap: Spacing.two,
     marginTop: Spacing.one,
-  },
-  request: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two + 4,
-    padding: Spacing.two + 4,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderBottomWidth: Edge.small,
-  },
-  requestUser: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two + 4,
-  },
-  requestName: {
-    flexShrink: 1,
-    fontWeight: 900,
-  },
-  decline: {
-    paddingHorizontal: Spacing.two + 4,
   },
   inlineLoader: {
     marginVertical: Spacing.four,
