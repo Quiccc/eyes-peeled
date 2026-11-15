@@ -9,6 +9,9 @@ import { initPurchases, resetPurchases } from '@/purchases/purchases';
 import { getAppleCredential, getGoogleCredential, signOutOfProviders } from './social-sign-in';
 import { clearTokens, loadTokens, saveTokens } from './token-store';
 
+/** Dev only: sign in to a local server as this test user, skipping Apple/Google. Never set it in release builds. */
+const DEV_LOGIN = __DEV__ ? process.env.EXPO_PUBLIC_DEV_LOGIN?.trim() || null : null;
+
 type AuthState =
   | { status: 'loading'; user: null }
   | { status: 'signedOut'; user: null }
@@ -67,9 +70,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     ...state,
     async signIn(provider) {
       // In mock mode skip the native SDKs so the app runs without OAuth credentials.
+      // DEV_LOGIN does the same against a local server started with AUTH_DEV_LOGIN=true.
       const credential = USE_MOCK_API
         ? { provider, idToken: 'mock' }
-        : provider === 'apple'
+        : DEV_LOGIN
+          ? { provider, idToken: `dev:${DEV_LOGIN}` }
+          : provider === 'apple'
           ? await getAppleCredential()
           : await getGoogleCredential();
       const res = await api.signIn(credential);

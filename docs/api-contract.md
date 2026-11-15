@@ -16,6 +16,8 @@ The mobile app talks to your backend only through the endpoints below. TypeScrip
 - The app gives up after **15 s** for JSON requests and **60 s** for the photo upload. Endpoints should answer well within that; use `status: 'pending'` for slow inference.
 - If `/auth/refresh` itself fails with a network error or a 5xx, the app keeps the session and shows an error. Only a **4xx** from `/auth/refresh` signs the user out, so return 4xx only when the refresh token is truly invalid or revoked.
 - Every error `code` is listed in [Error codes](#error-codes).
+- The reference implementation is in [`server/`](../server/README.md).
+- **Dev login** (the server's `AUTH_DEV_LOGIN=true`, never in production): `POST /auth/signin` with `idToken: "dev:<name>"` signs in as a test user without Apple or Google.
 
 ## Auth
 
@@ -39,7 +41,7 @@ Premium purchase (see [Purchases](#purchases-premium)). The app hides ads and sh
 |---|---|---|---|
 | GET | `/me` | — | `User` |
 | PATCH | `/me` | `{ username }` | `User`. 400 `invalid_username` (rule: `^[a-z0-9_]{3,20}$`), 409 `username_taken` |
-| DELETE | `/me` | — | 204. Delete the account, photos, friendships and leaderboard rows. Required by the App Store. For Apple users, also revoke the Apple token. Also delete the RevenueCat customer (`DELETE /v1/subscribers/:id`). |
+| DELETE | `/me` | — | 204. Delete the account, photos, friendships and leaderboard rows. Required by the App Store. For Apple users, also revoke the Apple token (**not done yet:** the app must first send Apple's `authorizationCode`; see the TODO in `server/src/routes/me.ts`). Also delete the RevenueCat customer (`DELETE /v1/subscribers/:id`). |
 | GET | `/me/profile` | — | `UserProfile` (`today` = the user's own valid finds today) |
 
 ## Daily words

@@ -45,3 +45,10 @@ graphify-out/
 
 # design mockups
 .mockup/
+
+# backend
+server/data/
+server/.env
+yolo/.venv/
+yolo/__pycache__/
+*.pt

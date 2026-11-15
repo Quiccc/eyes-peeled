@@ -22,9 +22,16 @@ npx expo start                      # then open the app in the dev client
 
 With `EXPO_PUBLIC_USE_MOCK_API=true`, or with no `EXPO_PUBLIC_API_URL` set, the app runs against an in-memory mock backend (`src/api/mock.ts`). Sign-in is simulated, and each photo is randomly accepted about 60% of the time. Without RevenueCat keys, buying Premium is simulated too. Set `EXPO_PUBLIC_MOCK_RESET_IN_SECONDS=30` to test the daily rollover.
 
-## Connect your backend
+## Backend
 
-Implement [`docs/api-contract.md`](docs/api-contract.md), then set `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_USE_MOCK_API=false`.
+The backend lives in [`server/`](server/README.md): Express 5 + Drizzle + Postgres, implementing [`docs/api-contract.md`](docs/api-contract.md). It runs locally with no database install. Photo checks come from a separate Python YOLO service in [`yolo/`](yolo/README.md).
+
+```bash
+cd server && npm install && cp .env.example .env
+npm run server                      # from the repo root: http://localhost:4000
+```
+
+Then in `.env.local` set `EXPO_PUBLIC_USE_MOCK_API=false`, `EXPO_PUBLIC_API_URL=http://<your-LAN-IP>:4000` and `EXPO_PUBLIC_DEV_LOGIN=<any name>` (signs in without Apple/Google in dev builds).
 
 ## Premium (in-app purchase)
 
