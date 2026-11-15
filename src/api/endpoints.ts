@@ -1,3 +1,5 @@
+import { File } from 'expo-file-system';
+
 import { request } from './client';
 import { mockApi } from './mock';
 import type {
@@ -66,8 +68,11 @@ const httpApi: Api = {
   getDaily: () => request('/daily'),
   submitPhoto: (wordId, photo) => {
     const form = new FormData();
-    // React Native's FormData accepts { uri, name, type } file descriptors.
-    form.append('photo', photo as unknown as Blob);
+    // Expo's fetch (the global fetch since SDK 58) only sends FormData parts that are strings or
+    // Blob-like files with bytes(). React Native's old { uri, name, type } descriptor makes it throw
+    // before anything is sent, which surfaced as "You seem to be offline". An expo-file-system File
+    // reads the JPEG from disk when the request is built.
+    form.append('photo', new File(photo.uri) as unknown as Blob, photo.name);
     return request(`/words/${encodeURIComponent(wordId)}/submissions`, { method: 'POST', form });
   },
   getSubmission: (id) => request(`/submissions/${encodeURIComponent(id)}`),

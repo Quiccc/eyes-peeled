@@ -57,10 +57,13 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, { ...init, signal: controller.signal });
-  } catch {
+  } catch (e) {
     if (controller.signal.aborted) {
       throw new ApiError(0, 'timeout', 'The server is taking too long to respond. Please try again.');
     }
+    // The player sees "offline", but the real cause (e.g. a request that couldn't be built) belongs
+    // in the Metro log.
+    if (__DEV__) console.warn(`[api] ${init.method ?? 'GET'} ${url} failed:`, e);
     throw new ApiError(0, 'network', "You seem to be offline. Check your connection and try again.");
   } finally {
     clearTimeout(timer);

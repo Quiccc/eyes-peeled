@@ -22,9 +22,14 @@ export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean; 
   if (opts.log) {
     app.use((req, res, next) => {
       const started = Date.now();
+      const path = req.originalUrl.split('?')[0];
       res.on('finish', () => {
-        const path = req.originalUrl.split('?')[0];
         console.log(`${req.method} ${path} ${res.statusCode} ${Date.now() - started}ms`);
+      });
+      // A connection that drops before the response (e.g. an upload cut off mid-way) would
+      // otherwise leave no trace at all.
+      res.on('close', () => {
+        if (!res.writableFinished) console.log(`${req.method} ${path} aborted after ${Date.now() - started}ms`);
       });
       next();
     });
