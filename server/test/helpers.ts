@@ -11,6 +11,7 @@ import type { Ctx } from '../src/context';
 import { openDatabase } from '../src/db/client';
 import { loadEnv } from '../src/env';
 import { seedWords } from '../src/seed/words';
+import { noModelInfo, type ModelInfo } from '../src/services/model-info';
 import { createQueue } from '../src/services/queue';
 import { localStorage } from '../src/services/storage';
 import { stubVerifier, type Verdict } from '../src/services/verifier';
@@ -22,7 +23,7 @@ export function jpeg(seed = Math.random().toString()): Buffer {
 
 export type TestServer = Awaited<ReturnType<typeof startTestServer>>;
 
-export async function startTestServer(envOverrides: Record<string, string> = {}) {
+export async function startTestServer(envOverrides: Record<string, string> = {}, opts: { model?: ModelInfo } = {}) {
   const env = loadEnv({
     NODE_ENV: 'test',
     JWT_SECRET: 'test-jwt-secret-test-jwt-secret-1234',
@@ -47,6 +48,7 @@ export async function startTestServer(envOverrides: Record<string, string> = {})
     clock,
     storage: localStorage({ dir, baseUrl: env.PUBLIC_BASE_URL, secret: env.FILE_URL_SECRET, now: clock.now }),
     verifier: stubVerifier((label) => decide(label)),
+    model: opts.model ?? noModelInfo(),
     queue: createQueue(2),
   };
   const app = createApp(ctx, { rateLimit: false });

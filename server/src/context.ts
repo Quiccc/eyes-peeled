@@ -1,6 +1,7 @@
 import type { Db } from './db/client';
 import type { Env } from './env';
 import type { Clock } from './lib/clock';
+import type { ModelInfo } from './services/model-info';
 import type { VerificationQueue } from './services/queue';
 import type { Storage } from './services/storage';
 import type { Verifier } from './services/verifier';
@@ -12,5 +13,7 @@ export type Ctx = {
   clock: Clock;
   storage: Storage;
   verifier: Verifier;
+  /** What the YOLO model knows (labels, version, word-test report). */
+  model: ModelInfo;
   queue: VerificationQueue;
 };

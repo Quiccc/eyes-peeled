@@ -17,5 +17,5 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
   ],
-  "exclude": ["node_modules", "server", "yolo"]
+  "exclude": ["node_modules", "server", "yolo", "admin"]
 }

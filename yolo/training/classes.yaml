@@ -1,0 +1,66 @@
+# Every word the shared model knows, in class-id order.
+#
+# APPEND ONLY. Never reorder, rename or remove a line: class ids are positions in this list, and
+# old models, reports and labels depend on them. To stop using a word, retire it in the admin panel
+# (Words page, "enabled" off). To add a word: append it here, add labeled photos, rebuild the
+# dataset and retrain (see yolo/README.md, "Adding words").
+#
+# Names must match the label the server uses (server/src/seed/words.ts or the admin panel).
+# The first block is the COCO classes the game uses today; build_dataset.py takes their photos
+# from COCO.
+classes:
+  # easy
+  - chair
+  - cup
+  - bottle
+  - book
+  - clock
+  - car
+  - potted plant
+  - laptop
+  - cell phone
+  - bowl
+  - couch
+  - bed
+  # medium
+  - umbrella
+  - bicycle
+  - backpack
+  - scissors
+  - teddy bear
+  - toaster
+  - vase
+  - handbag
+  - tie
+  - remote
+  - keyboard
+  - bench
+  # hard
+  - fire hydrant
+  - stop sign
+  - parking meter
+  - skateboard
+  - tennis racket
+  - hair drier
+  - toothbrush
+  - wine glass
+  - motorcycle
+  - suitcase
+  # expert
+  - traffic light
+  - frisbee
+  - baseball glove
+  - snowboard
+  - microwave
+  - kite
+  - surfboard
+  - horse
+  - bus
+  - boat
+  # Look-alikes and screen classes. Not game words, but training on them teaches the model what a
+  # cup is NOT, and lets a later check reject "photo of a screen".
+  - person
+  - tv
+  - dining table
+  - sink
+  # New words go below this line.

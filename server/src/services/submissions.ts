@@ -151,7 +151,8 @@ export async function decide(ctx: Ctx, submissionId: string, photo?: Buffer): Pr
     return;
   }
 
-  const passed = verdict.detected && (verdict.confidence ?? 1) >= ctx.env.YOLO_MIN_CONFIDENCE;
+  const threshold = word.minConfidence ?? ctx.env.YOLO_MIN_CONFIDENCE;
+  const passed = verdict.detected && (verdict.confidence ?? 1) >= threshold;
   if (!passed) {
     await ctx.db
       .update(submissions)

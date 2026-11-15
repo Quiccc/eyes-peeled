@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+
 import express from 'express';
 import { rateLimit } from 'express-rate-limit';
 
@@ -11,7 +14,7 @@ import { gameRoutes } from './routes/game';
 import { meRoutes } from './routes/me';
 import { socialRoutes } from './routes/social';
 
-export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean } = {}) {
+export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean; adminPanelDir?: string } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.set('query parser', 'simple');
@@ -30,6 +33,15 @@ export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean }
   app.get('/health', (_req, res) => {
     res.json({ ok: true });
   });
+
+  // The admin panel (admin/), once built. Same origin as the API, so no CORS.
+  if (opts.adminPanelDir && existsSync(path.join(opts.adminPanelDir, 'index.html'))) {
+    const dir = opts.adminPanelDir;
+    app.use('/admin-panel', express.static(dir, { index: 'index.html' }), (req, res, next) => {
+      if (req.method !== 'GET') return next();
+      res.sendFile(path.join(dir, 'index.html')); // client-side routes
+    });
+  }
 
   // Photos load in <Image>, so they skip the JSON/version middleware below.
   app.use(fileRoutes(ctx));

@@ -29,6 +29,13 @@ const schema = z.object({
   REVENUECAT_SECRET_KEY: optional,
   REVENUECAT_WEBHOOK_AUTH: optional,
   ADMIN_TOKEN: optional,
+  /** Built admin panel, served at /admin-panel. */
+  ADMIN_PANEL_DIR: z.string().default('../admin/dist'),
+  /** In the first week of each month, plan next month's words automatically (empty days only). */
+  AUTO_SCHEDULE: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
   MIN_APP_VERSION: optional,
 });
 

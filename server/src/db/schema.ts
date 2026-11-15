@@ -59,6 +59,10 @@ export const words = pgTable(
     /** YOLO class label, also what players see */
     label: text('label').notNull(),
     difficulty: text('difficulty', { enum: difficulties }).notNull(),
+    /** Retired words stay for history but are never scheduled again. */
+    enabled: boolean('enabled').notNull().default(true),
+    /** Per-word pass threshold; null = YOLO_MIN_CONFIDENCE. */
+    minConfidence: real('min_confidence'),
   },
   (t) => [uniqueIndex('words_label_difficulty_idx').on(t.label, t.difficulty)],
 );

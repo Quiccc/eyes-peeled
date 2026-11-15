@@ -50,5 +50,10 @@ graphify-out/
 server/data/
 server/.env
 yolo/.venv/
-yolo/__pycache__/
+__pycache__/
+.pytest_cache/
 *.pt
+# word-test photos and training data: large, back them up elsewhere (they're the long-term asset)
+yolo/eval/photos/
+yolo/training/dataset/
+yolo/runs/
