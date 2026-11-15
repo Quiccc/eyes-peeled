@@ -1,4 +1,11 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import request from 'supertest';
 import { afterEach, describe, expect, it } from 'vitest';
+
+import { createApp } from '../src/app';
 
 import type { Daily } from '@shared/types';
 
@@ -14,6 +21,27 @@ const start = async (model?: ModelInfo) => {
   return t;
 };
 afterEach(() => t.close());
+
+describe('admin panel files', () => {
+  it('serves the built panel, including deep links, from a path with a dot-folder', async () => {
+    await start();
+    const dir = mkdtempSync(path.join(tmpdir(), 'panel-'));
+    const panel = path.join(dir, '.hidden', 'dist');
+    mkdirSync(path.join(panel, 'assets'), { recursive: true });
+    writeFileSync(path.join(panel, 'index.html'), '<title>Panel</title>');
+    writeFileSync(path.join(panel, 'assets', 'app.js'), 'console.log(1)');
+    const app = createApp(t.ctx, { rateLimit: false, adminPanelDir: panel });
+    try {
+      expect((await request(app).get('/admin-panel/')).text).toContain('Panel');
+      expect((await request(app).get('/admin-panel/words')).text).toContain('Panel');
+      expect((await request(app).get('/admin-panel/assets/app.js')).status).toBe(200);
+      // The API under /admin/* is untouched.
+      expect((await request(app).get('/admin/check')).status).toBe(404);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
 
 describe('GET /admin/stats', () => {
   it('counts attempts, finds and finders per daily word', async () => {

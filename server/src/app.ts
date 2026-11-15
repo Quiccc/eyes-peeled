@@ -39,7 +39,8 @@ export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean; 
     const dir = opts.adminPanelDir;
     app.use('/admin-panel', express.static(dir, { index: 'index.html' }), (req, res, next) => {
       if (req.method !== 'GET') return next();
-      res.sendFile(path.join(dir, 'index.html')); // client-side routes
+      // Client-side routes. `root` so a dot-folder higher up the path (e.g. .claude/) isn't refused.
+      res.sendFile('index.html', { root: dir });
     });
   }
 

@@ -64,16 +64,15 @@ test/
 ## How it works
 
 - **Tokens:** the access token is a JWT valid for 15 min. The refresh token is opaque, valid for 60 days, and stored only as a hash. Each `/auth/refresh` replaces it with a new one.
-- **Daily words:** the first request of each UTC day picks one word per difficulty and avoids repeating any word from the last 14 days.
+- **Daily words:** plan them ahead in the [admin panel](../admin/README.md) (Schedule → "Fill empty slots", then change any future day). A day nobody planned gets its words picked on its first request. Picks use only enabled words the YOLO model knows, avoid repeats within 14 days on either side, and spread repeats as widely as the pool allows. Set `AUTO_SCHEDULE=true` to fill next month automatically during the first week.
+- **Thresholds:** a photo passes at `YOLO_MIN_CONFIDENCE`, or at the word's own threshold when one is set (admin panel → Words).
 - **Photos:** each upload is saved and then checked by the verifier, two at a time. If the verdict takes longer than 8 s, the app gets `pending` and polls. Pending photos left over from a restart are checked again at startup.
 - **Image URLs:** these are signed and expire after 1 h. Files live in `server/data/uploads`. Moving to S3/R2 only means implementing the interface in `services/storage.ts`.
-- **Moderation** (needs `ADMIN_TOKEN`):
-  - `GET /admin/reports`
-  - `POST /admin/reports/:id/resolve`
-  - `POST /admin/submissions/:id/remove`
-  - `POST /admin/users/:id/ban`
-
-  Send `Authorization: Bearer <ADMIN_TOKEN>` with each one.
+- **Admin** (needs `ADMIN_TOKEN`; wrong or missing token = 404). Use the [admin panel](../admin/README.md) at `/admin-panel/`, or call the API with `Authorization: Bearer <ADMIN_TOKEN>`:
+  - Moderation: `GET /admin/reports?status=open|resolved`, `POST /admin/reports/:id/resolve`, `POST /admin/submissions/:id/remove`, `POST /admin/users/:id/ban`, `POST /admin/users/:id/unban`
+  - Schedule: `GET /admin/schedule?month=YYYY-MM`, `POST /admin/schedule { month }` (fills empty days only), `PUT /admin/schedule/:date/:difficulty { wordId }` (future days only)
+  - Words: `GET /admin/words`, `POST /admin/words { label, difficulty }`, `PATCH /admin/words/:id { enabled?, minConfidence? }`
+  - `GET /admin/model` (YOLO health, word-test report, enabled words the model lacks), `GET /admin/stats?from&to`, `GET /admin/check`
 - **RevenueCat:** in dev with no `REVENUECAT_SECRET_KEY`, `POST /me/purchases/sync` grants Premium. The webhook is at `POST /webhooks/revenuecat`; set the same `Authorization` value in RevenueCat as `REVENUECAT_WEBHOOK_AUTH`.
 
 ## Before production

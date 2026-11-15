@@ -54,7 +54,7 @@ Premium purchase (see [Purchases](#purchases-premium)). The app hides ads and sh
 - Do **not** include the `expert` word for users without `isPremium`. The app shows a locked teaser card in its place.
 - Players see these levels as **Rookie** (`easy`), **Scout** (`medium`), **Ranger** (`hard`) and **Premium** (`expert`). The names are display-only; the API keys stay as listed here.
 - The day rolls over at **00:00 UTC** for everyone. `nextResetAt` is the next 00:00 UTC, and the app's countdown uses it.
-- Each word should match a class label in your YOLO model, so the backend knows which class to check for.
+- Each word must be a class label in the YOLO model, so the backend knows which class to check for. One shared model knows every word; words are planned a month ahead in the admin panel (`admin/`), which only offers enabled words the running model knows. See [`yolo/README.md`](../yolo/README.md) for adding words.
 - `foundCount` is the number of distinct users with a valid submission for that word today.
 - `status` is for the calling user:
   - `'found'`: they have a valid submission; `submission` is it.
