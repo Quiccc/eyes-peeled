@@ -13,6 +13,9 @@ midnight: the server plans words a month ahead (admin panel → Schedule), and t
 Needs [uv](https://docs.astral.sh/uv/) (`winget install astral-sh.uv`). uv fetches Python 3.12 itself
 (pinned in `.python-version`), because PyTorch usually has no wheels for the newest Python.
 
+Run each line on its own (not joined on one line: `uv venv` would take the rest as arguments and fail
+with `unexpected argument 'pip'`):
+
 ```powershell
 cd yolo
 uv venv
@@ -20,6 +23,8 @@ uv pip install -r requirements.txt -r requirements-dev.txt
 $env:YOLO_KEY = "change-me-yolo-key"     # same value as YOLO_KEY in server/.env
 uv run uvicorn main:app --port 8001
 ```
+
+The first install downloads Python 3.12 and PyTorch (a few GB), so give it a few minutes.
 
 The first start downloads `yolo11s.pt` (about 19 MB). Then set `YOLO_URL=http://localhost:8001` in
 `server/.env` and restart the server.
