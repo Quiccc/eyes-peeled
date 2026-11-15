@@ -27,8 +27,13 @@ from pathlib import Path
 
 import yaml
 
-HERE = Path(__file__).resolve().parent
-IMAGE_TYPES = {".jpg", ".jpeg", ".png", ".webp"}
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # run as a script from anywhere
+
+from wordhunt_yolo.common import IMAGE_TYPES, TRAINING_DIR, load_classes  # noqa: E402
+
+
+class DatasetError(Exception):
+    """A source folder can't be used; main() prints it and exits."""
 
 # COCO class order (ids 0-79), as used by Ultralytics' coco.yaml.
 COCO_NAMES = [
@@ -46,10 +51,6 @@ COCO_NAMES = [
 assert len(COCO_NAMES) == 80
 
 
-def load_classes() -> list[str]:
-    return yaml.safe_load((HERE / "classes.yaml").read_text(encoding="utf-8"))["classes"]
-
-
 def copy_pair(img: Path, lines: list[str], split: str, out: Path, prefix: str) -> None:
     name = f"{prefix}_{img.stem}"
     shutil.copy2(img, out / "images" / split / f"{name}{img.suffix.lower()}")
@@ -57,32 +58,35 @@ def copy_pair(img: Path, lines: list[str], split: str, out: Path, prefix: str) -
 
 
 def remap(label_file: Path, names: list[str], index: dict[str, int]) -> list[str]:
+    """YOLO label lines with class ids translated from `names` order to ours. Other classes and
+    malformed lines are dropped."""
     lines = []
     if not label_file.is_file():
         return lines
     for line in label_file.read_text(encoding="utf-8").splitlines():
         parts = line.split()
-        if len(parts) != 5:
+        if len(parts) != 5 or not parts[0].isdigit():
             continue
         cls = int(parts[0])
-        if 0 <= cls < len(names) and names[cls] in index:
+        if cls < len(names) and names[cls] in index:
             lines.append(" ".join([str(index[names[cls]]), *parts[1:]]))
     return lines
 
 
-def add_coco(root: Path, out: Path, index: dict[str, int], cap: int) -> dict[str, int]:
+def add_coco(root: Path, out: Path, classes: list[str], cap: int) -> dict[str, int]:
+    index = {n: i for i, n in enumerate(classes)}
     counts = {n: 0 for n in index}
     for split, coco_split in (("train", "train2017"), ("val", "val2017")):
         limit = cap if split == "train" else max(1, cap // 10)
         per_class = {n: 0 for n in index}
         images = root / "images" / coco_split
         if not images.is_dir():
-            sys.exit(f"Not found: {images}")
+            raise DatasetError(f"Not found: {images}")
         for img in sorted(images.iterdir()):
             lines = remap(root / "labels" / coco_split / f"{img.stem}.txt", COCO_NAMES, index)
             if not lines:
                 continue
-            present = {CLASSES[int(l.split()[0])] for l in lines}
+            present = {classes[int(l.split()[0])] for l in lines}
             # Keep the image while any class in it still needs examples.
             if all(per_class[n] >= limit for n in present):
                 continue
@@ -93,14 +97,15 @@ def add_coco(root: Path, out: Path, index: dict[str, int], cap: int) -> dict[str
     return counts
 
 
-def add_custom(root: Path, out: Path, index: dict[str, int]) -> dict[str, int]:
+def add_custom(root: Path, out: Path, classes: list[str]) -> dict[str, int]:
+    index = {n: i for i, n in enumerate(classes)}
     names_file = root / "classes.txt"
     if not names_file.is_file():
-        sys.exit(f"{root} has no classes.txt")
+        raise DatasetError(f"{root} has no classes.txt")
     names = [n.strip() for n in names_file.read_text(encoding="utf-8").splitlines() if n.strip()]
     unknown = [n for n in names if n not in index]
     if unknown:
-        sys.exit(f"{root}: classes not in classes.yaml: {unknown}. Append them there first.")
+        raise DatasetError(f"{root}: classes not in classes.yaml: {unknown}. Append them there first.")
     counts = {n: 0 for n in index}
     for img in sorted((root / "images").rglob("*")):
         if img.suffix.lower() not in IMAGE_TYPES:
@@ -110,7 +115,7 @@ def add_custom(root: Path, out: Path, index: dict[str, int]) -> dict[str, int]:
             continue
         split = "val" if int(hashlib.sha1(img.name.encode()).hexdigest(), 16) % 100 < 15 else "train"
         for l in lines:
-            counts[CLASSES[int(l.split()[0])]] += 1
+            counts[classes[int(l.split()[0])]] += 1
         copy_pair(img, lines, split, out, root.name)
     return counts
 
@@ -120,37 +125,40 @@ def main() -> int:
     ap.add_argument("--coco", type=Path)
     ap.add_argument("--custom", type=Path, action="append", default=[])
     ap.add_argument("--coco-per-class", type=int, default=1500, help="max COCO train images per class")
-    ap.add_argument("--out", type=Path, default=HERE / "dataset")
+    ap.add_argument("--out", type=Path, default=TRAINING_DIR / "dataset")
     args = ap.parse_args()
     if not args.coco and not args.custom:
         ap.error("give --coco and/or --custom")
 
-    index = {n: i for i, n in enumerate(CLASSES)}
+    classes = load_classes()
     if args.out.exists():
         shutil.rmtree(args.out)
     for d in ("images/train", "images/val", "labels/train", "labels/val"):
         (args.out / d).mkdir(parents=True)
 
-    totals = {n: 0 for n in CLASSES}
-    if args.coco:
-        for n, c in add_coco(args.coco, args.out, index, args.coco_per_class).items():
-            totals[n] += c
-    for folder in args.custom:
-        for n, c in add_custom(folder, args.out, index).items():
-            totals[n] += c
+    totals = {n: 0 for n in classes}
+    try:
+        if args.coco:
+            for n, c in add_coco(args.coco, args.out, classes, args.coco_per_class).items():
+                totals[n] += c
+        for folder in args.custom:
+            for n, c in add_custom(folder, args.out, classes).items():
+                totals[n] += c
+    except DatasetError as e:
+        print(e, file=sys.stderr)
+        return 1
 
     data = {"path": str(args.out.resolve()), "train": "images/train", "val": "images/val",
-            "names": dict(enumerate(CLASSES))}
+            "names": dict(enumerate(classes))}
     (args.out / "data.yaml").write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
 
     print(f"{'class':<18} examples")
-    for n in CLASSES:
+    for n in classes:
         flag = "  <- too few, aim for 300+" if totals[n] < 300 else ""
         print(f"{n:<18} {totals[n]:>8}{flag}")
     print(f"\nWrote {args.out / 'data.yaml'}")
     return 0
 
 
-CLASSES = load_classes()
 if __name__ == "__main__":
     sys.exit(main())

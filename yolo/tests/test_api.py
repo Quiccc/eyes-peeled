@@ -1,21 +1,13 @@
-import io
-import json
+"""The service with the real model: what the Express server relies on end to end."""
+
 import re
 from pathlib import Path
 
-from PIL import Image
 from ultralytics.utils import ASSETS
 
-import main
-from conftest import KEY
+from conftest import KEY, SETTINGS, jpeg
 
 SEED_WORDS = Path(__file__).resolve().parents[2] / "server" / "src" / "seed" / "words.ts"
-
-
-def jpeg(color=(200, 200, 200), size=(320, 240)) -> bytes:
-    buf = io.BytesIO()
-    Image.new("RGB", size, color).save(buf, "JPEG")
-    return buf.getvalue()
 
 
 def seed_words() -> set[str]:
@@ -53,9 +45,8 @@ def test_not_an_image(client):
 
 
 def test_too_large(client):
-    r = client.post(
-        "/detect", files={"image": ("a.jpg", b"0" * (main.MAX_BYTES + 1))}, data={"label": "cup"}, headers=KEY
-    )
+    big = b"0" * (SETTINGS.max_image_bytes + 1)
+    r = client.post("/detect", files={"image": ("a.jpg", big)}, data={"label": "cup"}, headers=KEY)
     assert r.status_code == 413
 
 
@@ -74,12 +65,3 @@ def test_real_photo_is_a_find(client):
     assert body["detected"] is True
     assert body["confidence"] >= 0.5
     assert any(l["label"] == "bus" for l in body["labels"])
-
-
-def test_eval_report(client, tmp_path, monkeypatch):
-    path = tmp_path / "latest.json"
-    monkeypatch.setattr(main, "EVAL_REPORT", path)
-    assert client.get("/eval/report", headers=KEY).status_code == 404
-    path.write_text(json.dumps({"modelVersion": "x", "words": []}), encoding="utf-8")
-    assert client.get("/eval/report", headers=KEY).json()["modelVersion"] == "x"
-    assert client.get("/eval/report").status_code == 401

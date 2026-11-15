@@ -18,38 +18,40 @@ import sys
 from pathlib import Path
 
 import yaml
-from ultralytics import YOLO
 
-HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # run as a script from anywhere
+
+from wordhunt_yolo.common import DEFAULT_WEIGHTS, MODELS_DIR, ROOT, TRAINING_DIR, load_classes  # noqa: E402
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--version", required=True, help="e.g. v2; becomes models/<version>/")
-    ap.add_argument("--base", default="yolo11s.pt", help="previous best.pt, or a stock model")
-    ap.add_argument("--data", type=Path, default=HERE / "dataset" / "data.yaml")
+    ap.add_argument("--base", default=DEFAULT_WEIGHTS, help="previous best.pt, or a stock model")
+    ap.add_argument("--data", type=Path, default=TRAINING_DIR / "dataset" / "data.yaml")
     ap.add_argument("--epochs", type=int, default=100)
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--batch", type=int, default=16)
     ap.add_argument("--device", default=None, help="0 for the first GPU, cpu, ...")
     args = ap.parse_args()
 
-    out = ROOT / "models" / args.version
+    out = MODELS_DIR / args.version
     if out.exists():
         sys.exit(f"{out} already exists. Pick a new version name; old versions are kept for rollback.")
     if not args.data.is_file():
         sys.exit(f"{args.data} not found. Run training/build_dataset.py first.")
 
-    classes = yaml.safe_load((HERE / "classes.yaml").read_text(encoding="utf-8"))["classes"]
+    classes = load_classes()
     data_names = list(yaml.safe_load(args.data.read_text(encoding="utf-8"))["names"].values())
     if data_names != classes:
         sys.exit("dataset is out of date with classes.yaml. Rebuild it with training/build_dataset.py.")
 
+    from ultralytics import YOLO
+
     model = YOLO(args.base)
     base_names = list(model.names.values())
     # One of our own releases: its classes must be the start of the current list (append-only rule).
-    if Path(args.base).parent.parent == ROOT / "models" and classes[: len(base_names)] != base_names:
+    if Path(args.base).parent.parent == MODELS_DIR and classes[: len(base_names)] != base_names:
         sys.exit("classes.yaml no longer starts with the base model's classes. Only append to it.")
 
     model.train(data=str(args.data), epochs=args.epochs, imgsz=args.imgsz, batch=args.batch,

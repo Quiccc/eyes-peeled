@@ -43,7 +43,7 @@ The first start downloads `yolo11s.pt` (about 19 MB). Then set `YOLO_URL=http://
 ## Check it
 
 ```powershell
-uv run pytest                                       # API tests with the real model
+uv run pytest                                       # API contract (fake model), word test, dataset, real model
 curl http://localhost:8001/health
 curl http://localhost:8001/classes                  # every label the model knows
 curl -F "image=@cup.jpg" -F "label=cup" -H "X-Yolo-Key: change-me-yolo-key" http://localhost:8001/detect
@@ -98,6 +98,25 @@ forgets the old ones.
    `models/` folder to roll back.
 7. Add the new words in the admin panel (Words → Add). Only words the running model knows can be added
    or scheduled.
+
+## Layout
+
+```
+main.py                 entry point: `uvicorn main:app`
+wordhunt_yolo/
+  api.py                the endpoints (create_app takes settings and, in tests, a fake model)
+  config.py             settings from the environment, checked at startup
+  detector.py           the Ultralytics model behind a small interface
+  inference.py          "is the target in these detections?", shared with the word test
+  imaging.py            upload/photo -> upright RGB image
+  common.py             paths (relative to yolo/), image types, classes.yaml
+eval/evaluate.py        word test
+training/               classes.yaml, build_dataset.py, train.py
+tests/                  pytest (configured in pytest.ini)
+```
+
+Relative paths (`YOLO_MODEL`, `EVAL_REPORT`, script defaults) are resolved from `yolo/`, so commands
+work from any folder.
 
 ## Notes
 
