@@ -10,6 +10,12 @@ import { Edge, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { DIFFICULTY_LABEL, displayWord, formatNumber, ordinal } from '@/lib/format';
 
+/**
+ * The smallest height every Today card shares: a word card's content (pill row 18 + 6 + word 36 + 6 + status 18),
+ * 10px padding top and bottom, 2px top border and the 6px bottom band, rounded up.
+ */
+export const CARD_MIN_HEIGHT = 116;
+
 type Props = {
   word: DailyWord;
   onPress: () => void;
@@ -43,7 +49,8 @@ export function WordCard({ word, onPress, busy, onShare, style }: Props) {
             up to {word.maxPoints} pts
           </ThemedText>
         </View>
-        <ThemedText style={styles.word} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>
+        {/* One line, shrunk to fit, so a long word never makes its card taller than the others. */}
+        <ThemedText style={styles.word} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
           {displayWord(word.word)}
         </ThemedText>
         {found && sub ? (
