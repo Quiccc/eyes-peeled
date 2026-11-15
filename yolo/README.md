@@ -26,6 +26,9 @@ uv run uvicorn main:app --port 8001
 
 The first install downloads Python 3.12 and PyTorch (a few GB), so give it a few minutes.
 
+Shortcut on Windows: `.\run.ps1` does the same. It creates the venv on first run, reads `YOLO_KEY` from
+`server/.env`, and starts the service on port 8001.
+
 The first start downloads `yolo11s.pt` (about 19 MB). Then set `YOLO_URL=http://localhost:8001` in
 `server/.env` and restart the server.
 
