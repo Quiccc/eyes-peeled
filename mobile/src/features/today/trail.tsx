@@ -15,7 +15,7 @@ import { Icon } from '@/components/icon';
 import { DifficultyPill } from '@/components/pill';
 import { ThemedText } from '@/components/themed-text';
 import { difficultyColors, Radius, Spacing } from '@/constants/theme';
-import { EXPANDED_PAD_V, MAX_FONT_SCALE, useTrailMetrics } from '@/features/today/layout';
+import { MAX_FONT_SCALE, PAD_MAX, PAD_MIN, useTrailMetrics } from '@/features/today/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { tap } from '@/lib/haptics';
 import { DIFFICULTY_LABEL, displayWord, formatNumber, ordinal } from '@/lib/format';
@@ -51,17 +51,23 @@ type Props = {
 export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, shareFor, onUnlock }: Props) {
   const metrics = useTrailMetrics();
   const selected = words.find((w) => w.id === selectedId)?.id ?? words[0]?.id;
-  const lockedH = locked ? metrics.locked : 0;
-  const collapsedTotal = Math.max(0, words.length - 1) * metrics.collapsed;
-  const minHeight = (words.length > 0 ? metrics.expanded + collapsedTotal : 0) + lockedH;
+  const collapsedCount = Math.max(0, words.length - 1);
+  const cards = words.length + (locked ? 1 : 0);
+  // Every card's height at zero vertical padding (the open card at its smallest).
+  const bare = (words.length > 0 ? metrics.expanded : 0) + collapsedCount * metrics.collapsed + (locked ? metrics.locked : 0);
+  const minHeight = bare + 2 * PAD_MIN * cards;
 
   // The trail's own height depends only on the screen, never on which card is open, so measuring it causes no shift.
-  // From it the open row gets everything the compact rows leave; rows animate between the two heights.
-  // The opening and closing rows move on the same curve in opposite directions, so the total never changes:
+  // From it: one vertical padding for every card (as much as fits without scrolling, within PAD_MIN..PAD_MAX),
+  // compact rows from that, and the open row gets everything they leave. Rows animate between the two heights;
+  // the opening and closing rows move on the same curve in opposite directions, so the total never changes:
   // nothing overshoots and the rows below glide instead of jumping. Rows render once the trail is measured
   // (one frame), so a row's size only ever comes from `height`, never from a flex fallback.
   const [trailH, setTrailH] = useState(0);
-  const openH = Math.max(metrics.expanded, trailH - lockedH - collapsedTotal);
+  const pad = cards > 0 ? Math.min(PAD_MAX, Math.max(PAD_MIN, (trailH - bare) / (2 * cards))) : PAD_MIN;
+  const collapsedH = metrics.collapsed + 2 * pad;
+  const lockedH = locked ? metrics.locked + 2 * pad : 0;
+  const openH = Math.max(metrics.expanded + 2 * pad, trailH - lockedH - collapsedCount * collapsedH);
 
   return (
     <View style={[styles.trail, { minHeight }]} onLayout={(e) => setTrailH(e.nativeEvent.layout.height)}>
@@ -73,8 +79,9 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
           selected={word.id === selected}
           prevFound={i > 0 && words[i - 1].status === 'found'}
           isLast={i === words.length - 1 && !locked}
-          collapsedH={metrics.collapsed}
+          collapsedH={collapsedH}
           openH={openH}
+          pad={pad}
           busy={openingId === word.id}
           onSelect={() => {
             tap();
@@ -86,7 +93,8 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
       ))}
       {trailH > 0 && locked && (
         <LockedStop
-          height={metrics.locked}
+          height={lockedH}
+          pad={pad}
           isFirst={words.length === 0}
           prevFound={words.length > 0 && words[words.length - 1].status === 'found'}
           onPress={onUnlock}
@@ -106,6 +114,8 @@ type StopProps = {
   collapsedH: number;
   /** Height of the row while open: the trail's spare height, never less than its content needs. */
   openH: number;
+  /** The card's vertical padding, shared by every card in the trail whatever its state. */
+  pad: number;
   busy: boolean;
   onSelect: () => void;
   onHunt: () => void;
@@ -120,6 +130,7 @@ function TrailStop({
   isLast,
   collapsedH,
   openH,
+  pad,
   busy,
   onSelect,
   onHunt,
@@ -180,7 +191,7 @@ function TrailStop({
           style={[
             styles.card,
             selected ? styles.cardExpanded : styles.cardCollapsed,
-            { backgroundColor: c.face, borderColor: c.main },
+            { backgroundColor: c.face, borderColor: c.main, paddingVertical: pad },
           ]}>
           <View style={styles.header}>
             <View style={styles.headerText}>
@@ -281,11 +292,13 @@ function StatusLine({ word }: { word: DailyWord }) {
 /** The Premium word for free users: a locked stop that leads to the Premium screen. */
 function LockedStop({
   height,
+  pad,
   isFirst,
   prevFound,
   onPress,
 }: {
   height: number;
+  pad: number;
   isFirst: boolean;
   prevFound: boolean;
   onPress: () => void;
@@ -310,7 +323,7 @@ function LockedStop({
           onPress={onPress}
           style={({ pressed }) => [
             styles.lockCard,
-            { backgroundColor: theme.expertBg, borderColor: theme.expert, opacity: pressed ? 0.85 : 1 },
+            { backgroundColor: theme.expertBg, borderColor: theme.expert, paddingVertical: pad, opacity: pressed ? 0.85 : 1 },
           ]}>
           <View style={styles.lockText}>
             <ThemedText numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.lockTitle, { color: theme.expertText }]}>
@@ -346,8 +359,8 @@ function Segment({ visible, walked }: { visible: boolean; walked: boolean }) {
 export function TrailSkeleton({ count, locked }: { count: number; locked: boolean }) {
   const theme = useTheme();
   const metrics = useTrailMetrics();
-  const rows = Array.from({ length: count }, (_, i) => (i === 0 ? metrics.expanded : metrics.collapsed));
-  if (locked) rows.push(metrics.locked);
+  const rows = Array.from({ length: count }, (_, i) => (i === 0 ? metrics.expanded : metrics.collapsed) + 2 * PAD_MIN);
+  if (locked) rows.push(metrics.locked + 2 * PAD_MIN);
 
   return (
     <View style={styles.trail} accessibilityLabel="Loading">
@@ -433,7 +446,6 @@ const styles = StyleSheet.create({
   cardExpanded: {
     justifyContent: 'flex-start',
     paddingHorizontal: Spacing.three,
-    paddingVertical: EXPANDED_PAD_V,
     borderRadius: 28,
     borderBottomWidth: 6,
   },

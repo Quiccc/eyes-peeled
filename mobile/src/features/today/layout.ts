@@ -6,25 +6,30 @@ import { useWindowDimensions } from 'react-native';
  */
 export const MAX_FONT_SCALE = 1.3;
 
+/**
+ * Every trail card (collapsed, open or locked) gets the same vertical padding. The trail picks it from its own
+ * height: as much as fits without scrolling, between these bounds (the max matches the cards' side padding).
+ */
+export const PAD_MIN = 6;
+export const PAD_MAX = 16;
+
 /** Vertical space a row leaves around its card: 6px above and below. */
 const ROW_PAD = 12;
 /** A card's 2px top border plus its bottom edge. */
 const BORDER_COLLAPSED = 2 + 5;
 const BORDER_EXPANDED = 2 + 6;
-/** The open card's padding, top and bottom. */
-export const EXPANDED_PAD_V = 24;
+/** The locked card's dashed 2px border, top and bottom. */
+const BORDER_LOCKED = 2 + 2;
 /** "Hunt this word" / "Share your find": 52px face plus its 5px edge. */
 const ACTION_H = 52 + 5;
 
-/** Breathing room above and below a collapsed card's pill and word (3px each side). */
-const COLLAPSED_AIR = 6;
-
+/** Row heights without the cards' vertical padding: row gap + borders + content. Add 2 × padding for the real height. */
 export type TrailMetrics = {
-  /** Fixed height of a collapsed word row: it hugs its pill and word. */
+  /** A collapsed word row: its pill and word. */
   collapsed: number;
-  /** Smallest height of the open word row (what its content needs); it takes all the spare height above that. */
+  /** The open word row at its smallest: pill, word, status line and button. It takes all the spare height above that. */
   expanded: number;
-  /** Fixed height of the locked Premium row (free users). */
+  /** The locked Premium row (free users). */
   locked: number;
 };
 
@@ -37,11 +42,12 @@ export function trailMetrics(fontScale: number): TrailMetrics {
   const collapsedContent = pill + 4 + line(26);
   // Pill, word, then the status line and button below an 8px gap; the button's label never outgrows its 52px face.
   const expandedContent = pill + 4 + line(40) + 8 + line(18) + 12 + ACTION_H;
+  const lockedContent = line(22) + 2 + line(18);
 
   return {
-    collapsed: ROW_PAD + BORDER_COLLAPSED + collapsedContent + COLLAPSED_AIR,
-    expanded: ROW_PAD + BORDER_EXPANDED + EXPANDED_PAD_V * 2 + expandedContent,
-    locked: ROW_PAD + 4 + line(22) + 2 + line(18) + 12,
+    collapsed: ROW_PAD + BORDER_COLLAPSED + collapsedContent,
+    expanded: ROW_PAD + BORDER_EXPANDED + expandedContent,
+    locked: ROW_PAD + BORDER_LOCKED + lockedContent,
   };
 }
 
