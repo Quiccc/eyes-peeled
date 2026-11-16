@@ -40,7 +40,7 @@ const NODE = 52;
 const NODE_COLLAPSED_SCALE = 44 / NODE;
 const SEGMENT = 6;
 /** Height of the combo chip on a link; half of it hangs into the next row. */
-const CHIP_H = 18;
+const CHIP_H = 24;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -623,12 +623,11 @@ function ComboChip({
         style={[
           styles.chip,
           lit
-            ? { backgroundColor: theme.tint, borderColor: theme.tintEdge }
-            : { backgroundColor: theme.background, borderColor: theme.border, borderStyle: 'dashed' },
+            ? [styles.chipLit, { backgroundColor: theme.tint, borderColor: theme.tintEdge }]
+            : { backgroundColor: theme.backgroundElement, borderColor: theme.border },
         ]}>
-        <ThemedText
-          maxFontSizeMultiplier={1}
-          style={[styles.chipText, { color: lit ? theme.onTint : theme.textSecondary }]}>
+        {/* Fixed size: the chip has to stay inside the 52px rail. */}
+        <ThemedText maxFontSizeMultiplier={1} style={[styles.chipText, { color: lit ? theme.onTint : theme.text }]}>
           +{value}
         </ThemedText>
       </View>
@@ -697,16 +696,20 @@ const styles = StyleSheet.create({
   },
   chip: {
     height: CHIP_H,
-    minWidth: 30,
-    paddingHorizontal: 5,
+    minWidth: 44,
+    paddingHorizontal: 8,
     borderRadius: CHIP_H / 2,
-    borderWidth: 1.5,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  /** The earned chip gets the app's chunky bottom edge, so it reads as a badge on the orange line. */
+  chipLit: {
+    borderBottomWidth: 3,
+  },
   chipText: {
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: 900,
     fontVariant: ['tabular-nums'],
   },
