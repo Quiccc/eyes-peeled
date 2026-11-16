@@ -70,7 +70,12 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
   const cards = words.length + (locked ? 1 : 0);
   // Every card's height at zero vertical padding (the open card at its smallest).
   const bare = (words.length > 0 ? metrics.expanded : 0) + collapsedCount * metrics.collapsed + (locked ? metrics.locked : 0);
-  const minHeight = bare + 2 * PAD_MIN * cards;
+  // The open card's action is always the round shutter with its full caption (title and sentence), so the card needs
+  // this much more than its smallest layout (which counts a 52px row button). Free trails have it to spare; a 4-word
+  // Premium trail or large text takes it from the open text's growth, then from the card padding, then scrolls.
+  const shutterMin = metrics.actionLabel + CIRCLE_LABEL_GAP + 2 * CIRCLE_AIR + Edge.button + CIRCLE_MIN;
+  const shutterExtra = words.length > 0 ? Math.max(0, shutterMin - ACTION_H) : 0;
+  const minHeight = bare + shutterExtra + 2 * PAD_MIN * cards;
 
   // The trail's own height depends only on the screen, never on which card is open, so measuring it causes no shift.
   // From it: one vertical padding for every card (as much as fits without scrolling, within PAD_MIN..PAD_MAX),
@@ -79,24 +84,32 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
   // nothing overshoots and the rows below glide instead of jumping. Rows render once the trail is measured
   // (one frame), so a row's size only ever comes from `height`, never from a flex fallback.
   const [trailH, setTrailH] = useState(0);
-  const pad = cards > 0 ? Math.min(PAD_MAX, Math.max(PAD_MIN, (trailH - bare) / (2 * cards))) : PAD_MIN;
+  const padFor = (fixed: number) =>
+    cards > 0 ? Math.min(PAD_MAX, Math.max(PAD_MIN, (trailH - fixed) / (2 * cards))) : PAD_MIN;
+  // The padding as before; only when that leaves the open card too little for the shutter do the cards give some up.
+  const roomyPad = padFor(bare);
+  const pad = (trailH - bare) / (2 * cards) - roomyPad >= shutterExtra / (2 * cards) ? roomyPad : padFor(bare + shutterExtra);
   const collapsedH = metrics.collapsed + 2 * pad;
   const lockedH = locked ? metrics.locked + 2 * pad : 0;
   const openMin = metrics.expanded + 2 * pad;
-  const openH = Math.max(openMin, trailH - lockedH - collapsedCount * collapsedH);
-  // The open card's text grows into part of its spare height (none on phones at the fit limit). It depends only on
-  // the trail's size, so it never changes while a card opens or closes.
-  const textScale = Math.min(
-    OPEN_TEXT_MAX_SCALE,
-    1 + ((openH - openMin) * OPEN_TEXT_SPARE_SHARE) / metrics.openText,
+  const openH = Math.max(openMin + shutterExtra, trailH - lockedH - collapsedCount * collapsedH);
+  const spare = openH - openMin;
+  // The open card's text grows into part of its spare height (none on phones at the fit limit), but never into the
+  // shutter's minimum. It depends only on the trail's size, so it never changes while a card opens or closes.
+  const textScale = Math.max(
+    1,
+    Math.min(
+      OPEN_TEXT_MAX_SCALE,
+      1 + (spare * OPEN_TEXT_SPARE_SHARE) / metrics.openText,
+      1 + (ACTION_H + spare - shutterMin) / metrics.openText,
+    ),
   );
-  // The action button takes whatever the bigger text leaves, so its height is known without measuring: tall enough,
-  // and it stacks a big icon above its label.
-  const actionH = ACTION_H + (openH - openMin) - metrics.openText * (textScale - 1);
-  // With room for at least CIRCLE_MIN after the label, air and edge, the action is a round shutter button
-  // (0 = not enough room: the normal row button).
-  const circleRoom = actionH - metrics.actionLabel - CIRCLE_LABEL_GAP - 2 * CIRCLE_AIR - Edge.button;
-  const circle = circleRoom >= CIRCLE_MIN ? Math.floor(Math.min(CIRCLE_MAX, circleRoom)) : 0;
+  // The shutter takes whatever the bigger text leaves, so its size is known without measuring: at least CIRCLE_MIN
+  // with its caption, air and edge.
+  const actionH = ACTION_H + spare - metrics.openText * (textScale - 1);
+  const circle = Math.floor(
+    Math.min(CIRCLE_MAX, actionH - metrics.actionLabel - CIRCLE_LABEL_GAP - 2 * CIRCLE_AIR - Edge.button),
+  );
   const links = trailLinks(words);
 
   return (
@@ -373,8 +386,8 @@ function TrailStop({
 }
 
 /**
- * The open card's Hunt / Share button, in the word's difficulty colour. It fills the card's spare height:
- * when tall it stacks a big icon above its label, otherwise icon and label share one row.
+ * The open card's Hunt / Share button, in the word's difficulty colour: a round shutter centred in the card's spare
+ * height, with its label and a short sentence underneath. The trail always leaves room for it (see Trail).
  */
 function ActionTile({
   word,
@@ -390,83 +403,53 @@ function ActionTile({
   icon: IconName;
   title: string;
   /**
-   * A short sentence under the shutter's label (shutter only; the row button has no room for it). Keep it free of
-   * the word itself: labels are model classes ("scissors", "fire hydrant"), so articles and possessives go wrong.
+   * A short sentence under the shutter's label. Keep it free of the word itself: labels are model classes
+   * ("scissors", "fire hydrant"), so articles and possessives go wrong.
    */
   subtitle: string;
   accessibilityLabel: string;
-  /** Shutter diameter, or 0 for the row button. */
+  /** Shutter diameter (CIRCLE_MIN..CIRCLE_MAX). */
   circle: number;
   busy?: boolean;
   onPress: () => void;
 }) {
   const c = difficultyColors(useTheme(), word.difficulty);
 
-  if (circle > 0) {
-    // A round shutter button centred in the spare space, its label underneath on the card face.
-    return (
-      <View style={styles.shutterArea}>
-        <Chunky
-          color={c.main}
-          edgeColor={c.edge}
-          radius={circle / 2}
-          edge={Edge.button}
-          disabled={busy}
-          onPress={onPress}
-          accessibilityLabel={accessibilityLabel}
-          // The outer box is pinned to the circle plus its edge, so the face (which grows to fill it) stays round.
-          style={{ width: circle, height: circle + Edge.button }}
-          contentStyle={styles.shutterFace}>
-          {busy ? (
-            <ActivityIndicator color={c.on} size="large" />
-          ) : (
-            <Icon name={icon} size={Math.round(circle * 0.4)} color={c.on} />
-          )}
-        </Chunky>
-        <View style={styles.caption} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-          <ThemedText type="subtitle" numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE} style={{ color: c.text }}>
-            {title}
-          </ThemedText>
-          <ThemedText
-            type="small"
-            themeColor="textSecondary"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.8}
-            maxFontSizeMultiplier={MAX_FONT_SCALE}
-            style={styles.captionText}>
-            {subtitle}
-          </ThemedText>
-        </View>
-      </View>
-    );
-  }
-
   return (
-    <Chunky
-      color={c.main}
-      edgeColor={c.edge}
-      radius={18}
-      edge={Edge.button}
-      disabled={busy}
-      onPress={onPress}
-      accessibilityLabel={accessibilityLabel}
-      style={styles.action}
-      contentStyle={styles.actionFace}>
-      {busy ? (
-        <ActivityIndicator color={c.on} />
-      ) : (
-        <>
-          <Icon name={icon} size={20} color={c.on} />
-          <ThemedText
-            numberOfLines={1}
-            maxFontSizeMultiplier={MAX_FONT_SCALE}
-            style={[styles.actionLabel, { color: c.on }]}>
-            {title}
-          </ThemedText>
-        </>
-      )}
-    </Chunky>
+    <View style={styles.shutterArea}>
+      <Chunky
+        color={c.main}
+        edgeColor={c.edge}
+        radius={circle / 2}
+        edge={Edge.button}
+        disabled={busy}
+        onPress={onPress}
+        accessibilityLabel={accessibilityLabel}
+        // The outer box is pinned to the circle plus its edge, so the face (which grows to fill it) stays round.
+        style={{ width: circle, height: circle + Edge.button }}
+        contentStyle={styles.shutterFace}>
+        {busy ? (
+          <ActivityIndicator color={c.on} size="large" />
+        ) : (
+          <Icon name={icon} size={Math.round(circle * 0.4)} color={c.on} />
+        )}
+      </Chunky>
+      <View style={styles.caption} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <ThemedText type="subtitle" numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE} style={{ color: c.text }}>
+          {title}
+        </ThemedText>
+        <ThemedText
+          type="small"
+          themeColor="textSecondary"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+          maxFontSizeMultiplier={MAX_FONT_SCALE}
+          style={styles.captionText}>
+          {subtitle}
+        </ThemedText>
+      </View>
+    </View>
   );
 }
 
@@ -792,16 +775,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.two,
     gap: Spacing.two + 4,
   },
-  action: {
-    flex: 1,
-  },
-  actionFace: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.two,
-    paddingHorizontal: Spacing.three,
-  },
   shutterArea: {
     flex: 1,
     alignItems: 'center',
@@ -819,9 +792,6 @@ const styles = StyleSheet.create({
   shutterFace: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  actionLabel: {
-    fontWeight: 900,
   },
   statusRow: {
     flexDirection: 'row',
