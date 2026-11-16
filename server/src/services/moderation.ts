@@ -2,11 +2,12 @@ import { desc, eq, inArray } from 'drizzle-orm';
 
 import { revokeRefreshTokens } from '../auth/tokens';
 import type { Ctx } from '../context';
-import { reports, submissions, users, type UserRow } from '../db/schema';
+import { dailyWords, reports, submissions, users, type UserRow } from '../db/schema';
 import type { ReportReason, ReportStatus } from '../domain/enums';
 import type { AdminReport } from '../dto/admin';
 import { notFound } from '../lib/errors';
 import { isForeignKeyViolation } from '../lib/sql';
+import { recomputeCombos } from './combos';
 
 /** Reports and the actions on them (Apple guideline 1.2: act on reports within 24 hours). */
 
@@ -64,13 +65,19 @@ export async function resolveReport(ctx: Ctx, id: string): Promise<void> {
   await ctx.db.update(reports).set({ status: 'resolved' }).where(eq(reports.id, id));
 }
 
-/** Hide a photo: it leaves feeds, and its points leave the leaderboard. */
+/** Hide a photo: it leaves feeds, and its points (and any combo it made) leave the leaderboard. */
 export async function removeSubmission(ctx: Ctx, id: string): Promise<void> {
-  const [row] = await ctx.db
-    .update(submissions)
-    .set({ status: 'removed', points: 0, rank: null })
-    .where(eq(submissions.id, id))
-    .returning({ imageKey: submissions.imageKey });
+  const row = await ctx.db.transaction(async (tx) => {
+    const [removed] = await tx
+      .update(submissions)
+      .set({ status: 'removed', points: 0, comboPoints: 0, rank: null })
+      .where(eq(submissions.id, id))
+      .returning({ imageKey: submissions.imageKey, userId: submissions.userId, dailyWordId: submissions.dailyWordId });
+    if (!removed) return null;
+    const [day] = await tx.select({ date: dailyWords.date }).from(dailyWords).where(eq(dailyWords.id, removed.dailyWordId));
+    if (day) await recomputeCombos(tx, removed.userId, day.date);
+    return removed;
+  });
   if (!row) throw notFound('Submission not found.');
   await ctx.storage.delete(row.imageKey);
 }

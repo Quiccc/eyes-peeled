@@ -3,6 +3,7 @@ import { and, count, eq } from 'drizzle-orm';
 import type { Ctx } from '../context';
 import { dailyWords, submissions } from '../db/schema';
 import { isUniqueViolation } from '../lib/sql';
+import { creditCombo } from './combos';
 import { dailyWordById } from './daily-words';
 import { pointsFor } from './scoring';
 import type { Verdict } from './verifier';
@@ -71,6 +72,7 @@ export async function decide(ctx: Ctx, submissionId: string, photo?: Buffer): Pr
           decidedAt: ctx.clock.now(),
         })
         .where(and(eq(submissions.id, submissionId), eq(submissions.status, 'pending')));
+      await creditCombo(tx, sub.userId, word.date, submissionId);
     });
   } catch (e) {
     if (!isUniqueViolation(e)) throw e;

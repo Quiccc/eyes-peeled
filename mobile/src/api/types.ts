@@ -46,6 +46,11 @@ export type Submission = {
   status: SubmissionStatus;
   /** 0 unless valid */
   points: number;
+  /**
+   * Combo bonus this find added by linking to an adjacent trail node that is also found
+   * (1st link of the day +50, 2nd +100, 3rd +200). 0 unless valid. Not part of `points`.
+   */
+  comboPoints: number;
   /** Order in which this valid photo arrived for the word (1 = first finder). null unless valid. */
   rank: number | null;
   /** Model confidence 0–1, informational */

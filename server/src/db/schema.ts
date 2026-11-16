@@ -94,6 +94,8 @@ export const submissions = pgTable(
       .references(() => dailyWords.id),
     status: text('status', { enum: submissionStatuses }).notNull(),
     points: integer('points').notNull().default(0),
+    /** Combo bonus this find added by linking to an adjacent trail node (see services/combos.ts). */
+    comboPoints: integer('combo_points').notNull().default(0),
     rank: integer('rank'),
     confidence: real('confidence'),
     message: text('message'),

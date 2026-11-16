@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { MAX_FONT_SCALE } from '@/features/today/layout';
 import { useTheme } from '@/hooks/use-theme';
+import { comboPointsOf } from '@/lib/combo';
 import { formatNumber } from '@/lib/format';
 import { queryKeys } from '@/lib/query-client';
 
@@ -30,7 +31,8 @@ export function TodayScoreboard({ daily, premium }: Props) {
 
   const words = daily?.words ?? [];
   const found = words.filter((w) => w.status === 'found').length;
-  const points = words.reduce((sum, w) => sum + (w.submission?.points ?? 0), 0);
+  // Finds plus the combo bonuses they earned.
+  const points = words.reduce((sum, w) => sum + (w.submission?.points ?? 0), 0) + comboPointsOf(words);
   const slots = premium ? PREMIUM_SLOTS : FREE_SLOTS;
   const total = daily ? words.length : slots.length;
   const summary = `${found} of ${total} words found${premium ? '' : ', Premium word locked'}`;

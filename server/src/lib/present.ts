@@ -22,6 +22,7 @@ export function toSubmission(s: SubmissionRow, storage: Storage): Submission {
     // 'removed' (by moderation) looks invalid to the player
     status: s.status === 'removed' ? 'invalid' : s.status,
     points: valid ? s.points : 0,
+    comboPoints: valid ? s.comboPoints : 0,
     rank: valid ? s.rank : null,
     confidence: s.confidence,
     message: s.status === 'removed' ? 'This photo was removed by a moderator.' : s.message,

@@ -1,6 +1,7 @@
 import { ApiError } from '@/api/client';
-import { others } from '@/api/mock/fixtures';
-import type { FriendRequest, Submission, User } from '@/api/types';
+import { ALL_DIFFICULTIES, others } from '@/api/mock/fixtures';
+import type { Difficulty, FriendRequest, Submission, User } from '@/api/types';
+import { comboForLinks, linksAmong } from '@/lib/combo';
 
 const DAY_MS = 86_400_000;
 
@@ -42,18 +43,24 @@ export function rollDay() {
   state.mySubmissions = [];
 }
 
-/** Apply every verdict whose time has come. */
+/** Trail position of a mock word id (`${dayIndex}-${difficulty}`). */
+const positionOf = (wordId: string) => ALL_DIFFICULTIES.indexOf(wordId.split('-')[1] as Difficulty);
+
+/** Apply every verdict whose time has come. A valid find is credited with the combo bonus it adds. */
 export function settlePending() {
   const now = Date.now();
+  const found = state.mySubmissions.filter((s) => s.status === 'valid').map((s) => positionOf(s.wordId));
   state.mySubmissions = state.mySubmissions.map((s) => {
     const v = state.verdicts.get(s.id);
     if (s.status !== 'pending' || !v || now < v.at) return s;
     state.verdicts.delete(s.id);
-    if (v.result.status === 'valid') {
-      state.monthPoints += v.result.points;
-      state.totalFinds += 1;
-    }
-    return v.result;
+    if (v.result.status !== 'valid') return v.result;
+    const before = comboForLinks(linksAmong(found));
+    found.push(positionOf(s.wordId));
+    const comboPoints = comboForLinks(linksAmong(found)) - before;
+    state.monthPoints += v.result.points + comboPoints;
+    state.totalFinds += 1;
+    return { ...v.result, comboPoints };
   });
 }
 

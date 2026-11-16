@@ -114,6 +114,7 @@ export const mockApi: Api = {
       wordId,
       status: 'pending',
       points: 0,
+      comboPoints: 0,
       rank: null,
       confidence: null,
       message: null,

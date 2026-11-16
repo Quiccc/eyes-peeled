@@ -1,0 +1,1 @@
+ALTER TABLE "submissions" ADD COLUMN "combo_points" integer DEFAULT 0 NOT NULL;

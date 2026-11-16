@@ -5,7 +5,7 @@ import { addDays, daysBetween } from '../src/lib/time';
 import { isUuid } from '../src/lib/validation';
 import { compareVersions } from '../src/middleware/app-version';
 import { streakFrom } from '../src/services/profile';
-import { MAX_POINTS, pointsFor } from '../src/services/scoring';
+import { comboCredits, comboForLinks, linksAmong, MAX_POINTS, pointsFor } from '../src/services/scoring';
 
 describe('pointsFor', () => {
   it('gives full points at midnight UTC, falling to 20% by the end of the day', () => {
@@ -18,6 +18,34 @@ describe('pointsFor', () => {
     const at = new Date('2026-11-15T06:00:00Z');
     expect(pointsFor('easy', at)).toBeLessThan(pointsFor('medium', at));
     expect(pointsFor('hard', at)).toBeLessThan(pointsFor('expert', at));
+  });
+});
+
+describe('combos', () => {
+  it('counts links between adjacent found nodes', () => {
+    expect(linksAmong([])).toBe(0);
+    expect(linksAmong([0, 2])).toBe(0);
+    expect(linksAmong([1, 0])).toBe(1);
+    expect(linksAmong([3, 1, 2, 0])).toBe(3);
+  });
+
+  it('escalates per link', () => {
+    expect([0, 1, 2, 3].map(comboForLinks)).toEqual([0, 50, 150, 350]);
+  });
+
+  it('credits each find with the bonus it added', () => {
+    const credits = comboCredits([
+      { id: 'hard', position: 2 },
+      { id: 'easy', position: 0 },
+      { id: 'medium', position: 1 }, // closes both links at once
+      { id: 'expert', position: 3 },
+    ]);
+    expect([...credits]).toEqual([
+      ['hard', 0],
+      ['easy', 0],
+      ['medium', 150],
+      ['expert', 200],
+    ]);
   });
 });
 

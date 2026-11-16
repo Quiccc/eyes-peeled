@@ -14,7 +14,7 @@ const PAGE_SIZE = 20;
 type Ranked = { user_id: string; points: number; rank: number };
 
 /**
- * Monthly board. Points = this month's valid finds. Ties go to whoever reached their total first
+ * Monthly board. Points = this month's valid finds plus their combo bonuses. Ties go to whoever reached their total first
  * (earliest latest-find), then user id, so ranks are stable across pages.
  */
 function rankedQuery(ctx: Ctx, me: UserRow, scope: LeaderboardScope, memberIds: string[]) {
@@ -27,7 +27,7 @@ function rankedQuery(ctx: Ctx, me: UserRow, scope: LeaderboardScope, memberIds: 
   );
   return sql`
     WITH scores AS (
-      SELECT s.user_id, SUM(s.points)::int AS points, MAX(s.received_at) AS last_at
+      SELECT s.user_id, SUM(s.points + s.combo_points)::int AS points, MAX(s.received_at) AS last_at
       FROM submissions s
       WHERE s.status = 'valid' AND s.received_at >= ${from}::timestamptz AND s.received_at < ${to}::timestamptz
       GROUP BY s.user_id

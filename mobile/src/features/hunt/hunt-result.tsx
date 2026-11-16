@@ -61,6 +61,17 @@ export function HuntResult({ word, phase, retrying, onRetry, onClose, onShare }:
       {submission && valid && (
         <HuntStatus>
           <CountUp value={submission.points} prefix="+" suffix=" pts" style={[styles.points, { color: theme.successText }]} />
+          {submission.comboPoints > 0 && (
+            <View
+              style={[styles.combo, { backgroundColor: theme.tint, borderColor: theme.tintEdge }]}
+              accessible
+              accessibilityLabel={`Combo! Plus ${submission.comboPoints} bonus points for linking neighbouring words`}>
+              <Icon name="link" size={18} color={theme.onTint} />
+              <ThemedText type="smallBold" style={{ color: theme.onTint }}>
+                Combo! +{submission.comboPoints} pts
+              </ThemedText>
+            </View>
+          )}
           <ThemedText type="subtitle">Nice find!</ThemedText>
           {submission.rank ? (
             <ThemedText themeColor="textSecondary" style={huntStyles.centerText}>
@@ -139,6 +150,16 @@ const styles = StyleSheet.create({
   },
   checking: {
     gap: 14,
+  },
+  combo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderBottomWidth: 4,
   },
   points: {
     fontSize: 56,

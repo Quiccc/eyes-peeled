@@ -30,6 +30,7 @@ import {
 } from '@/features/today/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { tap } from '@/lib/haptics';
+import { trailLinks } from '@/lib/combo';
 import { DIFFICULTY_LABEL, displayWord, formatNumber, ordinal } from '@/lib/format';
 
 const DURATION = 350;
@@ -38,6 +39,8 @@ const EASE = Easing.bezier(0.4, 0, 0.2, 1);
 const NODE = 52;
 const NODE_COLLAPSED_SCALE = 44 / NODE;
 const SEGMENT = 6;
+/** Height of the combo chip on a link; half of it hangs into the next row. */
+const CHIP_H = 18;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -94,6 +97,7 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
   // (0 = not enough room: the normal row button).
   const circleRoom = actionH - metrics.actionLabel - CIRCLE_LABEL_GAP - 2 * CIRCLE_AIR - Edge.button;
   const circle = circleRoom >= CIRCLE_MIN ? Math.floor(Math.min(CIRCLE_MAX, circleRoom)) : 0;
+  const links = trailLinks(words);
 
   return (
     // The rows live in an absolute layer, so the trail's height comes only from the screen (or minHeight on short
@@ -108,7 +112,10 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
           index={i}
           selected={word.id === selected}
           prevFound={i > 0 && words[i - 1].status === 'found'}
+          comboAbove={i > 0 && links.paid[i - 1] != null}
+          linkBelow={i < words.length - 1 ? { paid: links.paid[i] ?? null, next: links.next } : null}
           isLast={i === words.length - 1 && !locked}
+          zIndex={words.length - i}
           collapsedH={collapsedH}
           openH={openH}
           pad={pad}
@@ -142,7 +149,16 @@ type StopProps = {
   index: number;
   selected: boolean;
   prevFound: boolean;
+  /** The link to the word above is a combo (both found). */
+  comboAbove: boolean;
+  /**
+   * The link to the next word: what it paid once both are found, or what the next link would pay.
+   * null for the last word (nothing to link to, or only the locked Premium stop).
+   */
+  linkBelow: { paid: number | null; next: number | null } | null;
   isLast: boolean;
+  /** Stacking order, so a link's chip (which straddles this row and the next) draws above the next row. */
+  zIndex: number;
   /** Height of the row while collapsed. */
   collapsedH: number;
   /** Height of the row while open: the trail's spare height, never less than its content needs. */
@@ -164,7 +180,10 @@ function TrailStop({
   index,
   selected,
   prevFound,
+  comboAbove,
+  linkBelow,
   isLast,
+  zIndex,
   collapsedH,
   openH,
   pad,
@@ -203,8 +222,15 @@ function TrailStop({
       ? { backgroundColor: c.bg, borderColor: c.main }
       : { backgroundColor: theme.backgroundElement, borderColor: c.main };
   const label = DIFFICULTY_LABEL[word.difficulty];
-  const meta = found && !selected ? `+${word.submission?.points ?? 0} pts` : `up to ${formatNumber(word.maxPoints)} pts`;
+  const earned = (word.submission?.points ?? 0) + (word.submission?.comboPoints ?? 0);
+  const meta = found && !selected ? `+${formatNumber(earned)} pts` : `up to ${formatNumber(word.maxPoints)} pts`;
   const status = found ? 'found' : word.status === 'pending' ? 'being checked' : 'not found yet';
+  const comboLabel =
+    linkBelow?.paid != null
+      ? `, combo with the next word, plus ${linkBelow.paid} points`
+      : linkBelow?.next != null
+        ? `, find the next word too for a plus ${linkBelow.next} combo`
+        : '';
 
   return (
     // The whole stop (node and card, edges included) opens it. Once open it isn't one accessibility element,
@@ -213,12 +239,12 @@ function TrailStop({
       accessible={!selected}
       accessibilityRole="button"
       accessibilityState={{ expanded: selected }}
-      accessibilityLabel={`${displayWord(word.word)}, ${label}, ${meta}, ${status}`}
+      accessibilityLabel={`${displayWord(word.word)}, ${label}, ${meta}, ${status}${comboLabel}`}
       accessibilityHint={selected ? undefined : 'Shows this word'}
       onPress={selected ? undefined : onSelect}
-      style={[styles.row, rowMotion]}>
+      style={[styles.row, { zIndex }, rowMotion]}>
       <View style={styles.rail}>
-        <Segment visible={index > 0} walked={prevFound} />
+        <Segment visible={index > 0} walked={prevFound} combo={comboAbove} />
         <Animated.View style={[styles.node, nodeColors, nodeMotion]} importantForAccessibility="no-hide-descendants">
           {found ? (
             <Icon name="check" size={24} color={theme.easyText} />
@@ -228,7 +254,8 @@ function TrailStop({
             </ThemedText>
           )}
         </Animated.View>
-        <Segment visible={!isLast} walked={found} />
+        <Segment visible={!isLast} walked={found} combo={linkBelow?.paid != null} />
+        {linkBelow && <ComboChip paid={linkBelow.paid} next={linkBelow.next} />}
       </View>
 
       <View style={styles.cardSlot}>
@@ -451,7 +478,8 @@ function StatusLine({
           numberOfLines={1}
           maxFontSizeMultiplier={MAX_FONT_SCALE}
           style={[styles.shrink, textStyle, { color: theme.successText }]}>
-          Found · +{sub.points} pts{sub.rank ? ` · ${ordinal(sub.rank)} finder` : ''}
+          Found · +{sub.points} pts{sub.comboPoints > 0 ? ` · +${sub.comboPoints} combo` : ''}
+          {sub.rank ? ` · ${ordinal(sub.rank)} finder` : ''}
         </ThemedText>
       </View>
     );
@@ -530,16 +558,47 @@ function LockedStop({
   );
 }
 
-/** Half of the trail line above or below a node: green once the player has walked it, otherwise the border color. */
-function Segment({ visible, walked }: { visible: boolean; walked: boolean }) {
+/**
+ * Half of the trail line above or below a node: orange when it's part of a combo (both its nodes found), green once
+ * the player has walked it, otherwise the border color.
+ */
+function Segment({ visible, walked, combo = false }: { visible: boolean; walked: boolean; combo?: boolean }) {
   const theme = useTheme();
   return (
     <View
       style={[
         styles.segment,
-        visible && { backgroundColor: walked ? theme.success : theme.border },
+        visible && { backgroundColor: combo ? theme.tint : walked ? theme.success : theme.border },
       ]}
     />
+  );
+}
+
+/**
+ * The bonus on the link between two words, centred on the boundary between their rows: a solid orange chip with
+ * what it paid once both are found, otherwise a faint hint with what linking them would pay.
+ */
+function ComboChip({ paid, next }: { paid: number | null; next: number | null }) {
+  const theme = useTheme();
+  const value = paid ?? next;
+  if (value == null) return null;
+  const lit = paid != null;
+  return (
+    <View style={styles.chipSlot} pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+      <View
+        style={[
+          styles.chip,
+          lit
+            ? { backgroundColor: theme.tint, borderColor: theme.tintEdge }
+            : { backgroundColor: theme.background, borderColor: theme.border, borderStyle: 'dashed' },
+        ]}>
+        <ThemedText
+          maxFontSizeMultiplier={1}
+          style={[styles.chipText, { color: lit ? theme.onTint : theme.textSecondary }]}>
+          +{value}
+        </ThemedText>
+      </View>
+    </View>
   );
 }
 
@@ -592,6 +651,30 @@ const styles = StyleSheet.create({
   segment: {
     flex: 1,
     width: SEGMENT,
+  },
+  chipSlot: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: -CHIP_H / 2,
+    height: CHIP_H,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chip: {
+    height: CHIP_H,
+    minWidth: 30,
+    paddingHorizontal: 5,
+    borderRadius: CHIP_H / 2,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: 900,
+    fontVariant: ['tabular-nums'],
   },
   node: {
     width: NODE,

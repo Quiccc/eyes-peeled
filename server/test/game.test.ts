@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { Daily } from '@shared/types';
+import type { Daily, Leaderboard } from '@shared/types';
 
+import { removeSubmission } from '../src/services/moderation';
 import { jpeg, startTestServer, type TestServer } from './helpers';
 
 let t: TestServer;
@@ -174,6 +175,81 @@ describe('submissions', () => {
     const b = await t.signIn('bob');
     const res = await submit(a.auth, (await daily(a.auth)).words[0]!.id);
     expect((await t.http().get(`/submissions/${res.body.id}`).set(b.auth)).status).toBe(404);
+  });
+});
+
+describe('combos', () => {
+  const combos = async (auth: Auth) => (await daily(auth)).words.map((w) => w.submission?.comboPoints ?? 0);
+  const myPoints = async (auth: Auth) =>
+    ((await t.http().get('/leaderboard').query({ scope: 'global' }).set(auth)).body as Leaderboard).me?.points;
+
+  it('pays an escalating bonus for adjacent finds, in any order', async () => {
+    const a = await t.signIn('alex');
+    const [easy, medium, hard] = (await daily(a.auth)).words;
+
+    const h = await submit(a.auth, hard!.id);
+    expect(h.body).toMatchObject({ points: 375, comboPoints: 0 });
+    // medium links to hard: the day's 1st link
+    expect((await submit(a.auth, medium!.id)).body).toMatchObject({ points: 188, comboPoints: 50 });
+    // easy links to medium: the 2nd link
+    expect((await submit(a.auth, easy!.id)).body).toMatchObject({ points: 75, comboPoints: 100 });
+
+    expect(await combos(a.auth)).toEqual([100, 50, 0]);
+    expect(await myPoints(a.auth)).toBe(75 + 188 + 375 + 150);
+  });
+
+  it('needs the nodes to be next to each other', async () => {
+    const a = await t.signIn('alex');
+    const [easy, , hard] = (await daily(a.auth)).words;
+    await submit(a.auth, easy!.id);
+    await submit(a.auth, hard!.id);
+    expect(await combos(a.auth)).toEqual([0, 0, 0]);
+  });
+
+  it('pays up to 350 for a full Premium trail', async () => {
+    const a = await t.signIn('alex');
+    await t.http().post('/me/purchases/sync').set(a.auth);
+    for (const w of (await daily(a.auth)).words) await submit(a.auth, w.id);
+    expect(await combos(a.auth)).toEqual([0, 50, 100, 200]);
+  });
+
+  it('credits a link once when verdicts finish out of order', async () => {
+    const slow = await startTestServer({ VERIFY_SYNC_WAIT_MS: '20' });
+    try {
+      const gates = new Map<string, () => void>();
+      slow.setVerdict(async (label) => {
+        await new Promise<void>((r) => gates.set(label, r));
+        return { detected: true, confidence: 0.9 };
+      });
+      const a = await slow.signIn('alex');
+      const get = async () => ((await slow.http().get('/daily').set(a.auth)).body as Daily).words;
+      const [easy, medium] = await get();
+      for (const w of [easy!, medium!]) {
+        const res = await slow.http().post(`/words/${w.id}/submissions`).set(a.auth).attach('photo', jpeg(w.id), 'p.jpg');
+        expect(res.body.status).toBe('pending');
+      }
+      // medium is decided first, so easy completes the link
+      gates.get(medium!.word)!();
+      await new Promise((r) => setTimeout(r, 20));
+      gates.get(easy!.word)!();
+      await slow.ctx.queue.idle();
+      expect((await get()).map((w) => w.submission?.comboPoints)).toEqual([50, 0, undefined]);
+    } finally {
+      await slow.close();
+    }
+  });
+
+  it('takes the combo back when a linked photo is removed', async () => {
+    const a = await t.signIn('alex');
+    const [easy, medium, hard] = (await daily(a.auth)).words;
+    await submit(a.auth, easy!.id);
+    const mid = await submit(a.auth, medium!.id);
+    await submit(a.auth, hard!.id);
+    expect(await combos(a.auth)).toEqual([0, 50, 100]);
+
+    await removeSubmission(t.ctx, mid.body.id);
+    expect(await combos(a.auth)).toEqual([0, 0, 0]);
+    expect(await myPoints(a.auth)).toBe(75 + 375);
   });
 });
 

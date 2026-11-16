@@ -24,6 +24,7 @@ const ICONS = {
   'chevron-right': { ios: 'chevron.right', android: 'chevron_right' },
   'no-ads': { ios: 'nosign', android: 'block' },
   retry: { ios: 'arrow.counterclockwise', android: 'replay' },
+  link: { ios: 'link', android: 'link' },
   'camera-off': { ios: 'video.slash', android: 'no_photography' },
   'chevron-left': { ios: 'chevron.left', android: 'chevron_left' },
   'person-add': { ios: 'person.badge.plus', android: 'person_add' },

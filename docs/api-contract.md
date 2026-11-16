@@ -89,6 +89,19 @@ points    = max(round(maxPoints * 0.2), round(maxPoints * (1 - elapsedH / 24)))
 
 You can add a bonus for being in the first N finders by `rank`. The app only displays `points`, so the formula can change server-side at any time.
 
+### Combos
+
+The Today trail links adjacent words (easy–medium, medium–hard, hard–expert). A **link** is made when the user has a valid find for both words of a pair on the same UTC day. The order of the two finds doesn't matter. Each link pays a bonus that grows through the day:
+
+```
+1st link +50, 2nd link +100, 3rd link +200   (free max 150, Premium max 350)
+```
+
+- The bonus goes to `Submission.comboPoints` of the find that **completed** the link. A find that closes two links at once (the middle word, found last) gets both. `comboPoints` is not included in `points`.
+- Credit is assigned when the verdict is recorded and serialised per user, so verdicts that finish out of order don't credit the same link twice.
+- When moderation removes a find, the user's combos for that day are recomputed and any broken link stops paying.
+- Leaderboard and profile `monthPoints` add `points + comboPoints`. The app adds them for its "pts today" total. Feed items keep showing `points` only.
+
 ### Anti-cheat ideas (server-side)
 
 - The app only uploads photos from the live camera; there is no gallery picker. A modified client can still upload anything, so also:
@@ -116,7 +129,7 @@ One non-consumable purchase, **Premium**: no ads + the daily Expert word. It is 
 |---|---|---|---|
 | GET | `/leaderboard` | `scope=global\|friends`, `cursor?` | `Leaderboard` `{ month, resetsAt, entries, me, nextCursor }` |
 
-- Points add up per **calendar month (UTC)**. The board wipes at 00:00 UTC on the 1st, and `resetsAt` is that instant.
+- Points (finds plus their combo bonuses) add up per **calendar month (UTC)**. The board wipes at 00:00 UTC on the 1st, and `resetsAt` is that instant.
 - `friends` scope = the user plus their accepted friends. Always include the user, even at 0 points.
 - `me` is the caller's own entry, so the app can pin it when it falls outside the loaded page.
 - **Ties:** two users with the same points never share a rank. Break ties by who reached that total first (the earliest `receivedAt` of their latest valid submission this month), then by user id, so ranks are stable across pages and refreshes.
