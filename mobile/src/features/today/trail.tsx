@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentProps } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
@@ -111,6 +111,7 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
           word={word}
           index={i}
           selected={word.id === selected}
+          nextSelected={words[i + 1]?.id === selected}
           prevFound={i > 0 && words[i - 1].status === 'found'}
           comboAbove={i > 0 && links.paid[i - 1] != null}
           linkBelow={i < words.length - 1 ? { paid: links.paid[i] ?? null, next: links.next } : null}
@@ -148,6 +149,8 @@ type StopProps = {
   word: DailyWord;
   index: number;
   selected: boolean;
+  /** The next word's card is open (its row's height places the combo chip between the two nodes). */
+  nextSelected: boolean;
   prevFound: boolean;
   /** The link to the word above is a combo (both found). */
   comboAbove: boolean;
@@ -179,6 +182,7 @@ function TrailStop({
   word,
   index,
   selected,
+  nextSelected,
   prevFound,
   comboAbove,
   linkBelow,
@@ -215,6 +219,18 @@ function TrailStop({
     opacity: Math.max(0, (progress.value - 0.35) / 0.65),
     transform: [{ translateY: (1 - progress.value) * 8 }],
   }));
+  // The combo chip sits on the boundary with the next row; move it to the middle of the gap between the two nodes.
+  // Each node is centred in its row, so with heights h (this row) and hn (next) the nodes' midpoint is (hn - h) / 4
+  // below the boundary, and the gap between their edges is shifted by half the difference of their (scaled) radii.
+  // The next row's progress runs on the same curve as that row's own, so the chip follows both rows as they animate.
+  const nextProgress = useOpenProgress(nextSelected);
+  const chipMotion = useAnimatedStyle(() => {
+    const p = progress.value;
+    const pn = nextProgress.value;
+    const grow = openH - collapsedH;
+    const shrink = (NODE / 2) * (1 - NODE_COLLAPSED_SCALE);
+    return { transform: [{ translateY: ((pn - p) * grow) / 4 + ((p - pn) * shrink) / 2 }] };
+  });
 
   const nodeColors = found
     ? { backgroundColor: theme.easyBg, borderColor: theme.easy }
@@ -255,7 +271,7 @@ function TrailStop({
           )}
         </Animated.View>
         <Segment visible={!isLast} walked={found} combo={linkBelow?.paid != null} />
-        {linkBelow && <ComboChip paid={linkBelow.paid} next={linkBelow.next} />}
+        {linkBelow && <ComboChip paid={linkBelow.paid} next={linkBelow.next} motion={chipMotion} />}
       </View>
 
       <View style={styles.cardSlot}>
@@ -476,8 +492,12 @@ function StatusLine({
         <ThemedText
           type="smallBold"
           numberOfLines={1}
+          // Shrinks rather than truncating when the open card's bigger text or the system size makes it too wide.
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
           maxFontSizeMultiplier={MAX_FONT_SCALE}
-          style={[styles.shrink, textStyle, { color: theme.successText }]}>
+          // A definite width (flex: 1, not flexShrink): Android fits the text to it, and shrinks it to nothing without it.
+          style={[styles.fill, textStyle, { color: theme.successText }]}>
           {/* One line: a combo takes the rank's place (the hunt result still shows the rank). */}
           Found · +{sub.points} pts
           {sub.comboPoints > 0 ? ` · +${sub.comboPoints} combo` : sub.rank ? ` · ${ordinal(sub.rank)} finder` : ''}
@@ -579,13 +599,26 @@ function Segment({ visible, walked, combo = false }: { visible: boolean; walked:
  * The bonus on the link between two words, centred on the boundary between their rows: a solid orange chip with
  * what it paid once both are found, otherwise a faint hint with what linking them would pay.
  */
-function ComboChip({ paid, next }: { paid: number | null; next: number | null }) {
+function ComboChip({
+  paid,
+  next,
+  motion,
+}: {
+  paid: number | null;
+  next: number | null;
+  /** Moves the chip from the row boundary to the middle of the gap between the two nodes. */
+  motion: ComponentProps<typeof Animated.View>['style'];
+}) {
   const theme = useTheme();
   const value = paid ?? next;
   if (value == null) return null;
   const lit = paid != null;
   return (
-    <View style={styles.chipSlot} pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+    <Animated.View
+      style={[styles.chipSlot, motion]}
+      pointerEvents="none"
+      importantForAccessibility="no-hide-descendants"
+      accessibilityElementsHidden>
       <View
         style={[
           styles.chip,
@@ -599,7 +632,7 @@ function ComboChip({ paid, next }: { paid: number | null; next: number | null })
           +{value}
         </ThemedText>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -738,6 +771,10 @@ const styles = StyleSheet.create({
   },
   shrink: {
     flexShrink: 1,
+  },
+  fill: {
+    flex: 1,
+    minWidth: 0,
   },
   word: {
     fontWeight: 900,
