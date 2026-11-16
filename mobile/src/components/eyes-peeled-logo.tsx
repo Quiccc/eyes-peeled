@@ -21,6 +21,8 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 /** Logo art is drawn on a 120×120 grid (from the design canvas's Logo artboard). */
 const VIEWBOX = 120;
 const INK = '#2B2118';
+/** The icon's orange sunburst: the base color and the lighter rays. */
+export const SUNBURST = { base: '#FF8A00', ray: '#FFA733' } as const;
 const RAYS =
   'M60 60L160 60L152.4 98.3ZM60 60L130.7 130.7L98.3 152.4ZM60 60L60 160L21.7 152.4ZM60 60L-10.7 130.7L-32.4 98.3ZM60 60L-40 60L-32.4 21.7ZM60 60L-10.7 -10.7L21.7 -32.4ZM60 60L60 -40L98.3 -32.4ZM60 60L130.7 -10.7L152.4 21.7Z';
 
@@ -101,25 +103,39 @@ export function EyesPeeledLogo({ size = 128, animated = true, style }: Props) {
           </ClipPath>
         </Defs>
         <G clipPath="url(#eyesPeeledLogoClip)">
-          <Rect width={VIEWBOX} height={VIEWBOX} fill="#FF8A00" />
-          <Path d={RAYS} fill="#FFA733" />
+          <Rect width={VIEWBOX} height={VIEWBOX} fill={SUNBURST.base} />
+          <Path d={RAYS} fill={SUNBURST.ray} />
         </G>
-        <Circle cx={63} cy={75} r={36} fill="#B35500" />
-        <Circle cx={60} cy={68} r={36} fill="#FFFFFF" stroke={INK} strokeWidth={6} />
-        <IrisCircle dx={dx} dy={dy} cx={66} cy={62} r={17} fill="#2D9CDB" stroke={INK} strokeWidth={4} />
-        <IrisCircle dx={dx} dy={dy} cx={66} cy={62} r={8} fill={INK} />
-        <IrisCircle dx={dx} dy={dy} cx={61} cy={57} r={4} fill="#FFFFFF" />
-        <Path d="M44 84Q62 98 80 84" fill="none" stroke={INK} strokeWidth={5} strokeLinecap="round" />
-        <Path d="M36 28Q54 14 72 22" fill="none" stroke={INK} strokeWidth={7} strokeLinecap="round" />
-        <Path
-          d="M98 14l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"
-          fill="#FFC83D"
-          stroke={INK}
-          strokeWidth={2.5}
-          strokeLinejoin="round"
-        />
+        <MascotArt dx={dx} dy={dy} />
       </Svg>
     </View>
+  );
+}
+
+type MascotArtProps = { dx: SharedValue<number>; dy: SharedValue<number> };
+
+/**
+ * The eyeball mascot's shapes on the logo's 120×120 grid, without the orange tile. `dx`/`dy` shift the iris.
+ * Place it inside an `Svg` (scale it with a `G` transform).
+ */
+export function MascotArt({ dx, dy }: MascotArtProps) {
+  return (
+    <G>
+      <Circle cx={63} cy={75} r={36} fill="#B35500" />
+      <Circle cx={60} cy={68} r={36} fill="#FFFFFF" stroke={INK} strokeWidth={6} />
+      <IrisCircle dx={dx} dy={dy} cx={66} cy={62} r={17} fill="#2D9CDB" stroke={INK} strokeWidth={4} />
+      <IrisCircle dx={dx} dy={dy} cx={66} cy={62} r={8} fill={INK} />
+      <IrisCircle dx={dx} dy={dy} cx={61} cy={57} r={4} fill="#FFFFFF" />
+      <Path d="M44 84Q62 98 80 84" fill="none" stroke={INK} strokeWidth={5} strokeLinecap="round" />
+      <Path d="M36 28Q54 14 72 22" fill="none" stroke={INK} strokeWidth={7} strokeLinecap="round" />
+      <Path
+        d="M98 14l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"
+        fill="#FFC83D"
+        stroke={INK}
+        strokeWidth={2.5}
+        strokeLinejoin="round"
+      />
+    </G>
   );
 }
 

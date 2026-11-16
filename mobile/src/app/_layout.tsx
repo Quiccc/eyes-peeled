@@ -2,17 +2,18 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { initAds, setAdsEnabled } from '@/ads/ads';
 import { AuthProvider, useAuth } from '@/auth/auth-provider';
+import { AnimatedSplash } from '@/components/animated-splash';
 import { ThemeTransitionOverlay } from '@/components/theme-transition';
 import { loadAppearance } from '@/lib/appearance';
 import { queryClient } from '@/lib/query-client';
 
 SplashScreen.preventAutoHideAsync();
-// Apply the saved Light/Dark/System choice before the splash screen hides (no wrong-theme flash).
+// Apply the saved Light/Dark/System choice before the launch screen fades (no wrong-theme flash).
 const appearanceReady = loadAppearance();
 
 export default function RootLayout() {
@@ -24,10 +25,28 @@ export default function RootLayout() {
           <StatusBar style="auto" />
           <RootNavigator />
           <ThemeTransitionOverlay />
+          <LaunchSplash />
         </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
+}
+
+/**
+ * The animated launch screen. It takes over from the native splash as soon as it renders, and fades out
+ * once the saved appearance is applied and we know whether someone is signed in.
+ */
+function LaunchSplash() {
+  const { status } = useAuth();
+  const [appearanceLoaded, setAppearanceLoaded] = useState(false);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    void appearanceReady.finally(() => setAppearanceLoaded(true));
+  }, []);
+
+  if (done) return null;
+  return <AnimatedSplash ready={status !== 'loading' && appearanceLoaded} onDone={() => setDone(true)} />;
 }
 
 function RootNavigator() {
@@ -35,10 +54,6 @@ function RootNavigator() {
   const signedIn = status === 'signedIn';
   const hasUsername = signedIn && !!user.username;
   const isPremium = signedIn && user.isPremium;
-
-  useEffect(() => {
-    if (status !== 'loading') void appearanceReady.then(() => SplashScreen.hideAsync());
-  }, [status]);
 
   useEffect(() => {
     setAdsEnabled(!isPremium);
