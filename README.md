@@ -60,9 +60,9 @@ Purchases need a development build and a sandbox / test-track account, or Revenu
 ## Before shipping
 
 - `mobile/app.json`: the bundle id / package is `com.eyespeeled.app` (register it with Apple and Google Play). Set the Google `iosUrlScheme`, and the AdMob `iosAppId`/`androidAppId`. Test IDs are filled in for now.
-- EAS `preview`/`production` profiles: set `EXPO_PUBLIC_API_URL` (production: `https://api.eyespeeled.com`; server `PUBLIC_BASE_URL` to match). A release build without it stops at launch rather than silently using the mock (set `EXPO_PUBLIC_USE_MOCK_API=true` to ship the mock on purpose).
+- EAS `preview`/`production` profiles: set `EXPO_PUBLIC_API_URL` (production: `https://api.eyespeeled.app`; server `PUBLIC_BASE_URL` to match). A release build without it stops at launch rather than silently using the mock (set `EXPO_PUBLIC_USE_MOCK_API=true` to ship the mock on purpose).
 - `mobile/.env.local`: set the Google client IDs and the AdMob interstitial unit IDs. Development builds always use Google's test ad units.
-- App Store: privacy nutrition labels (camera, identifiers for ads), the content moderation process for reports, and a privacy policy URL (`https://eyespeeled.com/privacy`; terms at `/terms`, both linked from the sign-in screen).
+- App Store: privacy nutrition labels (camera, identifiers for ads), the content moderation process for reports, and a privacy policy URL (`https://eyespeeled.app/privacy`; terms at `/terms`, both linked from the sign-in screen).
 
 ## Layout
 
