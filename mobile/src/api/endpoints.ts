@@ -92,7 +92,18 @@ const httpApi: Api = {
   blockUser: (userId) => request('/blocks', { method: 'POST', body: { userId } }),
 };
 
-export const USE_MOCK_API =
-  process.env.EXPO_PUBLIC_USE_MOCK_API === 'true' || !process.env.EXPO_PUBLIC_API_URL;
+const MOCK_REQUESTED = process.env.EXPO_PUBLIC_USE_MOCK_API === 'true';
+const HAS_API_URL = !!process.env.EXPO_PUBLIC_API_URL;
+
+// Falling back to the mock when the URL is missing is a dev convenience. In a release build it would
+// quietly ship a fake backend, so fail at launch instead (the mock can still be chosen on purpose).
+if (!__DEV__ && !HAS_API_URL && !MOCK_REQUESTED) {
+  throw new Error(
+    'EXPO_PUBLIC_API_URL is not set for this release build. Set it in the EAS build profile, ' +
+      'or set EXPO_PUBLIC_USE_MOCK_API=true to ship the mock backend on purpose.',
+  );
+}
+
+export const USE_MOCK_API = MOCK_REQUESTED || !HAS_API_URL;
 
 export const api: Api = USE_MOCK_API ? mockApi : httpApi;

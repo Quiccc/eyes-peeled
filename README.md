@@ -33,7 +33,7 @@ npx expo run:ios                    # npx expo run:android
 npx expo start                      # then open the app in the dev client
 ```
 
-With `EXPO_PUBLIC_USE_MOCK_API=true`, or with no `EXPO_PUBLIC_API_URL` set, the app runs against an in-memory mock backend (`mobile/src/api/mock/`). Sign-in is simulated, and each photo is randomly accepted about 60% of the time. Without RevenueCat keys, buying Premium is simulated too. Set `EXPO_PUBLIC_MOCK_RESET_IN_SECONDS=30` to test the daily rollover.
+With `EXPO_PUBLIC_USE_MOCK_API=true`, or with no `EXPO_PUBLIC_API_URL` set in a dev build, the app runs against an in-memory mock backend (`mobile/src/api/mock/`). Sign-in is simulated, and each photo is randomly accepted about 60% of the time. Without RevenueCat keys, buying Premium is simulated too. Set `EXPO_PUBLIC_MOCK_RESET_IN_SECONDS=30` to test the daily rollover.
 
 ## Backend
 
@@ -60,6 +60,7 @@ Purchases need a development build and a sandbox / test-track account, or Revenu
 ## Before shipping
 
 - `mobile/app.json`: set your real `ios.bundleIdentifier` and `android.package`, the Google `iosUrlScheme`, and the AdMob `iosAppId`/`androidAppId`. Test IDs are filled in for now.
+- EAS `preview`/`production` profiles: set `EXPO_PUBLIC_API_URL`. A release build without it stops at launch rather than silently using the mock (set `EXPO_PUBLIC_USE_MOCK_API=true` to ship the mock on purpose).
 - `mobile/.env.local`: set the Google client IDs and the AdMob interstitial unit IDs. Development builds always use Google's test ad units.
 - App Store: privacy nutrition labels (camera, identifiers for ads), the content moderation process for reports, and a privacy policy URL.
 
