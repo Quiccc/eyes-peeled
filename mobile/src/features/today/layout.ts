@@ -15,10 +15,10 @@ export const PAD_MAX = 16;
 
 /**
  * The open card's text grows into its spare height: up to this share of the spare goes to bigger text (the rest
- * stays as air above the button), and the text never grows past this scale (the word tops out near display size).
+ * stays as air above the button), and the text never grows past this scale (a modest step up from the base sizes).
  */
 export const OPEN_TEXT_SPARE_SHARE = 0.5;
-export const OPEN_TEXT_MAX_SCALE = 1.6;
+export const OPEN_TEXT_MAX_SCALE = 1.2;
 
 /** Vertical space a row leaves around its card: 6px above and below. */
 const ROW_PAD = 12;
@@ -34,11 +34,17 @@ const ACTION_H = 52 + 5;
 export type TrailMetrics = {
   /** A collapsed word row: its pill and word. */
   collapsed: number;
-  /** The open word row at its smallest: pill, word, status line and button. It takes all the spare height above that. */
+  /**
+   * The open word row at its smallest: pill, word, status line, first-find line and button.
+   * It takes all the spare height above that.
+   */
   expanded: number;
   /** The locked Premium row (free users). */
   locked: number;
-  /** The open card's text line heights at its base size (pill label + word + status line); the text scale grows these. */
+  /**
+   * The open card's text line heights at its base size (pill label + word + status line + first-find line);
+   * the text scale grows these.
+   */
   openText: number;
 };
 
@@ -49,15 +55,16 @@ export function trailMetrics(fontScale: number): TrailMetrics {
   const pill = line(18) + 4;
 
   const collapsedContent = pill + 4 + line(26);
-  // Pill, word, then the status line and button below an 8px gap; the button's label never outgrows its 52px face.
-  const expandedContent = pill + 4 + line(40) + 8 + line(18) + 12 + ACTION_H;
+  // Pill, word, then the status and first-find lines (4px apart) and the button below an 8px gap; the button's
+  // label never outgrows its 52px face. The first-find line is reserved even when it's hidden (nobody found it yet).
+  const expandedContent = pill + 4 + line(40) + 8 + line(18) + 4 + line(18) + 12 + ACTION_H;
   const lockedContent = line(22) + 2 + line(18);
 
   return {
     collapsed: ROW_PAD + BORDER_COLLAPSED + collapsedContent,
     expanded: ROW_PAD + BORDER_EXPANDED + expandedContent,
     locked: ROW_PAD + BORDER_LOCKED + lockedContent,
-    openText: line(18) + line(40) + line(18),
+    openText: line(18) + line(40) + line(18) + line(18),
   };
 }
 

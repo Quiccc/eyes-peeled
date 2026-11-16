@@ -57,6 +57,7 @@ Premium purchase (see [Purchases](#purchases-premium)). The app hides ads and sh
 - The day rolls over at **00:00 UTC** for everyone. `nextResetAt` is the next 00:00 UTC, and the app's countdown uses it.
 - Each word must be a class label in the YOLO model, so the backend knows which class to check for. One shared model knows every word; words are planned a month ahead in the admin panel (`server/admin/`), which only offers enabled words the running model knows. See [`yolo/README.md`](../yolo/README.md) for adding words.
 - `foundCount` is the number of distinct users with a valid submission for that word today.
+- `firstFoundAt` is the receipt timestamp (ISO 8601) of the earliest valid submission for that word today, or `null` while nobody has found it. The app shows it as "First found at 09:42" in the player's local time.
 - `status` is for the calling user:
   - `'found'`: they have a valid submission; `submission` is it.
   - `'pending'`: they have a submission still being checked; `submission` is it (with `imageUrl` set). If the app was closed mid-analysis, it uses this to resume polling `GET /submissions/:id` instead of letting the user start over.

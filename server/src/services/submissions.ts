@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 
-import { and, count, countDistinct, eq, inArray, ne } from 'drizzle-orm';
+import { and, count, countDistinct, eq, inArray, min, ne } from 'drizzle-orm';
 
 import type { Daily, DailyWord, Submission } from '@shared/types';
 
@@ -27,11 +27,18 @@ export async function getDaily(ctx: Ctx, user: UserRow): Promise<Daily> {
   const ids = visible.map((w) => w.dailyWordId);
 
   const found = await ctx.db
-    .select({ dailyWordId: submissions.dailyWordId, n: countDistinct(submissions.userId) })
+    .select({
+      dailyWordId: submissions.dailyWordId,
+      n: countDistinct(submissions.userId),
+      firstAt: min(submissions.receivedAt),
+    })
     .from(submissions)
     .where(and(inArray(submissions.dailyWordId, ids), eq(submissions.status, 'valid')))
     .groupBy(submissions.dailyWordId);
   const foundCount = new Map(found.map((f) => [f.dailyWordId, f.n]));
+  const firstFoundAt = new Map(
+    found.map((f) => [f.dailyWordId, f.firstAt ? new Date(f.firstAt).toISOString() : null]),
+  );
 
   const mine = await ctx.db
     .select()
@@ -54,6 +61,7 @@ export async function getDaily(ctx: Ctx, user: UserRow): Promise<Daily> {
       word: w.label,
       maxPoints: MAX_POINTS[w.difficulty],
       foundCount: foundCount.get(w.dailyWordId) ?? 0,
+      firstFoundAt: firstFoundAt.get(w.dailyWordId) ?? null,
       status: valid ? 'found' : pending ? 'pending' : 'open',
       submission: sub ? toSubmission(sub, ctx.storage) : null,
     };

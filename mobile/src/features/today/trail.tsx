@@ -248,7 +248,22 @@ function TrailStop({
           {/* Status line under the word, button pinned to the card's bottom edge (it rides down as the card grows). */}
           {selected && (
             <Animated.View style={[styles.extras, extrasMotion]}>
-              <StatusLine word={word} textStyle={smallText} iconSize={Math.round(16 * s)} />
+              <View style={styles.info}>
+                <StatusLine word={word} textStyle={smallText} iconSize={Math.round(16 * s)} />
+                {word.firstFoundAt && (
+                  <View style={styles.statusRow}>
+                    <Icon name="clock" size={Math.round(16 * s)} color={theme.textSecondary} />
+                    <ThemedText
+                      type="small"
+                      themeColor="textSecondary"
+                      numberOfLines={1}
+                      maxFontSizeMultiplier={MAX_FONT_SCALE}
+                      style={[styles.shrink, smallText]}>
+                      First found at {clockTime(word.firstFoundAt)}
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
               {found ? (
                 onShare && (
                   <Button
@@ -276,6 +291,11 @@ function TrailStop({
       </View>
     </AnimatedPressable>
   );
+}
+
+/** "09:42" (or "9:42 AM"), in the player's local time and clock style. */
+function clockTime(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 
 /** What the player knows about the word: their find, a photo being checked, or how many have found it. */
@@ -522,6 +542,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  info: {
+    gap: 4,
   },
   lockCard: {
     flex: 1,

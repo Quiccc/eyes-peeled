@@ -65,6 +65,8 @@ export type DailyWord = {
   maxPoints: number;
   /** How many players have found it so far today */
   foundCount: number;
+  /** When the first valid photo of it was received today (ISO 8601); null while nobody has found it. */
+  firstFoundAt: string | null;
   /** 'pending' = the user has a photo still being checked (e.g. they closed the app mid-analysis). */
   status: 'open' | 'pending' | 'found';
   /** The user's valid submission when 'found', or the in-flight one when 'pending'. null when 'open'. */

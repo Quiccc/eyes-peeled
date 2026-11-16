@@ -34,6 +34,18 @@ export function foundCountFor(difficulty: Difficulty) {
   return Math.floor(base * Math.min(1, hours / 12 + 0.1));
 }
 
+/**
+ * When the first made-up finder got the word: a fixed time after the day started (harder words later), never in
+ * the future, and the player's own find if that came earlier. null while nobody has it.
+ */
+export function firstFoundAtFor(difficulty: Difficulty, foundCount: number, mine: string | null): string | null {
+  const minutes = { easy: 20, medium: 45, hard: 90, expert: 150 }[difficulty];
+  const fake = foundCount > 0 ? Math.min(Date.now(), state.dayStart + minutes * 60_000) : null;
+  const own = mine ? new Date(mine).getTime() : null;
+  const first = fake === null ? own : own === null ? fake : Math.min(fake, own);
+  return first === null ? null : new Date(first).toISOString();
+}
+
 export function myValidSubmission(wordId: string) {
   return state.mySubmissions.find((s) => s.wordId === wordId && s.status === 'valid') ?? null;
 }

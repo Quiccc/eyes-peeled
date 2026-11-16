@@ -7,6 +7,7 @@ import { ApiError } from '@/api/client';
 import type { Api } from '@/api/endpoints';
 import {
   feedFor,
+  firstFoundAtFor,
   foundCountFor,
   friendStatus,
   leaderboardEntries,
@@ -77,10 +78,12 @@ export const mockApi: Api = {
       words: todaysWords(self.isPremium).map((w) => {
         const found = myValidSubmission(w.id);
         const pending = found ? null : myPendingSubmission(w.id);
+        const foundCount = foundCountFor(w.difficulty);
         return {
           ...w,
           maxPoints: MAX_POINTS[w.difficulty],
-          foundCount: foundCountFor(w.difficulty),
+          foundCount,
+          firstFoundAt: firstFoundAtFor(w.difficulty, foundCount, found?.createdAt ?? null),
           status: found ? 'found' : pending ? 'pending' : 'open',
           submission: found ?? pending,
         };

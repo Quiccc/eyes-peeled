@@ -23,7 +23,7 @@ describe('daily words', () => {
     expect(da.date).toBe('2026-11-14');
     expect(da.nextResetAt).toBe('2026-11-15T00:00:00.000Z');
     expect(da.words.map((w) => w.difficulty)).toEqual(['easy', 'medium', 'hard']);
-    expect(da.words.every((w) => w.status === 'open' && w.foundCount === 0)).toBe(true);
+    expect(da.words.every((w) => w.status === 'open' && w.foundCount === 0 && w.firstFoundAt === null)).toBe(true);
 
     const synced = await t.http().post('/me/purchases/sync').set(b.auth);
     expect(synced.body.isPremium).toBe(true);
@@ -57,13 +57,16 @@ describe('submissions', () => {
     // 06:00 UTC = a quarter of the day gone: 100 * 0.75
     expect(first.body).toMatchObject({ status: 'valid', points: 75, rank: 1, wordId: easy.id });
     expect(first.body.imageUrl).toMatch(/^http:\/\/test\.local\/files\/.+\?exp=\d+&sig=/);
+    // The first valid photo's receipt time; later finds don't move it.
+    const firstFoundAt = (await daily(b.auth)).words[0]!.firstFoundAt;
+    expect(firstFoundAt).toBe('2026-11-14T06:00:00.000Z');
 
     t.setNow('2026-11-14T23:00:00Z');
     const second = await submit(b.auth, easy.id);
     expect(second.body).toMatchObject({ status: 'valid', points: 20, rank: 2 }); // floor at 20%
 
     const after = (await daily(a.auth)).words[0]!;
-    expect(after).toMatchObject({ status: 'found', foundCount: 2 });
+    expect(after).toMatchObject({ status: 'found', foundCount: 2, firstFoundAt });
     expect(after.submission?.id).toBe(first.body.id);
 
     const again = await submit(a.auth, easy.id);
