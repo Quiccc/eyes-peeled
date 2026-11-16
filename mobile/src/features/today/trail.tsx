@@ -15,7 +15,7 @@ import { Icon } from '@/components/icon';
 import { DifficultyPill } from '@/components/pill';
 import { ThemedText } from '@/components/themed-text';
 import { difficultyColors, Radius, Spacing } from '@/constants/theme';
-import { EXPANDED_PAD_V, MAX_FONT_SCALE, useTrailMetrics, type TrailMetrics } from '@/features/today/layout';
+import { EXPANDED_PAD_V, MAX_FONT_SCALE, useTrailMetrics } from '@/features/today/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { tap } from '@/lib/haptics';
 import { DIFFICULTY_LABEL, displayWord, formatNumber, ordinal } from '@/lib/format';
@@ -45,23 +45,23 @@ type Props = {
 
 /**
  * Today's words as stops on a trail. One card is open at a time (the first one until the player picks another):
- * the open card has a fixed height from the type scale, and the collapsed cards share the rest of the space.
- * When the screen is too short for all of that, the trail keeps its sizes and the screen scrolls.
+ * collapsed cards hug their pill and word, and the open card takes all the remaining height, so the trail always
+ * fills the space down to the tab bar. When the screen is too short, the trail keeps its sizes and the screen scrolls.
  */
 export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, shareFor, onUnlock }: Props) {
   const metrics = useTrailMetrics();
   const selected = words.find((w) => w.id === selectedId)?.id ?? words[0]?.id;
   const lockedH = locked ? metrics.locked : 0;
-  const minHeight = (words.length > 0 ? metrics.expanded + (words.length - 1) * metrics.collapsed : 0) + lockedH;
+  const collapsedTotal = Math.max(0, words.length - 1) * metrics.collapsed;
+  const minHeight = (words.length > 0 ? metrics.expanded + collapsedTotal : 0) + lockedH;
 
   // The trail's own height depends only on the screen, never on which card is open, so measuring it causes no shift.
-  // From it, every collapsed row gets one explicit height; rows then animate between that and the open height.
+  // From it the open row gets everything the compact rows leave; rows animate between the two heights.
   // The opening and closing rows move on the same curve in opposite directions, so the total never changes:
   // nothing overshoots and the rows below glide instead of jumping. Rows render once the trail is measured
   // (one frame), so a row's size only ever comes from `height`, never from a flex fallback.
   const [trailH, setTrailH] = useState(0);
-  const others = Math.max(1, words.length - 1);
-  const collapsedH = Math.max(metrics.collapsed, (trailH - metrics.expanded - lockedH) / others);
+  const openH = Math.max(metrics.expanded, trailH - lockedH - collapsedTotal);
 
   return (
     <View style={[styles.trail, { minHeight }]} onLayout={(e) => setTrailH(e.nativeEvent.layout.height)}>
@@ -73,8 +73,8 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
           selected={word.id === selected}
           prevFound={i > 0 && words[i - 1].status === 'found'}
           isLast={i === words.length - 1 && !locked}
-          metrics={metrics}
-          collapsedH={collapsedH}
+          collapsedH={metrics.collapsed}
+          openH={openH}
           busy={openingId === word.id}
           onSelect={() => {
             tap();
@@ -102,9 +102,10 @@ type StopProps = {
   selected: boolean;
   prevFound: boolean;
   isLast: boolean;
-  metrics: TrailMetrics;
-  /** Height of a collapsed row in this trail (from the trail's measured height). */
+  /** Height of the row while collapsed. */
   collapsedH: number;
+  /** Height of the row while open: the trail's spare height, never less than its content needs. */
+  openH: number;
   busy: boolean;
   onSelect: () => void;
   onHunt: () => void;
@@ -117,8 +118,8 @@ function TrailStop({
   selected,
   prevFound,
   isLast,
-  metrics,
   collapsedH,
+  openH,
   busy,
   onSelect,
   onHunt,
@@ -128,10 +129,9 @@ function TrailStop({
   const c = difficultyColors(theme, word.difficulty);
   const found = word.status === 'found';
   const progress = useOpenProgress(selected);
-  const { expanded } = metrics;
 
   // The only layout property that animates: the row's height. Everything else is transform or opacity.
-  const rowMotion = useAnimatedStyle(() => ({ height: collapsedH + (expanded - collapsedH) * progress.value }));
+  const rowMotion = useAnimatedStyle(() => ({ height: collapsedH + (openH - collapsedH) * progress.value }));
   const nodeMotion = useAnimatedStyle(() => ({
     transform: [{ scale: NODE_COLLAPSED_SCALE + (1 - NODE_COLLAPSED_SCALE) * progress.value }],
   }));
@@ -210,10 +210,9 @@ function TrailStop({
             </Animated.View>
           </View>
 
+          {/* Status line under the word, button pinned to the card's bottom edge (it rides down as the card grows). */}
           {selected && (
-            <Animated.View
-              style={[styles.extras, extrasMotion]}
-              onLayout={__DEV__ ? (e) => warnIfClipped(e.nativeEvent.layout.height, metrics) : undefined}>
+            <Animated.View style={[styles.extras, extrasMotion]}>
               <StatusLine word={word} />
               {found ? (
                 onShare && (
@@ -352,8 +351,9 @@ export function TrailSkeleton({ count, locked }: { count: number; locked: boolea
 
   return (
     <View style={styles.trail} accessibilityLabel="Loading">
+      {/* Like the trail: the first (open) row takes the spare height, the rest stay compact. */}
       {rows.map((h, i) => (
-        <View key={i} style={[styles.row, { flexBasis: h, flexGrow: i === 0 || (locked && i === rows.length - 1) ? 0 : 1 }]}>
+        <View key={i} style={[styles.row, { flexBasis: h, flexGrow: i === 0 ? 1 : 0 }]}>
           <View style={styles.rail} />
           <View style={styles.cardSlot}>
             <View style={[styles.skeleton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]} />
@@ -373,15 +373,6 @@ function useOpenProgress(open: boolean): SharedValue<number> {
     progress.value = reduced ? target : withTiming(target, { duration: DURATION, easing: EASE });
   }, [open, reduced, progress]);
   return progress;
-}
-
-/** Development guard: the open row's height is computed, so warn if its content ever outgrows it. */
-function warnIfClipped(extrasHeight: number, metrics: TrailMetrics) {
-  if (extrasHeight > metrics.expandedExtras + 1) {
-    console.warn(
-      `Today trail: the open card's status and button take ${extrasHeight}px but only ${metrics.expandedExtras}px is reserved.`,
-    );
-  }
 }
 
 const styles = StyleSheet.create({
@@ -477,6 +468,8 @@ const styles = StyleSheet.create({
     lineHeight: 40,
   },
   extras: {
+    flex: 1,
+    justifyContent: 'space-between',
     paddingTop: Spacing.two,
     gap: Spacing.two + 4,
   },

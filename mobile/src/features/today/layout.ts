@@ -16,15 +16,16 @@ export const EXPANDED_PAD_V = 24;
 /** "Hunt this word" / "Share your find": 52px face plus its 5px edge. */
 const ACTION_H = 52 + 5;
 
+/** Breathing room above and below a collapsed card's pill and word (3px each side). */
+const COLLAPSED_AIR = 6;
+
 export type TrailMetrics = {
-  /** Smallest height of a collapsed word row; collapsed rows share whatever space is left. */
+  /** Fixed height of a collapsed word row: it hugs its pill and word. */
   collapsed: number;
-  /** Fixed height of the open word row. */
+  /** Smallest height of the open word row (what its content needs); it takes all the spare height above that. */
   expanded: number;
   /** Fixed height of the locked Premium row (free users). */
   locked: number;
-  /** Height reserved in the open card for the status line and its button (checked in development). */
-  expandedExtras: number;
 };
 
 /** Row heights for the Today trail, from the type scale and the (clamped) system text size. */
@@ -34,15 +35,13 @@ export function trailMetrics(fontScale: number): TrailMetrics {
   const pill = line(18) + 4;
 
   const collapsedContent = pill + 4 + line(26);
-  // Status line and button, below an 8px gap; the button's own label never outgrows its 52px face.
-  const expandedExtras = 8 + line(18) + 12 + ACTION_H;
-  const expandedContent = pill + 4 + line(40) + expandedExtras;
+  // Pill, word, then the status line and button below an 8px gap; the button's label never outgrows its 52px face.
+  const expandedContent = pill + 4 + line(40) + 8 + line(18) + 12 + ACTION_H;
 
   return {
-    collapsed: ROW_PAD + BORDER_COLLAPSED + collapsedContent + 2,
+    collapsed: ROW_PAD + BORDER_COLLAPSED + collapsedContent + COLLAPSED_AIR,
     expanded: ROW_PAD + BORDER_EXPANDED + EXPANDED_PAD_V * 2 + expandedContent,
     locked: ROW_PAD + 4 + line(22) + 2 + line(18) + 12,
-    expandedExtras,
   };
 }
 
