@@ -205,6 +205,9 @@ function TrailStop({
   // Open: the type scale grown by textScale. Collapsed: the base sizes.
   const s = selected ? textScale : 1;
   const smallText = { fontSize: Math.round(13 * s), lineHeight: Math.round(18 * s) };
+  // The points beside the pill: the card's headline number. Its 20px line stays inside the pill's 18px line + 4px
+  // padding at every scale the screen allows, so the row heights in trailMetrics don't change.
+  const pointsText = { fontSize: Math.round(16 * s), lineHeight: Math.round(20 * s) };
   const wordText = selected
     ? { fontSize: Math.round(32 * s), lineHeight: Math.round(40 * s) }
     : styles.wordCollapsed;
@@ -290,7 +293,7 @@ function TrailStop({
                   themeColor="textSecondary"
                   numberOfLines={1}
                   maxFontSizeMultiplier={MAX_FONT_SCALE}
-                  style={[styles.shrink, smallText]}>
+                  style={[styles.shrink, styles.points, pointsText, found && !selected && { color: theme.successText }]}>
                   {meta}
                 </ThemedText>
               </View>
@@ -778,6 +781,9 @@ const styles = StyleSheet.create({
   fill: {
     flex: 1,
     minWidth: 0,
+  },
+  points: {
+    fontWeight: 800,
   },
   word: {
     fontWeight: 900,
