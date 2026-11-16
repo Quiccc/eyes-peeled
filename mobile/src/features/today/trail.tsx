@@ -17,7 +17,10 @@ import { ThemedText } from '@/components/themed-text';
 import { difficultyColors, Edge, Radius, Spacing } from '@/constants/theme';
 import {
   ACTION_H,
-  ACTION_STACK_MIN,
+  CIRCLE_AIR,
+  CIRCLE_LABEL_GAP,
+  CIRCLE_MAX,
+  CIRCLE_MIN,
   MAX_FONT_SCALE,
   OPEN_TEXT_MAX_SCALE,
   OPEN_TEXT_SPARE_SHARE,
@@ -87,7 +90,10 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
   // The action button takes whatever the bigger text leaves, so its height is known without measuring: tall enough,
   // and it stacks a big icon above its label.
   const actionH = ACTION_H + (openH - openMin) - metrics.openText * (textScale - 1);
-  const actionStacked = actionH >= ACTION_STACK_MIN;
+  // With room for at least CIRCLE_MIN after the label, air and edge, the action is a round shutter button
+  // (0 = not enough room: the normal row button).
+  const circleRoom = actionH - metrics.actionLabel - CIRCLE_LABEL_GAP - 2 * CIRCLE_AIR - Edge.button;
+  const circle = circleRoom >= CIRCLE_MIN ? Math.floor(Math.min(CIRCLE_MAX, circleRoom)) : 0;
 
   return (
     // The rows live in an absolute layer, so the trail's height comes only from the screen (or minHeight on short
@@ -107,7 +113,7 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
           openH={openH}
           pad={pad}
           textScale={textScale}
-          actionStacked={actionStacked}
+          circle={circle}
           busy={openingId === word.id}
           onSelect={() => {
             tap();
@@ -145,8 +151,8 @@ type StopProps = {
   pad: number;
   /** How much the open card's text grows into its spare height (1 = the base sizes). */
   textScale: number;
-  /** The open card's action button is tall enough to stack its icon above its label. */
-  actionStacked: boolean;
+  /** Diameter of the open card's round shutter button, or 0 when there's only room for the row button. */
+  circle: number;
   busy: boolean;
   onSelect: () => void;
   onHunt: () => void;
@@ -163,7 +169,7 @@ function TrailStop({
   openH,
   pad,
   textScale,
-  actionStacked,
+  circle,
   busy,
   onSelect,
   onHunt,
@@ -286,7 +292,7 @@ function TrailStop({
                     icon="share"
                     title="Share your find"
                     accessibilityLabel={`Share your ${word.word} find`}
-                    stacked={actionStacked}
+                    circle={circle}
                     onPress={onShare}
                   />
                 )
@@ -296,7 +302,7 @@ function TrailStop({
                   icon="camera"
                   title={word.status === 'pending' ? 'See your result' : 'Hunt this word'}
                   accessibilityLabel={word.status === 'pending' ? `See the result for ${word.word}` : `Hunt for ${word.word}`}
-                  stacked={actionStacked}
+                  circle={circle}
                   busy={busy}
                   onPress={onHunt}
                 />
@@ -318,7 +324,7 @@ function ActionTile({
   icon,
   title,
   accessibilityLabel,
-  stacked,
+  circle,
   busy,
   onPress,
 }: {
@@ -326,11 +332,44 @@ function ActionTile({
   icon: IconName;
   title: string;
   accessibilityLabel: string;
-  stacked: boolean;
+  /** Shutter diameter, or 0 for the row button. */
+  circle: number;
   busy?: boolean;
   onPress: () => void;
 }) {
   const c = difficultyColors(useTheme(), word.difficulty);
+
+  if (circle > 0) {
+    // A round shutter button centred in the spare space, its label underneath on the card face.
+    return (
+      <View style={styles.shutterArea}>
+        <Chunky
+          color={c.main}
+          edgeColor={c.edge}
+          radius={circle / 2}
+          edge={Edge.button}
+          disabled={busy}
+          onPress={onPress}
+          accessibilityLabel={accessibilityLabel}
+          contentStyle={[styles.shutterFace, { width: circle, height: circle }]}>
+          {busy ? (
+            <ActivityIndicator color={c.on} size="large" />
+          ) : (
+            <Icon name={icon} size={Math.round(circle * 0.4)} color={c.on} />
+          )}
+        </Chunky>
+        <ThemedText
+          type="subtitle"
+          numberOfLines={1}
+          maxFontSizeMultiplier={MAX_FONT_SCALE}
+          importantForAccessibility="no"
+          style={{ color: c.text }}>
+          {title}
+        </ThemedText>
+      </View>
+    );
+  }
+
   return (
     <Chunky
       color={c.main}
@@ -341,14 +380,13 @@ function ActionTile({
       onPress={onPress}
       accessibilityLabel={accessibilityLabel}
       style={styles.action}
-      contentStyle={[styles.actionFace, stacked && styles.actionFaceStacked]}>
+      contentStyle={styles.actionFace}>
       {busy ? (
         <ActivityIndicator color={c.on} />
       ) : (
         <>
-          <Icon name={icon} size={stacked ? 40 : 20} color={c.on} />
+          <Icon name={icon} size={20} color={c.on} />
           <ThemedText
-            type={stacked ? 'subtitle' : 'default'}
             numberOfLines={1}
             maxFontSizeMultiplier={MAX_FONT_SCALE}
             style={[styles.actionLabel, { color: c.on }]}>
@@ -614,9 +652,15 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingHorizontal: Spacing.three,
   },
-  actionFaceStacked: {
-    flexDirection: 'column',
-    gap: Spacing.two,
+  shutterArea: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: CIRCLE_LABEL_GAP,
+  },
+  shutterFace: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionLabel: {
     fontWeight: 900,

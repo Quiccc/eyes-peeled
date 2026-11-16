@@ -29,8 +29,15 @@ const BORDER_EXPANDED = 2 + 6;
 const BORDER_LOCKED = 2 + 2;
 /** "Hunt this word" / "Share your find" at its smallest: 52px face plus its 5px edge. It grows into spare height. */
 export const ACTION_H = 52 + 5;
-/** From this height the action button stacks a big icon above its label instead of a single row. */
-export const ACTION_STACK_MIN = 112;
+/**
+ * With enough spare height the action becomes a round shutter button (label underneath), sized between these.
+ * The max keeps it inside even the narrowest card with side padding, so its width never needs measuring.
+ */
+export const CIRCLE_MIN = 72;
+export const CIRCLE_MAX = 132;
+/** Air above and below the shutter button and its label, and the gap between them. */
+export const CIRCLE_AIR = 12;
+export const CIRCLE_LABEL_GAP = 8;
 
 /** Row heights without the cards' vertical padding: row gap + borders + content. Add 2 × padding for the real height. */
 export type TrailMetrics = {
@@ -48,6 +55,8 @@ export type TrailMetrics = {
    * the text scale grows these.
    */
   openText: number;
+  /** The shutter button's label line (20/26). */
+  actionLabel: number;
 };
 
 /** Row heights for the Today trail, from the type scale and the (clamped) system text size. */
@@ -67,6 +76,7 @@ export function trailMetrics(fontScale: number): TrailMetrics {
     expanded: ROW_PAD + BORDER_EXPANDED + expandedContent,
     locked: ROW_PAD + BORDER_LOCKED + lockedContent,
     openText: line(18) + line(40) + line(18) + line(18),
+    actionLabel: line(26),
   };
 }
 
