@@ -6,6 +6,9 @@ import { ThemedText } from '@/components/themed-text';
 import { Edge, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
+/** Card-colored buttons: a 2px outline plus a 4px drop, 6px of bottom band in all. */
+const OUTLINED_EDGE = 6;
+
 type Props = Omit<PressableProps, 'style' | 'children'> & {
   title: string;
   /** primary: orange. secondary: card. danger: card with red label. ink: near-black (light) / cream (dark). ghost: text only. */
@@ -39,7 +42,13 @@ export function Button({
     ink: theme.onInk,
     ghost: theme.textSecondary,
   }[variant];
-  const sizeStyle = [small ? styles.small : styles.regular, height ? { minHeight: height } : null];
+  const sizeStyle = [
+    small ? styles.small : styles.regular,
+    // Small buttons with an icon are a touch tighter (the "Share" chip on a found word).
+    small && icon ? styles.smallWithIcon : null,
+    variant === 'ghost' && !small ? styles.ghost : null,
+    height ? { minHeight: height } : null,
+  ];
   const tall = (height ?? 0) >= 56;
 
   const content = loading ? (
@@ -86,7 +95,7 @@ export function Button({
       edgeColor={face.edge}
       outlined={face.outlined}
       radius={small ? 14 : tall ? 18 : Radius.md}
-      edge={small ? Edge.small : tall && variant === 'primary' ? Edge.card : Edge.button}
+      edge={face.outlined ? OUTLINED_EDGE : small ? Edge.small : tall && variant === 'primary' ? Edge.card : Edge.button}
       disabled={isDisabled}
       style={style}
       contentStyle={[styles.row, sizeStyle]}
@@ -110,6 +119,13 @@ const styles = StyleSheet.create({
   small: {
     minHeight: 44,
     paddingHorizontal: Spacing.three,
+  },
+  smallWithIcon: {
+    paddingHorizontal: 14,
+    gap: 6,
+  },
+  ghost: {
+    minHeight: 48,
   },
   label: {
     fontWeight: 900,

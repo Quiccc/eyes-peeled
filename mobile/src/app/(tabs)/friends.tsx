@@ -100,7 +100,9 @@ export default function FriendsScreen() {
               ))}
             </View>
           )}
-          <SectionLabel>FRIENDS&apos; FINDS TODAY</SectionLabel>
+          <View style={styles.feedLabel}>
+            <SectionLabel>FRIENDS&apos; FINDS TODAY</SectionLabel>
+          </View>
         </>
       )}
     </View>
@@ -159,7 +161,9 @@ const styles = StyleSheet.create({
   },
   headerBlock: {
     gap: Spacing.three,
-    paddingBottom: Spacing.one,
+  },
+  feedLabel: {
+    marginTop: Spacing.one,
   },
   section: {
     gap: Spacing.two,

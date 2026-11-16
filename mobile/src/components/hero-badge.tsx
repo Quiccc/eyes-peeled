@@ -8,6 +8,9 @@ const SIZES = {
   medium: { tile: 96, radius: 32, icon: 52 },
 } as const;
 
+/** The darker band under the tile, below the full-size face. */
+const EDGE = 8;
+
 type Props = {
   icon: IconName;
   size: keyof typeof SIZES;
@@ -22,19 +25,22 @@ export function HeroBadge({ icon, size, style }: Props) {
     <View
       style={[
         styles.badge,
-        { width: s.tile, height: s.tile, borderRadius: s.radius, backgroundColor: theme.tint, borderBottomColor: theme.tintEdge },
+        { width: s.tile, height: s.tile + EDGE, borderRadius: s.radius, backgroundColor: theme.tintEdge },
         style,
       ]}>
-      <Icon name={icon} size={s.icon} color={theme.onTint} />
+      <View style={[styles.face, { height: s.tile, borderRadius: s.radius, backgroundColor: theme.tint }]}>
+        <Icon name={icon} size={s.icon} color={theme.onTint} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   badge: {
-    borderBottomWidth: 8,
+    transform: [{ rotate: '-6deg' }],
+  },
+  face: {
     alignItems: 'center',
     justifyContent: 'center',
-    transform: [{ rotate: '-6deg' }],
   },
 });

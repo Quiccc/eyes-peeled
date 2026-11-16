@@ -1,4 +1,5 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +12,7 @@ import { Button } from '@/components/button';
 import { HeroBadge } from '@/components/hero-badge';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { PRIVACY_URL, TERMS_URL } from '@/constants/links';
 import { Edge, Spacing } from '@/constants/theme';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useTheme } from '@/hooks/use-theme';
@@ -99,6 +101,17 @@ export default function SignInScreen() {
             disabled={!!pending}
             onPress={() => handle('google')}
           />
+          <ThemedText type="small" themeColor="textSecondary" style={[styles.center, styles.legal]}>
+            By continuing you agree to the{' '}
+            <ThemedText type="small" style={styles.link} accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)}>
+              Terms
+            </ThemedText>{' '}
+            and{' '}
+            <ThemedText type="small" style={styles.link} accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)}>
+              Privacy Policy
+            </ThemedText>
+            .
+          </ThemedText>
           {USE_MOCK_API && (
             <ThemedText type="small" themeColor="textSecondary" style={styles.center}>
               Mock API mode: sign-in is simulated.
@@ -116,7 +129,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.five,
+    paddingTop: 48,
     paddingBottom: Spacing.four,
     gap: Spacing.five,
   },
@@ -145,6 +158,12 @@ const styles = StyleSheet.create({
   },
   center: {
     textAlign: 'center',
+  },
+  legal: {
+    marginTop: Spacing.two,
+  },
+  link: {
+    textDecorationLine: 'underline',
   },
   actions: {
     gap: 14,

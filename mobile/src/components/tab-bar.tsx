@@ -72,7 +72,7 @@ export function TabBar({ state, navigateToTab }: TabBarProps) {
 const styles = StyleSheet.create({
   wrap: {
     paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.two,
+    paddingTop: Spacing.three - 4,
   },
   bar: {
     flexDirection: 'row',

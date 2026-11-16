@@ -12,15 +12,17 @@ type Props = {
   hint?: string;
   /** Optional call to action, e.g. a <Button />. */
   action?: ReactNode;
+  /** A dashed box around it, for a closed-off section inside a screen (another hunter's photos). */
+  boxed?: boolean;
 };
 
 /** What a list shows when it has nothing yet: says what will appear here and how to get started. */
-export function EmptyState({ icon, title, hint, action }: Props) {
+export function EmptyState({ icon, title, hint, action, boxed }: Props) {
   const theme = useTheme();
   return (
-    <View style={styles.root}>
-      <View style={[styles.tile, { backgroundColor: theme.backgroundSelected }]}>
-        <Icon name={icon} size={30} color={theme.text} />
+    <View style={[styles.root, boxed && [styles.boxed, { borderColor: theme.border }]]}>
+      <View style={[styles.tile, boxed && styles.tileBoxed, { backgroundColor: theme.backgroundSelected }]}>
+        <Icon name={icon} size={boxed ? 26 : 30} color={boxed ? theme.textSecondary : theme.text} />
       </View>
       <ThemedText type="subtitle" style={styles.center}>
         {title}
@@ -67,6 +69,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.two,
+  },
+  boxed: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: Radius.lg,
+  },
+  tileBoxed: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    marginBottom: 0,
   },
   center: {
     textAlign: 'center',

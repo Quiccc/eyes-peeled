@@ -105,8 +105,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textAlign: 'center',
   },
+  // 320 tall like the design; gives way on short screens so the actions stay visible.
   frame: {
-    flex: 1,
+    height: 320,
+    flexShrink: 1,
     minHeight: 220,
     borderRadius: Radius.lg,
     borderWidth: 2,
@@ -120,10 +122,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   status: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: Spacing.two,
   },
   actions: {
-    gap: Spacing.three,
+    gap: 14,
   },
 });

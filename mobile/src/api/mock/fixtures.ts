@@ -22,6 +22,8 @@ export const mockUser = (id: string, username: string | null): User => ({
   displayName: null,
   avatarUrl: null,
   isPremium: false,
+  // Spread the fake players' join dates over the past months ("u3" joined earlier than "u1").
+  joinedAt: new Date(Date.now() - ((Number(id.replace(/\D/g, '')) || 0) * 47 + 3) * 86_400_000).toISOString(),
 });
 
 export const others: User[] = [

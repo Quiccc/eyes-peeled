@@ -1,10 +1,11 @@
 import { Image } from 'expo-image';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { DailyWord, Submission } from '@/api/types';
 import { Button } from '@/components/button';
 import { Confetti, CountUp } from '@/components/celebration';
 import { Icon } from '@/components/icon';
+import { Spinner } from '@/components/spinner';
 import { ThemedText } from '@/components/themed-text';
 import { HuntActions, HuntScreenShell, HuntStatus, huntStyles, HuntTarget, PhotoFrame } from '@/features/hunt/hunt-layout';
 import type { HuntPhase } from '@/features/hunt/use-hunt-session';
@@ -31,8 +32,10 @@ export function HuntResult({ word, phase, retrying, onRetry, onClose, onShare }:
   const frameColor = valid ? theme.success : failed ? theme.hard : theme.border;
 
   const badge = valid ? (
-    <View style={[styles.badge, { backgroundColor: theme.success, borderBottomColor: theme.successEdge }]}>
-      <Icon name="check" size={30} color="#FFFFFF" />
+    <View style={[styles.badge, { backgroundColor: theme.successEdge }]}>
+      <View style={[styles.badgeFace, { backgroundColor: theme.success }]}>
+        <Icon name="check" size={30} color="#FFFFFF" />
+      </View>
     </View>
   ) : null;
 
@@ -49,8 +52,8 @@ export function HuntResult({ word, phase, retrying, onRetry, onClose, onShare }:
       </PhotoFrame>
 
       {phase.kind === 'analyzing' && (
-        <HuntStatus>
-          <ActivityIndicator size="large" color={theme[word.difficulty]} />
+        <HuntStatus style={styles.checking}>
+          <Spinner color={theme[word.difficulty]} accessibilityLabel="Checking your photo" />
           <ThemedText themeColor="textSecondary">Checking your photo…</ThemedText>
         </HuntStatus>
       )}
@@ -122,12 +125,20 @@ const styles = StyleSheet.create({
     right: -10,
     top: -14,
     width: 56,
+    height: 60,
+    borderRadius: 28,
+    transform: [{ rotate: '8deg' }],
+  },
+  /** 56px circle; the darker 4px under it is the badge's own background. */
+  badgeFace: {
+    width: 56,
     height: 56,
     borderRadius: 28,
-    borderBottomWidth: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    transform: [{ rotate: '8deg' }],
+  },
+  checking: {
+    gap: 14,
   },
   points: {
     fontSize: 56,

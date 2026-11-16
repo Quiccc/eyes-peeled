@@ -29,6 +29,7 @@ export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
     <View
       style={[
         styles.card,
+        hideAuthor && styles.cardBare,
         { backgroundColor: theme.backgroundElement, borderColor: theme.border },
       ]}>
       {!hideAuthor && (
@@ -40,7 +41,7 @@ export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
                 <ThemedText style={styles.name} numberOfLines={1}>
                   {displayName(item.user)}
                 </ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">
+                <ThemedText type="small" themeColor="textSecondary" style={styles.time}>
                   {timeAgo(item.createdAt)}
                 </ThemedText>
               </View>
@@ -57,13 +58,13 @@ export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
       )}
       <Image
         source={item.imageUrl}
-        style={[styles.photo, { backgroundColor: theme.backgroundSelected }]}
+        style={[styles.photo, hideAuthor && styles.photoBare, { backgroundColor: theme.backgroundSelected }]}
         contentFit="cover"
         transition={200}
       />
-      <View style={styles.footer}>
+      <View style={[styles.footer, hideAuthor && styles.footerBare]}>
         <DifficultyPill difficulty={item.difficulty} />
-        <ThemedText style={styles.word} numberOfLines={1}>
+        <ThemedText style={[styles.word, hideAuthor && styles.wordBare]} numberOfLines={1}>
           {displayWord(item.word)}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
@@ -80,6 +81,7 @@ export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
   );
 }
 
+// Two sizes, as in the design: with the author (Friends feed), and bare on a profile.
 const styles = StyleSheet.create({
   card: {
     borderRadius: Radius.lg,
@@ -87,13 +89,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: Edge.card,
     overflow: 'hidden',
   },
+  cardBare: {
+    borderBottomWidth: Edge.button,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
-    paddingLeft: Spacing.two + 4,
-    paddingRight: Spacing.one,
-    paddingVertical: Spacing.one + 2,
+    gap: Spacing.two + 2,
+    paddingHorizontal: Spacing.two + 4,
+    paddingTop: Spacing.two + 4,
+    paddingBottom: Spacing.two + 2,
   },
   author: {
     flex: 1,
@@ -106,6 +111,10 @@ const styles = StyleSheet.create({
   },
   name: {
     fontWeight: 900,
+    lineHeight: 20,
+  },
+  time: {
+    lineHeight: 16,
   },
   more: {
     width: 44,
@@ -116,7 +125,10 @@ const styles = StyleSheet.create({
   },
   photo: {
     width: '100%',
-    aspectRatio: 3 / 4,
+    height: 196,
+  },
+  photoBare: {
+    height: 180,
   },
   footer: {
     flexDirection: 'row',
@@ -124,10 +136,19 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     padding: Spacing.two + 4,
   },
+  footerBare: {
+    gap: Spacing.two + 2,
+    paddingHorizontal: Spacing.three,
+  },
   word: {
     flex: 1,
     fontWeight: 900,
     letterSpacing: 0.5,
+  },
+  wordBare: {
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: 1,
   },
   share: {
     paddingHorizontal: Spacing.two + 4,

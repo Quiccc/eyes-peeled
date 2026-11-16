@@ -44,7 +44,7 @@ export const mockApi: Api = {
       throw new ApiError(400, 'invalid_username', 'Use 3–20 letters, numbers or underscores.');
     }
     if (others.some((o) => o.username === clean)) {
-      throw new ApiError(409, 'username_taken', 'That username is taken.');
+      throw new ApiError(409, 'username_taken', 'That username is taken. Try another one.');
     }
     state.me = { ...self, username: clean };
     return state.me;

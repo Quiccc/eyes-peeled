@@ -42,7 +42,7 @@ export default function PremiumScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.hero}>
             <HeroBadge icon="star" size="medium" style={styles.badge} />
-            <ThemedText type="title" style={styles.center} accessibilityRole="header">
+            <ThemedText type="title" style={[styles.center, styles.title]} accessibilityRole="header">
               Word Hunt Premium
             </ThemedText>
             <ThemedText themeColor="textSecondary" style={styles.center}>
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
+    paddingTop: Spacing.four,
     gap: Spacing.four,
   },
   hero: {
@@ -135,6 +135,9 @@ const styles = StyleSheet.create({
   },
   center: {
     textAlign: 'center',
+  },
+  title: {
+    lineHeight: 38,
   },
   benefits: {
     gap: Spacing.two + 4,
@@ -165,7 +168,7 @@ const styles = StyleSheet.create({
   actions: {
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.three,
-    paddingBottom: Spacing.three,
+    paddingBottom: Spacing.four,
     gap: Spacing.two,
   },
 });

@@ -18,23 +18,27 @@ function hueFor(id: string) {
 type Props = {
   user: User;
   size?: number;
-  /** Orange ring on a soft-orange face: the signed-in user's own profile header. */
-  ring?: boolean;
+  /**
+   * A 4px ring for profile headers. true: orange on a soft-orange face (the signed-in user's own).
+   * 'hue': the user's own color (another hunter's profile).
+   */
+  ring?: boolean | 'hue';
 };
 
 export function Avatar({ user, size = 40, ring }: Props) {
   const theme = useTheme();
   const initial = (user.username ?? user.displayName ?? '?').charAt(0).toUpperCase();
   const dims = { width: size, height: size, borderRadius: size / 2 };
-  const ringStyle = ring ? { borderWidth: 4, borderColor: theme.tint } : null;
+  const c = difficultyColors(theme, hueFor(user.id));
+  const own = ring === true;
+  const ringStyle = ring ? { borderWidth: 4, borderColor: own ? theme.tint : c.main } : null;
 
   if (user.avatarUrl) {
     return <Image source={user.avatarUrl} style={[dims, ringStyle]} contentFit="cover" />;
   }
-  const c = difficultyColors(theme, hueFor(user.id));
   return (
     <View
-      style={[styles.fallback, dims, ringStyle, { backgroundColor: ring ? theme.backgroundSelected : c.bg }]}
+      style={[styles.fallback, dims, ringStyle, { backgroundColor: own ? theme.backgroundSelected : c.bg }]}
       importantForAccessibility="no-hide-descendants"
       accessibilityElementsHidden>
       <ThemedText
@@ -42,7 +46,7 @@ export function Avatar({ user, size = 40, ring }: Props) {
           fontSize: size * 0.44,
           lineHeight: size * 0.6,
           fontWeight: 900,
-          color: ring ? theme.text : c.text,
+          color: own ? theme.text : c.text,
         }}>
         {initial}
       </ThemedText>

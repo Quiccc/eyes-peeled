@@ -6,11 +6,11 @@ import { captureRef, releaseCapture } from 'react-native-view-shot';
 
 import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Edge, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { errorMessage } from '@/lib/format';
 
-import { SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH, ShareCard } from './share-card';
+import { SHARE_CAPTURE_WIDTH, SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH, ShareCard } from './share-card';
 import type { ShareFind } from './types';
 
 type Props = {
@@ -24,8 +24,8 @@ export function ShareFindSheet({ find, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   // Shrink the preview on narrow phones; the capture is unaffected (it renders the card at its own size).
-  const scale = Math.min(1, (screenWidth - Spacing.three * 4) / SHARE_CARD_WIDTH);
-  const sheetWidth = SHARE_CARD_WIDTH * scale + Spacing.three * 2;
+  const scale = Math.min(1, (screenWidth - Spacing.three * 4 - SHEET_BORDER * 2) / SHARE_CARD_WIDTH);
+  const sheetWidth = SHARE_CARD_WIDTH * scale + Spacing.three * 2 + SHEET_BORDER * 2;
   const cardRef = useRef<ComponentRef<typeof View>>(null);
   const [loadedUri, setLoadedUri] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
@@ -40,10 +40,11 @@ export function ShareFindSheet({ find, onClose }: Props) {
         Alert.alert('Sharing unavailable', "This device doesn't support sharing images.");
         return;
       }
-      uri = await captureRef(cardRef, { format: 'jpg', quality: 0.92, width: SHARE_CARD_WIDTH * 3, result: 'tmpfile' });
+      // PNG keeps the card's rounded corners transparent.
+      uri = await captureRef(cardRef, { format: 'png', width: SHARE_CAPTURE_WIDTH, result: 'tmpfile' });
       const fileUri = uri.startsWith('file://') ? uri : `file://${uri}`;
       // Resolves when the share sheet closes — whether the user shared or dismissed it.
-      await Sharing.shareAsync(fileUri, { mimeType: 'image/jpeg', UTI: 'public.jpeg', dialogTitle: 'Share your find' });
+      await Sharing.shareAsync(fileUri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: 'Share your find' });
       onClose();
     } catch (e) {
       Alert.alert('Could not share', errorMessage(e));
@@ -76,7 +77,7 @@ export function ShareFindSheet({ find, onClose }: Props) {
         {find && (
           // A fixed width stops the sheet from being sized to its content: in that pass the
           // Share button's face (flexGrow in Chunky) grew to the screen height.
-          <View style={[styles.sheet, { backgroundColor: theme.background, width: sheetWidth }]}>
+          <View style={[styles.sheet, { backgroundColor: theme.backgroundElement, borderColor: theme.border, width: sheetWidth }]}>
             <ThemedText type="subtitle" accessibilityRole="header" style={styles.title}>
               Share your find
             </ThemedText>
@@ -84,10 +85,10 @@ export function ShareFindSheet({ find, onClose }: Props) {
               <View style={{ transform: [{ scale }], transformOrigin: 'top left' }}>
                 <ShareCard ref={cardRef} find={find} onImageLoad={() => setLoadedUri(find.imageUri)} />
               </View>
-              {!ready && <ActivityIndicator style={StyleSheet.absoluteFill} color="#FFFFFF" />}
+              {!ready && <ActivityIndicator style={StyleSheet.absoluteFill} color={theme.textSecondary} />}
             </View>
             <View style={styles.actions}>
-              <Button title="Share" loading={sharing} disabled={!ready} onPress={share} />
+              <Button title="Share" icon="share" loading={sharing} disabled={!ready} onPress={share} />
               <Button title="Cancel" variant="ghost" disabled={sharing} onPress={onClose} />
             </View>
           </View>
@@ -108,10 +109,13 @@ export function useShareFind() {
   };
 }
 
+const SHEET_BORDER = 2;
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    // The app's dark ground at 60%.
+    backgroundColor: 'rgba(26,20,16,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.three,
@@ -119,8 +123,10 @@ const styles = StyleSheet.create({
   sheet: {
     alignSelf: 'center',
     borderRadius: 28,
+    borderWidth: SHEET_BORDER,
+    borderBottomWidth: Edge.card,
     padding: Spacing.three,
-    gap: Spacing.three,
+    gap: 14,
   },
   title: {
     textAlign: 'center',
