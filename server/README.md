@@ -88,6 +88,8 @@ test/
 ## Before production
 
 - Use a real Postgres (`DATABASE_URL`), long random secrets, `NODE_ENV=production` (this turns dev login off), and HTTPS.
+- With `NODE_ENV=production` the server refuses to start if `YOLO_URL`, `YOLO_KEY`, `REVENUECAT_SECRET_KEY` or `REVENUECAT_WEBHOOK_AUTH` is missing, or if a secret is still a `change-me` placeholder from `.env.example`.
+- Behind a load balancer, set `TRUST_PROXY` (e.g. `1`) so rate limits see each client's IP. `/auth/*` allows 20 requests a minute per IP; everything else allows 120.
 - Set `GOOGLE_WEB_CLIENT_ID`, the RevenueCat keys, `ADMIN_TOKEN` and `MIN_APP_VERSION`.
 - Move photos to object storage.
-- **Not implemented yet: Apple token revocation on account deletion.** The app has to send Apple's `authorizationCode`. There's a TODO in `routes/me.ts`.
+- **Not implemented yet: Apple token revocation on account deletion.** The app has to send Apple's `authorizationCode`. There's a TODO in `src/services/account.ts`.

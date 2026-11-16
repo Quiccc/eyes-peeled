@@ -254,6 +254,17 @@ describe('account and moderation', () => {
       expect((await hook.http().get('/me').set(a.auth)).body.isPremium).toBe(true);
       await send('CANCELLATION');
       expect((await hook.http().get('/me').set(a.auth)).body.isPremium).toBe(false);
+
+      // Restoring on a new account moves Premium from the old user to the new one.
+      const b = await hook.signIn('blair');
+      await send('NON_RENEWING_PURCHASE');
+      await hook
+        .http()
+        .post('/webhooks/revenuecat')
+        .set('Authorization', 'Bearer hook')
+        .send({ event: { type: 'TRANSFER', transferred_from: [a.id], transferred_to: [b.id] } });
+      expect((await hook.http().get('/me').set(a.auth)).body.isPremium).toBe(false);
+      expect((await hook.http().get('/me').set(b.auth)).body.isPremium).toBe(true);
     } finally {
       await hook.close();
     }

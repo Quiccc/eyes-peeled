@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import request from 'supertest';
+
+import { createApp } from '../src/app';
+
 import { startTestServer, type TestServer } from './helpers';
 
 let t: TestServer;
@@ -104,5 +108,16 @@ describe('auth', () => {
     const bad = await t.http().post('/auth/signin').set('Content-Type', 'application/json').send('{oops');
     expect(bad.status).toBe(400);
     expect(bad.body.code).toBe('bad_request');
+  });
+
+  it('rate-limits /auth more tightly than the rest of the API', async () => {
+    const app = createApp(t.ctx);
+    const refresh = () => request(app).post('/auth/refresh').send({ refreshToken: 'nope' });
+    for (let i = 0; i < 20; i++) expect((await refresh()).status).toBe(401);
+    const limited = await refresh();
+    expect(limited.status).toBe(429);
+    expect(limited.body.code).toBe('rate_limited');
+    // Other routes still have their own, larger budget.
+    expect((await request(app).get('/daily')).status).not.toBe(429);
   });
 });

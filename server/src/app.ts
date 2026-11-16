@@ -18,6 +18,8 @@ import { webhookRoutes } from './routes/webhooks';
 export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean; adminPanelDir?: string } = {}) {
   const app = express();
   app.disable('x-powered-by');
+  // Behind a load balancer, rate limits must key on the client's IP, not the proxy's.
+  if (ctx.env.TRUST_PROXY) app.set('trust proxy', parseTrustProxy(ctx.env.TRUST_PROXY));
   app.set('query parser', 'simple');
 
   if (opts.log) {
@@ -54,17 +56,19 @@ export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean; 
   app.use(fileRoutes(ctx));
 
   if (opts.rateLimit !== false) {
-    app.use(
+    const limiter = (limit: number) =>
       rateLimit({
         windowMs: 60_000,
-        limit: 120,
+        limit,
         standardHeaders: 'draft-8',
         legacyHeaders: false,
         handler: (_req, res) => {
           res.status(429).json({ code: 'rate_limited', message: 'Slow down a little and try again in a minute.' });
         },
-      }),
-    );
+      });
+    app.use(limiter(120));
+    // Sign-in and token refresh are cheap to hammer and expensive to serve (provider token checks).
+    app.use('/auth', limiter(20));
   }
   app.use(express.json({ limit: '100kb' }));
   app.use(requireAppVersion(ctx.env.MIN_APP_VERSION));
@@ -79,4 +83,11 @@ export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean; 
   app.use(notFoundHandler);
   app.use(errorHandler);
   return app;
+}
+
+/** "true" -> trust all, "2" -> hop count, anything else (e.g. "loopback, 10.0.0.0/8") as given. */
+export function parseTrustProxy(value: string): boolean | number | string {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return /^\d+$/.test(value) ? Number(value) : value;
 }
