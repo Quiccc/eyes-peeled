@@ -18,9 +18,11 @@ import { useAsyncAction } from '@/hooks/use-async-action';
 import { useTheme } from '@/hooks/use-theme';
 
 const SAMPLE_WORDS: readonly { word: string; hue: Difficulty; tilt: string }[] = [
-  { word: 'BOTTLE', hue: 'easy', tilt: '-3deg' },
-  { word: 'BICYCLE', hue: 'medium', tilt: '2deg' },
-  { word: 'STOP SIGN', hue: 'hard', tilt: '-2deg' },
+  { word: 'SEARCH', hue: 'easy', tilt: '-3deg' },
+  { word: 'FIND', hue: 'medium', tilt: '2deg' },
+  { word: 'SNAP', hue: 'hard', tilt: '-2deg' },
+  // The premium word stays a mystery until you buy Premium.
+  { word: '? ? ? ?', hue: 'expert', tilt: '3deg' },
 ];
 
 export default function SignInScreen() {
@@ -144,7 +146,7 @@ const styles = StyleSheet.create({
   },
   samples: {
     alignItems: 'center',
-    gap: Spacing.two + 2,
+    gap: Spacing.two,
   },
   sample: {
     paddingHorizontal: 18,
