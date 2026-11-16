@@ -9,7 +9,7 @@ import type { AuthProvider, Difficulty } from '@/api/types';
 import { useAuth } from '@/auth/auth-provider';
 import { isAppleSignInAvailable, SignInCancelled } from '@/auth/social-sign-in';
 import { Button } from '@/components/button';
-import { HeroBadge } from '@/components/hero-badge';
+import { EyesPeeledLogo } from '@/components/eyes-peeled-logo';
 import { SampleWordChip } from '@/components/sample-word-chip';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -45,7 +45,7 @@ export default function SignInScreen() {
     <ThemedView style={styles.flex}>
       <SafeAreaView style={styles.container}>
         <View style={styles.hero}>
-          <HeroBadge icon="search" size="large" />
+          <EyesPeeledLogo />
           <View style={styles.copy}>
             <ThemedText type="title" style={styles.center} accessibilityRole="header">
               Eyes Peeled
