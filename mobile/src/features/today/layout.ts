@@ -13,6 +13,13 @@ export const MAX_FONT_SCALE = 1.3;
 export const PAD_MIN = 6;
 export const PAD_MAX = 16;
 
+/**
+ * The open card's text grows into its spare height: up to this share of the spare goes to bigger text (the rest
+ * stays as air above the button), and the text never grows past this scale (the word tops out near display size).
+ */
+export const OPEN_TEXT_SPARE_SHARE = 0.5;
+export const OPEN_TEXT_MAX_SCALE = 1.6;
+
 /** Vertical space a row leaves around its card: 6px above and below. */
 const ROW_PAD = 12;
 /** A card's 2px top border plus its bottom edge. */
@@ -31,6 +38,8 @@ export type TrailMetrics = {
   expanded: number;
   /** The locked Premium row (free users). */
   locked: number;
+  /** The open card's text line heights at its base size (pill label + word + status line); the text scale grows these. */
+  openText: number;
 };
 
 /** Row heights for the Today trail, from the type scale and the (clamped) system text size. */
@@ -48,6 +57,7 @@ export function trailMetrics(fontScale: number): TrailMetrics {
     collapsed: ROW_PAD + BORDER_COLLAPSED + collapsedContent,
     expanded: ROW_PAD + BORDER_EXPANDED + expandedContent,
     locked: ROW_PAD + BORDER_LOCKED + lockedContent,
+    openText: line(18) + line(40) + line(18),
   };
 }
 

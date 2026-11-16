@@ -15,7 +15,14 @@ import { Icon } from '@/components/icon';
 import { DifficultyPill } from '@/components/pill';
 import { ThemedText } from '@/components/themed-text';
 import { difficultyColors, Radius, Spacing } from '@/constants/theme';
-import { MAX_FONT_SCALE, PAD_MAX, PAD_MIN, useTrailMetrics } from '@/features/today/layout';
+import {
+  MAX_FONT_SCALE,
+  OPEN_TEXT_MAX_SCALE,
+  OPEN_TEXT_SPARE_SHARE,
+  PAD_MAX,
+  PAD_MIN,
+  useTrailMetrics,
+} from '@/features/today/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { tap } from '@/lib/haptics';
 import { DIFFICULTY_LABEL, displayWord, formatNumber, ordinal } from '@/lib/format';
@@ -67,7 +74,14 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
   const pad = cards > 0 ? Math.min(PAD_MAX, Math.max(PAD_MIN, (trailH - bare) / (2 * cards))) : PAD_MIN;
   const collapsedH = metrics.collapsed + 2 * pad;
   const lockedH = locked ? metrics.locked + 2 * pad : 0;
-  const openH = Math.max(metrics.expanded + 2 * pad, trailH - lockedH - collapsedCount * collapsedH);
+  const openMin = metrics.expanded + 2 * pad;
+  const openH = Math.max(openMin, trailH - lockedH - collapsedCount * collapsedH);
+  // The open card's text grows into part of its spare height (none on phones at the fit limit). It depends only on
+  // the trail's size, so it never changes while a card opens or closes.
+  const textScale = Math.min(
+    OPEN_TEXT_MAX_SCALE,
+    1 + ((openH - openMin) * OPEN_TEXT_SPARE_SHARE) / metrics.openText,
+  );
 
   return (
     <View style={[styles.trail, { minHeight }]} onLayout={(e) => setTrailH(e.nativeEvent.layout.height)}>
@@ -82,6 +96,7 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
           collapsedH={collapsedH}
           openH={openH}
           pad={pad}
+          textScale={textScale}
           busy={openingId === word.id}
           onSelect={() => {
             tap();
@@ -116,6 +131,8 @@ type StopProps = {
   openH: number;
   /** The card's vertical padding, shared by every card in the trail whatever its state. */
   pad: number;
+  /** How much the open card's text grows into its spare height (1 = the base sizes). */
+  textScale: number;
   busy: boolean;
   onSelect: () => void;
   onHunt: () => void;
@@ -131,6 +148,7 @@ function TrailStop({
   collapsedH,
   openH,
   pad,
+  textScale,
   busy,
   onSelect,
   onHunt,
@@ -140,6 +158,12 @@ function TrailStop({
   const c = difficultyColors(theme, word.difficulty);
   const found = word.status === 'found';
   const progress = useOpenProgress(selected);
+  // Open: the type scale grown by textScale. Collapsed: the base sizes.
+  const s = selected ? textScale : 1;
+  const smallText = { fontSize: Math.round(13 * s), lineHeight: Math.round(18 * s) };
+  const wordText = selected
+    ? { fontSize: Math.round(32 * s), lineHeight: Math.round(40 * s) }
+    : styles.wordCollapsed;
 
   // The only layout property that animates: the row's height. Everything else is transform or opacity.
   const rowMotion = useAnimatedStyle(() => ({ height: collapsedH + (openH - collapsedH) * progress.value }));
@@ -196,13 +220,13 @@ function TrailStop({
           <View style={styles.header}>
             <View style={styles.headerText}>
               <View style={styles.pillRow}>
-                <DifficultyPill difficulty={word.difficulty} maxFontSizeMultiplier={MAX_FONT_SCALE} />
+                <DifficultyPill difficulty={word.difficulty} maxFontSizeMultiplier={MAX_FONT_SCALE} textStyle={smallText} />
                 <ThemedText
                   type="small"
                   themeColor="textSecondary"
                   numberOfLines={1}
                   maxFontSizeMultiplier={MAX_FONT_SCALE}
-                  style={styles.shrink}>
+                  style={[styles.shrink, smallText]}>
                   {meta}
                 </ThemedText>
               </View>
@@ -212,7 +236,7 @@ function TrailStop({
                 adjustsFontSizeToFit
                 minimumFontScale={0.6}
                 maxFontSizeMultiplier={MAX_FONT_SCALE}
-                style={[styles.word, selected ? styles.wordExpanded : styles.wordCollapsed]}>
+                style={[styles.word, wordText]}>
                 {displayWord(word.word)}
               </ThemedText>
             </View>
@@ -224,7 +248,7 @@ function TrailStop({
           {/* Status line under the word, button pinned to the card's bottom edge (it rides down as the card grows). */}
           {selected && (
             <Animated.View style={[styles.extras, extrasMotion]}>
-              <StatusLine word={word} />
+              <StatusLine word={word} textStyle={smallText} iconSize={Math.round(16 * s)} />
               {found ? (
                 onShare && (
                   <Button
@@ -255,19 +279,27 @@ function TrailStop({
 }
 
 /** What the player knows about the word: their find, a photo being checked, or how many have found it. */
-function StatusLine({ word }: { word: DailyWord }) {
+function StatusLine({
+  word,
+  textStyle,
+  iconSize,
+}: {
+  word: DailyWord;
+  textStyle: { fontSize: number; lineHeight: number };
+  iconSize: number;
+}) {
   const theme = useTheme();
   const sub = word.submission;
 
   if (word.status === 'found' && sub) {
     return (
       <View style={styles.statusRow}>
-        <Icon name="check" size={16} color={theme.successText} />
+        <Icon name="check" size={iconSize} color={theme.successText} />
         <ThemedText
           type="smallBold"
           numberOfLines={1}
           maxFontSizeMultiplier={MAX_FONT_SCALE}
-          style={[styles.shrink, { color: theme.successText }]}>
+          style={[styles.shrink, textStyle, { color: theme.successText }]}>
           Found · +{sub.points} pts{sub.rank ? ` · ${ordinal(sub.rank)} finder` : ''}
         </ThemedText>
       </View>
@@ -275,13 +307,18 @@ function StatusLine({ word }: { word: DailyWord }) {
   }
   if (word.status === 'pending') {
     return (
-      <ThemedText type="smallBold" themeColor="textSecondary" numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+      <ThemedText
+        type="smallBold"
+        themeColor="textSecondary"
+        numberOfLines={1}
+        maxFontSizeMultiplier={MAX_FONT_SCALE}
+        style={textStyle}>
         Checking your photo…
       </ThemedText>
     );
   }
   return (
-    <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+    <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE} style={textStyle}>
       {word.foundCount === 0
         ? 'Nobody has found it yet'
         : `${formatNumber(word.foundCount)} ${word.foundCount === 1 ? 'hunter has' : 'hunters have'} found it`}
@@ -474,10 +511,6 @@ const styles = StyleSheet.create({
   wordCollapsed: {
     fontSize: 20,
     lineHeight: 26,
-  },
-  wordExpanded: {
-    fontSize: 32,
-    lineHeight: 40,
   },
   extras: {
     flex: 1,
