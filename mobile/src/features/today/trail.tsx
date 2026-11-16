@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
+  useDerivedValue,
   useReducedMotion,
   useSharedValue,
   withTiming,
@@ -27,6 +28,8 @@ const NODE = 52;
 const NODE_COLLAPSED_SCALE = 44 / NODE;
 const SEGMENT = 6;
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 type Props = {
   words: DailyWord[];
   /** Free users get a locked Premium stop at the end of the trail. */
@@ -49,11 +52,21 @@ type Props = {
 export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, shareFor, onUnlock }: Props) {
   const metrics = useTrailMetrics();
   const selected = words.find((w) => w.id === selectedId)?.id ?? words[0]?.id;
-  const minHeight =
-    (words.length > 0 ? metrics.expanded + (words.length - 1) * metrics.collapsed : 0) + (locked ? metrics.locked : 0);
+  const lockedH = locked ? metrics.locked : 0;
+  const minHeight = (words.length > 0 ? metrics.expanded + (words.length - 1) * metrics.collapsed : 0) + lockedH;
+
+  // The trail's own height depends only on the screen, never on which card is open, so measuring it causes no shift.
+  // From it, every collapsed row gets one explicit height; rows then animate between that and the open height.
+  // The opening and closing rows move on the same curve in opposite directions, so the total never changes:
+  // nothing overshoots and the rows below glide instead of jumping. 0 until measured (rows use flex until then).
+  const trailH = useSharedValue(0);
+  const others = Math.max(1, words.length - 1);
+  const collapsedH = useDerivedValue(() =>
+    trailH.value === 0 ? 0 : Math.max(metrics.collapsed, (trailH.value - metrics.expanded - lockedH) / others),
+  );
 
   return (
-    <View style={[styles.trail, { minHeight }]}>
+    <View style={[styles.trail, { minHeight }]} onLayout={(e) => (trailH.value = e.nativeEvent.layout.height)}>
       {words.map((word, i) => (
         <TrailStop
           key={word.id}
@@ -63,6 +76,7 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
           prevFound={i > 0 && words[i - 1].status === 'found'}
           isLast={i === words.length - 1 && !locked}
           metrics={metrics}
+          collapsedH={collapsedH}
           busy={openingId === word.id}
           onSelect={() => {
             tap();
@@ -91,24 +105,42 @@ type StopProps = {
   prevFound: boolean;
   isLast: boolean;
   metrics: TrailMetrics;
+  /** Height of a collapsed row in this trail, or 0 before the trail has been measured. */
+  collapsedH: SharedValue<number>;
   busy: boolean;
   onSelect: () => void;
   onHunt: () => void;
   onShare?: () => void;
 };
 
-function TrailStop({ word, index, selected, prevFound, isLast, metrics, busy, onSelect, onHunt, onShare }: StopProps) {
+function TrailStop({
+  word,
+  index,
+  selected,
+  prevFound,
+  isLast,
+  metrics,
+  collapsedH,
+  busy,
+  onSelect,
+  onHunt,
+  onShare,
+}: StopProps) {
   const theme = useTheme();
   const c = difficultyColors(theme, word.difficulty);
   const found = word.status === 'found';
   const progress = useOpenProgress(selected);
   const { collapsed, expanded } = metrics;
 
-  // The only layout property that animates: the row's size. Everything else is transform or opacity.
-  const rowMotion = useAnimatedStyle(() => ({
-    flexBasis: collapsed + (expanded - collapsed) * progress.value,
-    flexGrow: 1 - progress.value,
-  }));
+  // The only layout property that animates: the row's height. Everything else is transform or opacity.
+  const rowMotion = useAnimatedStyle(() => {
+    const h = collapsedH.value;
+    if (h === 0) {
+      // First frame, before the trail is measured: the same final layout, from flex.
+      return { height: 'auto' as const, flexBasis: progress.value === 1 ? expanded : collapsed, flexGrow: 1 - progress.value };
+    }
+    return { height: h + (expanded - h) * progress.value, flexBasis: 'auto' as const, flexGrow: 0 };
+  });
   const nodeMotion = useAnimatedStyle(() => ({
     transform: [{ scale: NODE_COLLAPSED_SCALE + (1 - NODE_COLLAPSED_SCALE) * progress.value }],
   }));
@@ -128,7 +160,16 @@ function TrailStop({ word, index, selected, prevFound, isLast, metrics, busy, on
   const status = found ? 'found' : word.status === 'pending' ? 'being checked' : 'not found yet';
 
   return (
-    <Animated.View style={[styles.row, rowMotion]}>
+    // The whole stop (node and card, edges included) opens it. Once open it isn't one accessibility element,
+    // so screen readers can reach its Hunt/Share button.
+    <AnimatedPressable
+      accessible={!selected}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: selected }}
+      accessibilityLabel={`${displayWord(word.word)}, ${label}, ${meta}, ${status}`}
+      accessibilityHint={selected ? undefined : 'Shows this word'}
+      onPress={selected ? undefined : onSelect}
+      style={[styles.row, rowMotion]}>
       <View style={styles.rail}>
         <Segment visible={index > 0} walked={prevFound} />
         <Animated.View style={[styles.node, nodeColors, nodeMotion]} importantForAccessibility="no-hide-descendants">
@@ -150,13 +191,7 @@ function TrailStop({ word, index, selected, prevFound, isLast, metrics, busy, on
             selected ? styles.cardExpanded : styles.cardCollapsed,
             { backgroundColor: c.face, borderColor: c.main },
           ]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: selected }}
-            accessibilityLabel={`${displayWord(word.word)}, ${label}, ${meta}, ${status}`}
-            accessibilityHint={selected ? undefined : 'Shows this word'}
-            onPress={selected ? undefined : onSelect}
-            style={styles.header}>
+          <View style={styles.header}>
             <View style={styles.headerText}>
               <View style={styles.pillRow}>
                 <DifficultyPill difficulty={word.difficulty} maxFontSizeMultiplier={MAX_FONT_SCALE} />
@@ -182,7 +217,7 @@ function TrailStop({ word, index, selected, prevFound, isLast, metrics, busy, on
             <Animated.View style={chevronMotion}>
               <Icon name="chevron-right" size={20} color={theme.textSecondary} />
             </Animated.View>
-          </Pressable>
+          </View>
 
           {selected && (
             <Animated.View
@@ -214,7 +249,7 @@ function TrailStop({ word, index, selected, prevFound, isLast, metrics, busy, on
           )}
         </View>
       </View>
-    </Animated.View>
+    </AnimatedPressable>
   );
 }
 
