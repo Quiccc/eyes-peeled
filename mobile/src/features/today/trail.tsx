@@ -93,14 +93,9 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
   // The action button takes whatever the bigger text leaves, so its height is known without measuring: tall enough,
   // and it stacks a big icon above its label.
   const actionH = ACTION_H + (openH - openMin) - metrics.openText * (textScale - 1);
-  // With room for at least CIRCLE_MIN after the caption, air and edge, the action is a round shutter button. When the
-  // full caption leaves too little (a 4-word Premium trail, large text), the caption drops its sentence and keeps the
-  // label; only when even that doesn't fit is it the normal row button (circle 0).
-  const shutterRoom = (caption: number) => actionH - caption - CIRCLE_LABEL_GAP - 2 * CIRCLE_AIR - Edge.button;
-  const fullRoom = shutterRoom(metrics.actionLabel);
-  const compactRoom = shutterRoom(metrics.actionTitle);
-  const compactCaption = fullRoom < CIRCLE_MIN && compactRoom >= CIRCLE_MIN;
-  const circleRoom = compactCaption ? compactRoom : fullRoom;
+  // With room for at least CIRCLE_MIN after the label, air and edge, the action is a round shutter button
+  // (0 = not enough room: the normal row button).
+  const circleRoom = actionH - metrics.actionLabel - CIRCLE_LABEL_GAP - 2 * CIRCLE_AIR - Edge.button;
   const circle = circleRoom >= CIRCLE_MIN ? Math.floor(Math.min(CIRCLE_MAX, circleRoom)) : 0;
   const links = trailLinks(words);
 
@@ -127,7 +122,6 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
           pad={pad}
           textScale={textScale}
           circle={circle}
-          compactCaption={compactCaption}
           busy={openingId === word.id}
           onSelect={() => {
             tap();
@@ -178,8 +172,6 @@ type StopProps = {
   textScale: number;
   /** Diameter of the open card's round shutter button, or 0 when there's only room for the row button. */
   circle: number;
-  /** The shutter's caption shows its label only (there's no room for the sentence under it). */
-  compactCaption: boolean;
   busy: boolean;
   onSelect: () => void;
   onHunt: () => void;
@@ -201,7 +193,6 @@ function TrailStop({
   pad,
   textScale,
   circle,
-  compactCaption,
   busy,
   onSelect,
   onHunt,
@@ -354,7 +345,6 @@ function TrailStop({
                     subtitle="Show your friends what you found"
                     accessibilityLabel={`Share your ${word.word} find`}
                     circle={circle}
-                    compactCaption={compactCaption}
                     onPress={onShare}
                   />
                 )
@@ -370,7 +360,6 @@ function TrailStop({
                   }
                   accessibilityLabel={word.status === 'pending' ? `See the result for ${word.word}` : `Hunt for ${word.word}`}
                   circle={circle}
-                  compactCaption={compactCaption}
                   busy={busy}
                   onPress={onHunt}
                 />
@@ -394,7 +383,6 @@ function ActionTile({
   subtitle,
   accessibilityLabel,
   circle,
-  compactCaption,
   busy,
   onPress,
 }: {
@@ -409,8 +397,6 @@ function ActionTile({
   accessibilityLabel: string;
   /** Shutter diameter, or 0 for the row button. */
   circle: number;
-  /** The shutter's caption is its title only. */
-  compactCaption: boolean;
   busy?: boolean;
   onPress: () => void;
 }) {
@@ -441,52 +427,46 @@ function ActionTile({
           <ThemedText type="subtitle" numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE} style={{ color: c.text }}>
             {title}
           </ThemedText>
-          {!compactCaption && (
-            <ThemedText
-              type="small"
-              themeColor="textSecondary"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.8}
-              maxFontSizeMultiplier={MAX_FONT_SCALE}
-              style={styles.captionText}>
-              {subtitle}
-            </ThemedText>
-          )}
+          <ThemedText
+            type="small"
+            themeColor="textSecondary"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+            maxFontSizeMultiplier={MAX_FONT_SCALE}
+            style={styles.captionText}>
+            {subtitle}
+          </ThemedText>
         </View>
       </View>
     );
   }
 
-  // Not enough room for a shutter: a normal-height row button at the bottom of the spare space (stretched to fill it,
-  // it reads as a big slab).
   return (
-    <View style={styles.actionArea}>
-      <Chunky
-        color={c.main}
-        edgeColor={c.edge}
-        radius={18}
-        edge={Edge.button}
-        disabled={busy}
-        onPress={onPress}
-        accessibilityLabel={accessibilityLabel}
-        style={styles.action}
-        contentStyle={styles.actionFace}>
-        {busy ? (
-          <ActivityIndicator color={c.on} />
-        ) : (
-          <>
-            <Icon name={icon} size={20} color={c.on} />
-            <ThemedText
-              numberOfLines={1}
-              maxFontSizeMultiplier={MAX_FONT_SCALE}
-              style={[styles.actionLabel, { color: c.on }]}>
-              {title}
-            </ThemedText>
-          </>
-        )}
-      </Chunky>
-    </View>
+    <Chunky
+      color={c.main}
+      edgeColor={c.edge}
+      radius={18}
+      edge={Edge.button}
+      disabled={busy}
+      onPress={onPress}
+      accessibilityLabel={accessibilityLabel}
+      style={styles.action}
+      contentStyle={styles.actionFace}>
+      {busy ? (
+        <ActivityIndicator color={c.on} />
+      ) : (
+        <>
+          <Icon name={icon} size={20} color={c.on} />
+          <ThemedText
+            numberOfLines={1}
+            maxFontSizeMultiplier={MAX_FONT_SCALE}
+            style={[styles.actionLabel, { color: c.on }]}>
+            {title}
+          </ThemedText>
+        </>
+      )}
+    </Chunky>
   );
 }
 
@@ -812,12 +792,8 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.two,
     gap: Spacing.two + 4,
   },
-  actionArea: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
   action: {
-    height: ACTION_H,
+    flex: 1,
   },
   actionFace: {
     flexDirection: 'row',

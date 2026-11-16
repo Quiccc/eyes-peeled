@@ -57,8 +57,6 @@ export type TrailMetrics = {
   openText: number;
   /** The caption under the shutter button: its label (20/26) and a short sentence (13/18), 2px apart. */
   actionLabel: number;
-  /** The caption's label alone, for a shutter with only a little room (the sentence is dropped). */
-  actionTitle: number;
 };
 
 /** Row heights for the Today trail, from the type scale and the (clamped) system text size. */
@@ -79,7 +77,6 @@ export function trailMetrics(fontScale: number): TrailMetrics {
     locked: ROW_PAD + BORDER_LOCKED + lockedContent,
     openText: line(18) + line(40) + line(18) + line(18),
     actionLabel: line(26) + 2 + line(18),
-    actionTitle: line(26),
   };
 }
 
