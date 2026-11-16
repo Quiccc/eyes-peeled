@@ -1,4 +1,4 @@
-# Word Hunt — Backend API contract
+# Eyes Peeled — Backend API contract
 
 The mobile app talks to your backend only through the endpoints below. TypeScript shapes live in
 [`mobile/src/api/types.ts`](../mobile/src/api/types.ts) (the source of truth). The app-side implementation is
@@ -27,7 +27,7 @@ The mobile app talks to your backend only through the endpoints below. TypeScrip
 | POST | `/auth/refresh` | `{ refreshToken }` | `AuthTokens` `{ accessToken, refreshToken }` |
 | POST | `/auth/signout` | — | 204 (revoke the refresh token) |
 
-- **Apple:** verify `idToken` against Apple's JWKS (`https://appleid.apple.com/auth/keys`), with `aud` = the iOS bundle id (`com.wordhunt.app`). The stable user id is the `sub` claim. Apple sends `fullName` only on the first sign-in, so store it then.
+- **Apple:** verify `idToken` against Apple's JWKS (`https://appleid.apple.com/auth/keys`), with `aud` = the iOS bundle id (`com.eyespeeled.app`). The stable user id is the `sub` claim. Apple sends `fullName` only on the first sign-in, so store it then.
 - **Google:** verify `idToken` against Google's JWKS, with `aud` = your **web** client id (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`). The stable user id is the `sub` claim.
 - New users start with `username: null`. The app then forces the username picker.
 - `displayName` and `avatarUrl` come from the provider and the app never edits them: Google's `name` / `picture` claims, Apple's `fullName` from the first sign-in (Apple never gives an avatar, so `avatarUrl` stays `null` and the app shows initials). Refresh Google's values on each sign-in.

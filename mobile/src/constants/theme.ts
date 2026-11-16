@@ -1,5 +1,5 @@
 /**
- * Design tokens for the "chunky" Word Hunt look: warm grounds, an orange brand color,
+ * Design tokens for the "chunky" Eyes Peeled look: warm grounds, an orange brand color,
  * and solid bottom edges on every raised surface. Light and dark share the same keys.
  */
 

@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "Word Hunt",
-    "slug": "word-hunt-app",
+    "name": "Eyes Peeled",
+    "slug": "eyes-peeled",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "wordhuntapp",
+    "scheme": "eyespeeled",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.wordhunt.app",
+      "bundleIdentifier": "com.eyespeeled.app",
       "usesAppleSignIn": true,
       "supportsTablet": false,
       "config": {
@@ -17,7 +17,7 @@
       }
     },
     "android": {
-      "package": "com.wordhunt.app",
+      "package": "com.eyespeeled.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -39,7 +39,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Word Hunt uses your camera to photograph the daily words you find.",
+          "cameraPermission": "Eyes Peeled uses your camera to photograph the daily words you find.",
           "recordAudioAndroid": false,
           "barcodeScannerEnabled": false
         }
@@ -49,7 +49,7 @@
       [
         "expo-tracking-transparency",
         {
-          "userTrackingPermission": "This identifier is used to show you more relevant ads, which keep Word Hunt free."
+          "userTrackingPermission": "This identifier is used to show you more relevant ads, which keep Eyes Peeled free."
         }
       ],
       [

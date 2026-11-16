@@ -1,4 +1,4 @@
-# Word Hunt API
+# Eyes Peeled API
 
 The Express 5 + Drizzle backend that implements [`docs/api-contract.md`](../docs/api-contract.md). Response types come straight from the app's [`mobile/src/api/types.ts`](../mobile/src/api/types.ts), so the two can't drift apart.
 

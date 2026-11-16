@@ -1,4 +1,4 @@
-# Word Hunt
+# Eyes Peeled
 
 A daily real-world scavenger hunt for iOS and Android. Every day at 00:00 UTC, three words go live (Rookie, Scout, Ranger), plus a 4th Premium word for Premium players. (In code and the API these levels are `easy`, `medium`, `hard` and `expert`.) Players find the real object, photograph it in the app, and a YOLO model checks the photo. Earlier valid photos and harder words earn more points. Leaderboards reset monthly, and friends can see each other's finds for the day.
 
@@ -59,10 +59,10 @@ Purchases need a development build and a sandbox / test-track account, or Revenu
 
 ## Before shipping
 
-- `mobile/app.json`: set your real `ios.bundleIdentifier` and `android.package`, the Google `iosUrlScheme`, and the AdMob `iosAppId`/`androidAppId`. Test IDs are filled in for now.
-- EAS `preview`/`production` profiles: set `EXPO_PUBLIC_API_URL`. A release build without it stops at launch rather than silently using the mock (set `EXPO_PUBLIC_USE_MOCK_API=true` to ship the mock on purpose).
+- `mobile/app.json`: the bundle id / package is `com.eyespeeled.app` (register it with Apple and Google Play). Set the Google `iosUrlScheme`, and the AdMob `iosAppId`/`androidAppId`. Test IDs are filled in for now.
+- EAS `preview`/`production` profiles: set `EXPO_PUBLIC_API_URL` (production: `https://api.eyespeeled.com`; server `PUBLIC_BASE_URL` to match). A release build without it stops at launch rather than silently using the mock (set `EXPO_PUBLIC_USE_MOCK_API=true` to ship the mock on purpose).
 - `mobile/.env.local`: set the Google client IDs and the AdMob interstitial unit IDs. Development builds always use Google's test ad units.
-- App Store: privacy nutrition labels (camera, identifiers for ads), the content moderation process for reports, and a privacy policy URL.
+- App Store: privacy nutrition labels (camera, identifiers for ads), the content moderation process for reports, and a privacy policy URL (`https://eyespeeled.com/privacy`; terms at `/terms`, both linked from the sign-in screen).
 
 ## Layout
 

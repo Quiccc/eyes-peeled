@@ -15,7 +15,7 @@ const schema = z.object({
   JWT_SECRET: z.string().min(32),
   ACCESS_TOKEN_TTL_SEC: z.coerce.number().int().positive().default(15 * 60),
   FILE_URL_SECRET: z.string().min(32),
-  APPLE_BUNDLE_ID: z.string().default('com.wordhunt.app'),
+  APPLE_BUNDLE_ID: z.string().default('com.eyespeeled.app'),
   GOOGLE_WEB_CLIENT_ID: optional,
   AUTH_DEV_LOGIN: z
     .string()

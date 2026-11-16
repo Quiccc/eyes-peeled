@@ -40,7 +40,7 @@ const ctx: Ctx = {
 const requeued = await requeuePending(ctx);
 
 const server = createApp(ctx, { log: true, adminPanelDir }).listen(env.PORT, '0.0.0.0', () => {
-  console.log(`Word Hunt API on http://localhost:${env.PORT}`);
+  console.log(`Eyes Peeled API on http://localhost:${env.PORT}`);
   console.log(`  database: ${env.DATABASE_URL ? 'Postgres (DATABASE_URL)' : `PGlite in ${path.join(dataDir, 'db')}`}`);
   console.log(`  verifier: ${env.YOLO_URL ? `YOLO at ${env.YOLO_URL}` : 'stub (random ~60% pass). Set YOLO_URL for real checks.'}`);
   if (env.AUTH_DEV_LOGIN) console.log('  dev login: ON (idToken "dev:<name>")');

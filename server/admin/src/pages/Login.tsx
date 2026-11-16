@@ -29,7 +29,7 @@ export function Login({ onSignedIn, initialError }: { onSignedIn: () => void; in
 
   return (
     <form className="login card" onSubmit={submit}>
-      <h1>Word Hunt Admin</h1>
+      <h1>Eyes Peeled Admin</h1>
       <label>
         Admin token
         <input type="password" autoFocus value={value} onChange={(e) => setValue(e.target.value)} />

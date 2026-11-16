@@ -20,7 +20,7 @@ export function requireAppVersion(minVersion: string | undefined): RequestHandle
   return (req, _res, next) => {
     const version = req.get('x-app-version');
     if (minVersion && version && compareVersions(version, minVersion) < 0) {
-      throw new HttpError(426, 'upgrade_required', 'A new version of Word Hunt is available. Please update to keep playing.');
+      throw new HttpError(426, 'upgrade_required', 'A new version of Eyes Peeled is available. Please update to keep playing.');
     }
     next();
   };

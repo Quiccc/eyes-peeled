@@ -1,4 +1,4 @@
-Word Hunt is split into three independent parts. Each has its own dependencies, checks and rules; work inside the folder you are changing and run its commands from there.
+Eyes Peeled is split into three independent parts. Each has its own dependencies, checks and rules; work inside the folder you are changing and run its commands from there.
 
 | Folder | Stack | Rules / docs | Checks |
 |---|---|---|---|

@@ -51,7 +51,7 @@ export function ShareCard({ find, onImageLoad, ref }: Props) {
                 <Icon name="search" size={14} color={C.onTint} />
               </View>
             </View>
-            <Text style={[styles.text, styles.brandText]}>Word Hunt</Text>
+            <Text style={[styles.text, styles.brandText]}>Eyes Peeled</Text>
           </View>
         </View>
       </View>

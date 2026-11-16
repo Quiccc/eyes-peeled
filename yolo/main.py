@@ -1,5 +1,5 @@
 """
-Word Hunt photo checker: `uv run uvicorn main:app --port 8001`.
+Eyes Peeled photo checker: `uv run uvicorn main:app --port 8001`.
 
 POST /detect  (multipart: image=<jpeg>, label=<class name>)
   -> { "detected": bool, "confidence": float | null, "labels": [{ "label", "confidence" }] }

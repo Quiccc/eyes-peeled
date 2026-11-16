@@ -53,7 +53,7 @@ export function App() {
   return (
     <div className="shell">
       <header className="topbar">
-        <strong className="brand">Word Hunt Admin</strong>
+        <strong className="brand">Eyes Peeled Admin</strong>
         <nav>
           {PAGES.map((p) => (
             <NavLink key={p.path} to={p.path}>

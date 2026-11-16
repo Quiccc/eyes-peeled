@@ -47,7 +47,7 @@ export default function SignInScreen() {
           <HeroBadge icon="search" size="large" />
           <View style={styles.copy}>
             <ThemedText type="title" style={styles.center} accessibilityRole="header">
-              Word Hunt
+              Eyes Peeled
             </ThemedText>
             <ThemedText themeColor="textSecondary" style={styles.center}>
               Three words a day. Find them in the real world, snap a photo, climb the leaderboard.

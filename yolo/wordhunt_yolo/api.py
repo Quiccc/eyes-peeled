@@ -52,7 +52,7 @@ def create_app(settings: Settings, detector: Detector | None = None) -> FastAPI:
         app.state.known = {normalize(n) for n in app.state.detector.names}
         yield
 
-    app = FastAPI(title="Word Hunt YOLO", lifespan=lifespan)
+    app = FastAPI(title="Eyes Peeled YOLO", lifespan=lifespan)
     app.state.settings = settings
 
     def require_key(x_yolo_key: Annotated[str | None, Header()] = None) -> None:

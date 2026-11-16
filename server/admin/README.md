@@ -1,4 +1,4 @@
-# Word Hunt admin panel
+# Eyes Peeled admin panel
 
 A small React web app for running the game. It talks only to the server's `/admin/*` API and signs in
 with the server's `ADMIN_TOKEN`.

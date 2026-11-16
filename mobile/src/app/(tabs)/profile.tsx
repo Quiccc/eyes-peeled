@@ -101,7 +101,7 @@ export default function ProfileScreen() {
           </View>
 
           <ThemedText type="small" themeColor="textSecondary" style={styles.version}>
-            Word Hunt v{Constants.expoConfig?.version ?? '1.0.0'}
+            Eyes Peeled v{Constants.expoConfig?.version ?? '1.0.0'}
           </ThemedText>
         </ScrollView>
       </SafeAreaView>

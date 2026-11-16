@@ -31,8 +31,8 @@ export function CameraPermissionPrompt({ word, permission, requestPermission, on
         </ThemedText>
         <ThemedText themeColor="textSecondary" style={huntStyles.centerText}>
           {canAsk
-            ? 'Word Hunt needs your camera to snap your find.'
-            : 'Turn on camera access for Word Hunt in Settings to snap your find.'}
+            ? 'Eyes Peeled needs your camera to snap your find.'
+            : 'Turn on camera access for Eyes Peeled in Settings to snap your find.'}
         </ThemedText>
       </HuntStatus>
       <HuntActions>

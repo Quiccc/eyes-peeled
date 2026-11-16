@@ -43,7 +43,7 @@ export default function PremiumScreen() {
           <View style={styles.hero}>
             <HeroBadge icon="star" size="medium" style={styles.badge} />
             <ThemedText type="title" style={[styles.center, styles.title]} accessibilityRole="header">
-              Word Hunt Premium
+              Eyes Peeled Premium
             </ThemedText>
             <ThemedText themeColor="textSecondary" style={styles.center}>
               No ads and a 4th daily word, in a single purchase.

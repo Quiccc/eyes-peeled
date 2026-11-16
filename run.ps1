@@ -1,4 +1,4 @@
-# Start Word Hunt for local development, one window per part.
+# Start Eyes Peeled for local development, one window per part.
 #   .\run.ps1                       YOLO + server + admin panel + Expo
 #   .\run.ps1 -NoYolo -NoMobile     skip parts (without YOLO the server uses its photo stub)
 param(
@@ -27,7 +27,7 @@ function Copy-EnvExample([string]$dir, [string]$name) {
 
 # Open a new PowerShell window titled $title in $dir and run $command there.
 function Start-Part([string]$title, [string]$dir, [string]$command) {
-    $script = "`$Host.UI.RawUI.WindowTitle = 'Word Hunt: $title'; $command"
+    $script = "`$Host.UI.RawUI.WindowTitle = 'Eyes Peeled: $title'; $command"
     Start-Process powershell -WorkingDirectory $dir -ArgumentList '-NoExit', '-ExecutionPolicy', 'Bypass', '-Command', $script
     Write-Host "Started $title"
 }
