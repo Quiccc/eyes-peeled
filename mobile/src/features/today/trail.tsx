@@ -296,7 +296,7 @@ function TrailStop({
                     word={word}
                     icon="share"
                     title="Share your find"
-                    subtitle={`Show your friends your ${word.word.toLowerCase()}`}
+                    subtitle="Show your friends what you found"
                     accessibilityLabel={`Share your ${word.word} find`}
                     circle={circle}
                     onPress={onShare}
@@ -310,7 +310,7 @@ function TrailStop({
                   subtitle={
                     word.status === 'pending'
                       ? "We're still checking your photo"
-                      : `Point your camera at ${withArticle(word.word.toLowerCase())}`
+                      : `Snap a photo to score up to ${formatNumber(word.maxPoints)} pts`
                   }
                   accessibilityLabel={word.status === 'pending' ? `See the result for ${word.word}` : `Hunt for ${word.word}`}
                   circle={circle}
@@ -343,7 +343,10 @@ function ActionTile({
   word: DailyWord;
   icon: IconName;
   title: string;
-  /** A short sentence under the shutter's label (shutter only; the row button has no room for it). */
+  /**
+   * A short sentence under the shutter's label (shutter only; the row button has no room for it). Keep it free of
+   * the word itself: labels are model classes ("scissors", "fire hydrant"), so articles and possessives go wrong.
+   */
   subtitle: string;
   accessibilityLabel: string;
   /** Shutter diameter, or 0 for the row button. */
@@ -419,11 +422,6 @@ function ActionTile({
       )}
     </Chunky>
   );
-}
-
-/** "a toothbrush", "an umbrella": the article picked by the word's first letter. */
-function withArticle(word: string) {
-  return `${/^[aeiou]/i.test(word) ? 'an' : 'a'} ${word}`;
 }
 
 /** "09:42" (or "9:42 AM"), in the player's local time and clock style. */
