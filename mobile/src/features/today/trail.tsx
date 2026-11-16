@@ -495,12 +495,10 @@ function StatusLine({
         <ThemedText
           type="smallBold"
           numberOfLines={1}
-          // Shrinks rather than truncating when the open card's bigger text or the system size makes it too wide.
-          adjustsFontSizeToFit
-          minimumFontScale={0.75}
+          // No adjustsFontSizeToFit: this line mounts while the card's row is still animating open, and Android fits
+          // the text to that near-zero height once and never again, leaving it a few pixels tall. It fits by design.
           maxFontSizeMultiplier={MAX_FONT_SCALE}
-          // A definite width (flex: 1, not flexShrink): Android fits the text to it, and shrinks it to nothing without it.
-          style={[styles.fill, textStyle, { color: theme.successText }]}>
+          style={[styles.shrink, textStyle, { color: theme.successText }]}>
           {/* One line: a combo takes the rank's place (the hunt result still shows the rank). */}
           Found · +{sub.points} pts
           {sub.comboPoints > 0 ? ` · +${sub.comboPoints} combo` : sub.rank ? ` · ${ordinal(sub.rank)} finder` : ''}
@@ -777,10 +775,6 @@ const styles = StyleSheet.create({
   },
   shrink: {
     flexShrink: 1,
-  },
-  fill: {
-    flex: 1,
-    minWidth: 0,
   },
   points: {
     fontWeight: 800,
