@@ -84,7 +84,11 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
   );
 
   return (
+    // The rows live in an absolute layer, so the trail's height comes only from the screen (or minHeight on short
+    // screens), never from its own rows. Otherwise, inside the ScrollView, rows sized to the trail could grow the
+    // trail, which would be measured bigger and grow the rows again: a ratchet that never shrinks back.
     <View style={[styles.trail, { minHeight }]} onLayout={(e) => setTrailH(e.nativeEvent.layout.height)}>
+      <View style={StyleSheet.absoluteFill}>
       {trailH > 0 && words.map((word, i) => (
         <TrailStop
           key={word.id}
@@ -115,6 +119,7 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
           onPress={onUnlock}
         />
       )}
+      </View>
     </View>
   );
 }
