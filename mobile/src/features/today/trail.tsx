@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -10,12 +10,14 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { DailyWord } from '@/api/types';
-import { Button } from '@/components/button';
-import { Icon } from '@/components/icon';
+import { Chunky } from '@/components/chunky';
+import { Icon, type IconName } from '@/components/icon';
 import { DifficultyPill } from '@/components/pill';
 import { ThemedText } from '@/components/themed-text';
-import { difficultyColors, Radius, Spacing } from '@/constants/theme';
+import { difficultyColors, Edge, Radius, Spacing } from '@/constants/theme';
 import {
+  ACTION_H,
+  ACTION_STACK_MIN,
   MAX_FONT_SCALE,
   OPEN_TEXT_MAX_SCALE,
   OPEN_TEXT_SPARE_SHARE,
@@ -82,6 +84,10 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
     OPEN_TEXT_MAX_SCALE,
     1 + ((openH - openMin) * OPEN_TEXT_SPARE_SHARE) / metrics.openText,
   );
+  // The action button takes whatever the bigger text leaves, so its height is known without measuring: tall enough,
+  // and it stacks a big icon above its label.
+  const actionH = ACTION_H + (openH - openMin) - metrics.openText * (textScale - 1);
+  const actionStacked = actionH >= ACTION_STACK_MIN;
 
   return (
     // The rows live in an absolute layer, so the trail's height comes only from the screen (or minHeight on short
@@ -101,6 +107,7 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
           openH={openH}
           pad={pad}
           textScale={textScale}
+          actionStacked={actionStacked}
           busy={openingId === word.id}
           onSelect={() => {
             tap();
@@ -138,6 +145,8 @@ type StopProps = {
   pad: number;
   /** How much the open card's text grows into its spare height (1 = the base sizes). */
   textScale: number;
+  /** The open card's action button is tall enough to stack its icon above its label. */
+  actionStacked: boolean;
   busy: boolean;
   onSelect: () => void;
   onHunt: () => void;
@@ -154,6 +163,7 @@ function TrailStop({
   openH,
   pad,
   textScale,
+  actionStacked,
   busy,
   onSelect,
   onHunt,
@@ -271,22 +281,23 @@ function TrailStop({
               </View>
               {found ? (
                 onShare && (
-                  <Button
-                    variant="success"
+                  <ActionTile
+                    word={word}
                     icon="share"
                     title="Share your find"
                     accessibilityLabel={`Share your ${word.word} find`}
-                    maxFontSizeMultiplier={MAX_FONT_SCALE}
+                    stacked={actionStacked}
                     onPress={onShare}
                   />
                 )
               ) : (
-                <Button
+                <ActionTile
+                  word={word}
                   icon="camera"
                   title={word.status === 'pending' ? 'See your result' : 'Hunt this word'}
                   accessibilityLabel={word.status === 'pending' ? `See the result for ${word.word}` : `Hunt for ${word.word}`}
-                  loading={busy}
-                  maxFontSizeMultiplier={MAX_FONT_SCALE}
+                  stacked={actionStacked}
+                  busy={busy}
                   onPress={onHunt}
                 />
               )}
@@ -295,6 +306,57 @@ function TrailStop({
         </View>
       </View>
     </AnimatedPressable>
+  );
+}
+
+/**
+ * The open card's Hunt / Share button, in the word's difficulty colour. It fills the card's spare height:
+ * when tall it stacks a big icon above its label, otherwise icon and label share one row.
+ */
+function ActionTile({
+  word,
+  icon,
+  title,
+  accessibilityLabel,
+  stacked,
+  busy,
+  onPress,
+}: {
+  word: DailyWord;
+  icon: IconName;
+  title: string;
+  accessibilityLabel: string;
+  stacked: boolean;
+  busy?: boolean;
+  onPress: () => void;
+}) {
+  const c = difficultyColors(useTheme(), word.difficulty);
+  return (
+    <Chunky
+      color={c.main}
+      edgeColor={c.edge}
+      radius={18}
+      edge={Edge.button}
+      disabled={busy}
+      onPress={onPress}
+      accessibilityLabel={accessibilityLabel}
+      style={styles.action}
+      contentStyle={[styles.actionFace, stacked && styles.actionFaceStacked]}>
+      {busy ? (
+        <ActivityIndicator color={c.on} />
+      ) : (
+        <>
+          <Icon name={icon} size={stacked ? 40 : 20} color={c.on} />
+          <ThemedText
+            type={stacked ? 'subtitle' : 'default'}
+            numberOfLines={1}
+            maxFontSizeMultiplier={MAX_FONT_SCALE}
+            style={[styles.actionLabel, { color: c.on }]}>
+            {title}
+          </ThemedText>
+        </>
+      )}
+    </Chunky>
   );
 }
 
@@ -539,9 +601,25 @@ const styles = StyleSheet.create({
   },
   extras: {
     flex: 1,
-    justifyContent: 'space-between',
     paddingTop: Spacing.two,
     gap: Spacing.two + 4,
+  },
+  action: {
+    flex: 1,
+  },
+  actionFace: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.three,
+  },
+  actionFaceStacked: {
+    flexDirection: 'column',
+    gap: Spacing.two,
+  },
+  actionLabel: {
+    fontWeight: 900,
   },
   statusRow: {
     flexDirection: 'row',

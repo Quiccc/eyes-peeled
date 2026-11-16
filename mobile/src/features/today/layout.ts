@@ -27,8 +27,10 @@ const BORDER_COLLAPSED = 2 + 5;
 const BORDER_EXPANDED = 2 + 6;
 /** The locked card's dashed 2px border, top and bottom. */
 const BORDER_LOCKED = 2 + 2;
-/** "Hunt this word" / "Share your find": 52px face plus its 5px edge. */
-const ACTION_H = 52 + 5;
+/** "Hunt this word" / "Share your find" at its smallest: 52px face plus its 5px edge. It grows into spare height. */
+export const ACTION_H = 52 + 5;
+/** From this height the action button stacks a big icon above its label instead of a single row. */
+export const ACTION_STACK_MIN = 112;
 
 /** Row heights without the cards' vertical padding: row gap + borders + content. Add 2 × padding for the real height. */
 export type TrailMetrics = {

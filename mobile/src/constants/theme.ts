@@ -48,14 +48,22 @@ export const Colors = {
     easyText: '#176B27',
     /** Faint tint for a whole card face in this difficulty */
     easyFace: '#F3FBF4',
+    /** Chunky bottom edge under a solid fill in this difficulty (action buttons) */
+    easyEdge: '#1E8A30',
+    /** Label and icon on a solid fill in this difficulty */
+    easyOn: '#0B3313',
     medium: '#2D9CDB',
     mediumBg: '#DCEFFB',
     mediumText: '#155E8C',
     mediumFace: '#F1F8FD',
+    mediumEdge: '#1B6E9E',
+    mediumOn: '#082235',
     hard: '#F0524F',
     hardBg: '#FDE1E0',
     hardText: '#A12624',
     hardFace: '#FEF4F3',
+    hardEdge: '#B5302D',
+    hardOn: '#3A0B0A',
     expert: '#9B5DE5',
     expertBg: '#EDE2FB',
     expertText: '#5F2FA8',
@@ -63,6 +71,8 @@ export const Colors = {
     /** Chunky bottom edge and text on a solid purple (Premium) fill */
     expertEdge: '#6F35B8',
     onExpert: '#FFFFFF',
+    /** Dark label on a purple action button (the Premium badge keeps white via onExpert) */
+    expertOn: '#1F0F33',
 
     gold: '#FFC83D',
     silver: '#C9D1D9',
@@ -103,20 +113,27 @@ export const Colors = {
     easyBg: '#173D1E',
     easyText: '#8BE79A',
     easyFace: '#1F2B1D',
+    easyEdge: '#1F7A30',
+    easyOn: '#0B3313',
     medium: '#4DB4F0',
     mediumBg: '#12364D',
     mediumText: '#9AD6FA',
     mediumFace: '#1B2833',
+    mediumEdge: '#1F6E9E',
+    mediumOn: '#082235',
     hard: '#FF6B66',
     hardBg: '#4A1C1B',
     hardText: '#FFAAA6',
     hardFace: '#331F1D',
+    hardEdge: '#B23A36',
+    hardOn: '#3A0B0A',
     expert: '#B583F5',
     expertBg: '#33214F',
     expertText: '#D5B8FB',
     expertFace: '#2A2238',
     expertEdge: '#7E4FC2',
     onExpert: '#1F0F33',
+    expertOn: '#1F0F33',
 
     gold: '#FFC83D',
     silver: '#C9D1D9',
@@ -137,6 +154,9 @@ export function difficultyColors(theme: Theme, difficulty: Difficulty) {
     main: theme[difficulty],
     bg: theme[`${difficulty}Bg`],
     text: theme[`${difficulty}Text`],
+    /** Darker bottom edge and readable label for a solid fill in this difficulty (action buttons). */
+    edge: theme[`${difficulty}Edge`],
+    on: theme[`${difficulty}On`],
     face: theme[`${difficulty}Face`],
   };
 }
