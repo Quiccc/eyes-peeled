@@ -271,16 +271,21 @@ function TrailStop({
             <Animated.View style={[styles.extras, extrasMotion]}>
               <View style={styles.info}>
                 <StatusLine word={word} textStyle={smallText} iconSize={Math.round(16 * s)} />
-                {word.firstFoundAt && (
+                {/* Every state shows a second line: when it was first found, or an invitation to be first. */}
+                {(word.firstFoundAt || !found) && (
                   <View style={styles.statusRow}>
-                    <Icon name="clock" size={Math.round(16 * s)} color={theme.textSecondary} />
+                    <Icon
+                      name={word.firstFoundAt ? 'clock' : 'trophy'}
+                      size={Math.round(16 * s)}
+                      color={theme.textSecondary}
+                    />
                     <ThemedText
                       type="small"
                       themeColor="textSecondary"
                       numberOfLines={1}
                       maxFontSizeMultiplier={MAX_FONT_SCALE}
                       style={[styles.shrink, smallText]}>
-                      First found at {clockTime(word.firstFoundAt)}
+                      {word.firstFoundAt ? `First found at ${clockTime(word.firstFoundAt)}` : 'Be the first to find it'}
                     </ThemedText>
                   </View>
                 )}
@@ -291,6 +296,7 @@ function TrailStop({
                     word={word}
                     icon="share"
                     title="Share your find"
+                    subtitle={`Show your friends your ${word.word.toLowerCase()}`}
                     accessibilityLabel={`Share your ${word.word} find`}
                     circle={circle}
                     onPress={onShare}
@@ -301,6 +307,11 @@ function TrailStop({
                   word={word}
                   icon="camera"
                   title={word.status === 'pending' ? 'See your result' : 'Hunt this word'}
+                  subtitle={
+                    word.status === 'pending'
+                      ? "We're still checking your photo"
+                      : `Point your camera at ${withArticle(word.word.toLowerCase())}`
+                  }
                   accessibilityLabel={word.status === 'pending' ? `See the result for ${word.word}` : `Hunt for ${word.word}`}
                   circle={circle}
                   busy={busy}
@@ -323,6 +334,7 @@ function ActionTile({
   word,
   icon,
   title,
+  subtitle,
   accessibilityLabel,
   circle,
   busy,
@@ -331,6 +343,8 @@ function ActionTile({
   word: DailyWord;
   icon: IconName;
   title: string;
+  /** A short sentence under the shutter's label (shutter only; the row button has no room for it). */
+  subtitle: string;
   accessibilityLabel: string;
   /** Shutter diameter, or 0 for the row button. */
   circle: number;
@@ -360,14 +374,21 @@ function ActionTile({
             <Icon name={icon} size={Math.round(circle * 0.4)} color={c.on} />
           )}
         </Chunky>
-        <ThemedText
-          type="subtitle"
-          numberOfLines={1}
-          maxFontSizeMultiplier={MAX_FONT_SCALE}
-          importantForAccessibility="no"
-          style={{ color: c.text }}>
-          {title}
-        </ThemedText>
+        <View style={styles.caption} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          <ThemedText type="subtitle" numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE} style={{ color: c.text }}>
+            {title}
+          </ThemedText>
+          <ThemedText
+            type="small"
+            themeColor="textSecondary"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+            maxFontSizeMultiplier={MAX_FONT_SCALE}
+            style={styles.captionText}>
+            {subtitle}
+          </ThemedText>
+        </View>
       </View>
     );
   }
@@ -398,6 +419,11 @@ function ActionTile({
       )}
     </Chunky>
   );
+}
+
+/** "a toothbrush", "an umbrella": the article picked by the word's first letter. */
+function withArticle(word: string) {
+  return `${/^[aeiou]/i.test(word) ? 'an' : 'a'} ${word}`;
 }
 
 /** "09:42" (or "9:42 AM"), in the player's local time and clock style. */
@@ -659,6 +685,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: CIRCLE_LABEL_GAP,
+  },
+  caption: {
+    alignItems: 'center',
+    gap: 2,
+    maxWidth: '100%',
+  },
+  captionText: {
+    textAlign: 'center',
   },
   shutterFace: {
     alignItems: 'center',

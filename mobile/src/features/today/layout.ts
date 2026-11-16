@@ -55,7 +55,7 @@ export type TrailMetrics = {
    * the text scale grows these.
    */
   openText: number;
-  /** The shutter button's label line (20/26). */
+  /** The caption under the shutter button: its label (20/26) and a short sentence (13/18), 2px apart. */
   actionLabel: number;
 };
 
@@ -76,7 +76,7 @@ export function trailMetrics(fontScale: number): TrailMetrics {
     expanded: ROW_PAD + BORDER_EXPANDED + expandedContent,
     locked: ROW_PAD + BORDER_LOCKED + lockedContent,
     openText: line(18) + line(40) + line(18) + line(18),
-    actionLabel: line(26),
+    actionLabel: line(26) + 2 + line(18),
   };
 }
 
