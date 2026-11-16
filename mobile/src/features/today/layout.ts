@@ -33,10 +33,10 @@ export const ACTION_H = 52 + 5;
  * With enough spare height the action becomes a round shutter button (label underneath), sized between these.
  * The max keeps it inside even the narrowest card with side padding, so its width never needs measuring.
  */
-export const CIRCLE_MIN = 56;
+export const CIRCLE_MIN = 52;
 export const CIRCLE_MAX = 132;
-/** Air above and below the shutter button and its label, and the gap between them. */
-export const CIRCLE_AIR = 8;
+/** Air above and below the shutter button and its caption, and the gap between them. */
+export const CIRCLE_AIR = 4;
 export const CIRCLE_LABEL_GAP = 8;
 
 /** Row heights without the cards' vertical padding: row gap + borders + content. Add 2 × padding for the real height. */
