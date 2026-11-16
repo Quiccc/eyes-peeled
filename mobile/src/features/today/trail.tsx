@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -11,6 +12,7 @@ import Animated, {
 
 import type { DailyWord } from '@/api/types';
 import { Chunky } from '@/components/chunky';
+import { EyesPeeledLogo } from '@/components/eyes-peeled-logo';
 import { Icon, type IconName } from '@/components/icon';
 import { DifficultyPill } from '@/components/pill';
 import { ThemedText } from '@/components/themed-text';
@@ -340,8 +342,10 @@ function ActionTile({
   const c = difficultyColors(useTheme(), word.difficulty);
 
   if (circle > 0) {
-    // A round shutter button centred in the spare space, its label underneath on the card face.
+    // The spare space: a showcase tile (your photo, or the mascot) beside a round shutter button with its label.
     return (
+      <View style={styles.actionRow}>
+      <Showcase word={word} />
       <View style={styles.shutterArea}>
         <Chunky
           color={c.main}
@@ -365,9 +369,12 @@ function ActionTile({
           numberOfLines={1}
           maxFontSizeMultiplier={MAX_FONT_SCALE}
           importantForAccessibility="no"
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
           style={{ color: c.text }}>
           {title}
         </ThemedText>
+      </View>
       </View>
     );
   }
@@ -397,6 +404,49 @@ function ActionTile({
         </>
       )}
     </Chunky>
+  );
+}
+
+/**
+ * Fills the open card's spare width beside the shutter button: your photo once you've found the word (dimmed while
+ * it's being checked), otherwise the glancing mascot with a nudge to go looking.
+ */
+function Showcase({ word }: { word: DailyWord }) {
+  const c = difficultyColors(useTheme(), word.difficulty);
+  const photo = word.status !== 'open' ? word.submission?.imageUrl : null;
+
+  if (photo) {
+    const pending = word.status === 'pending';
+    return (
+      <View
+        style={[styles.showcase, { backgroundColor: c.bg, borderColor: c.main }]}
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={pending ? `Your photo of ${word.word}, being checked` : `Your photo of ${word.word}`}>
+        <Image source={{ uri: photo }} style={[StyleSheet.absoluteFill, pending && styles.dimmed]} contentFit="cover" />
+        {pending && (
+          <View style={styles.showcaseOverlay}>
+            <ActivityIndicator color={c.text} />
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={[styles.showcase, styles.showcaseCenter, { backgroundColor: c.bg, borderColor: c.main }]}
+      importantForAccessibility="no-hide-descendants"
+      accessibilityElementsHidden>
+      <EyesPeeledLogo size={56} edge={4} />
+      <ThemedText
+        type="smallBold"
+        numberOfLines={2}
+        maxFontSizeMultiplier={MAX_FONT_SCALE}
+        style={[styles.showcaseText, { color: c.text }]}>
+        Eyes peeled!
+      </ThemedText>
+    </View>
   );
 }
 
@@ -654,11 +704,44 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingHorizontal: Spacing.three,
   },
-  shutterArea: {
+  actionRow: {
     flex: 1,
+    flexDirection: 'row',
+    gap: Spacing.two + 4,
+  },
+  shutterArea: {
+    flexShrink: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: CIRCLE_LABEL_GAP,
+  },
+  showcase: {
+    flex: 1,
+    minWidth: 72,
+    overflow: 'hidden',
+    borderRadius: 18,
+    borderWidth: 2,
+  },
+  showcaseCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
+    padding: Spacing.two,
+  },
+  showcaseOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  showcaseText: {
+    textAlign: 'center',
+  },
+  dimmed: {
+    opacity: 0.5,
   },
   shutterFace: {
     alignItems: 'center',
