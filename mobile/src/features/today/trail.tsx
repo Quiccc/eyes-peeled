@@ -1,9 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
-  useDerivedValue,
   useReducedMotion,
   useSharedValue,
   withTiming,
@@ -58,16 +57,15 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
   // The trail's own height depends only on the screen, never on which card is open, so measuring it causes no shift.
   // From it, every collapsed row gets one explicit height; rows then animate between that and the open height.
   // The opening and closing rows move on the same curve in opposite directions, so the total never changes:
-  // nothing overshoots and the rows below glide instead of jumping. 0 until measured (rows use flex until then).
-  const trailH = useSharedValue(0);
+  // nothing overshoots and the rows below glide instead of jumping. Rows render once the trail is measured
+  // (one frame), so a row's size only ever comes from `height`, never from a flex fallback.
+  const [trailH, setTrailH] = useState(0);
   const others = Math.max(1, words.length - 1);
-  const collapsedH = useDerivedValue(() =>
-    trailH.value === 0 ? 0 : Math.max(metrics.collapsed, (trailH.value - metrics.expanded - lockedH) / others),
-  );
+  const collapsedH = Math.max(metrics.collapsed, (trailH - metrics.expanded - lockedH) / others);
 
   return (
-    <View style={[styles.trail, { minHeight }]} onLayout={(e) => (trailH.value = e.nativeEvent.layout.height)}>
-      {words.map((word, i) => (
+    <View style={[styles.trail, { minHeight }]} onLayout={(e) => setTrailH(e.nativeEvent.layout.height)}>
+      {trailH > 0 && words.map((word, i) => (
         <TrailStop
           key={word.id}
           word={word}
@@ -86,7 +84,7 @@ export function Trail({ words, locked, selectedId, onSelect, openingId, onHunt, 
           onShare={shareFor(word)}
         />
       ))}
-      {locked && (
+      {trailH > 0 && locked && (
         <LockedStop
           height={metrics.locked}
           isFirst={words.length === 0}
@@ -105,8 +103,8 @@ type StopProps = {
   prevFound: boolean;
   isLast: boolean;
   metrics: TrailMetrics;
-  /** Height of a collapsed row in this trail, or 0 before the trail has been measured. */
-  collapsedH: SharedValue<number>;
+  /** Height of a collapsed row in this trail (from the trail's measured height). */
+  collapsedH: number;
   busy: boolean;
   onSelect: () => void;
   onHunt: () => void;
@@ -130,17 +128,10 @@ function TrailStop({
   const c = difficultyColors(theme, word.difficulty);
   const found = word.status === 'found';
   const progress = useOpenProgress(selected);
-  const { collapsed, expanded } = metrics;
+  const { expanded } = metrics;
 
   // The only layout property that animates: the row's height. Everything else is transform or opacity.
-  const rowMotion = useAnimatedStyle(() => {
-    const h = collapsedH.value;
-    if (h === 0) {
-      // First frame, before the trail is measured: the same final layout, from flex.
-      return { height: 'auto' as const, flexBasis: progress.value === 1 ? expanded : collapsed, flexGrow: 1 - progress.value };
-    }
-    return { height: h + (expanded - h) * progress.value, flexBasis: 'auto' as const, flexGrow: 0 };
-  });
+  const rowMotion = useAnimatedStyle(() => ({ height: collapsedH + (expanded - collapsedH) * progress.value }));
   const nodeMotion = useAnimatedStyle(() => ({
     transform: [{ scale: NODE_COLLAPSED_SCALE + (1 - NODE_COLLAPSED_SCALE) * progress.value }],
   }));
