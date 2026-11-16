@@ -16,6 +16,8 @@ The repo has three parts, each with its own dependencies and checks:
 
 ## Run it
 
+**Everything at once (Windows):** `.\run.ps1` from the repo root opens a window each for the YOLO service, the server, the admin panel and Expo (installs missing `node_modules` and copies `.env` files on first run). Skip parts with `-NoYolo`, `-NoAdmin`, `-NoMobile`.
+
 The app uses native modules (camera, AdMob, Google Sign-In), so it needs a **development build**. Expo Go won't work.
 
 ```bash
