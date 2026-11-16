@@ -62,7 +62,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.one,
-    minWidth: 64,
+    // Wide enough for a 3-digit streak, so the pill doesn't grow when the streak loads in.
+    minWidth: 80,
     justifyContent: 'center',
     paddingHorizontal: Spacing.two + 4,
     paddingVertical: Spacing.one,
