@@ -351,7 +351,9 @@ function ActionTile({
           disabled={busy}
           onPress={onPress}
           accessibilityLabel={accessibilityLabel}
-          contentStyle={[styles.shutterFace, { width: circle, height: circle }]}>
+          // The outer box is pinned to the circle plus its edge, so the face (which grows to fill it) stays round.
+          style={{ width: circle, height: circle + Edge.button }}
+          contentStyle={styles.shutterFace}>
           {busy ? (
             <ActivityIndicator color={c.on} size="large" />
           ) : (
