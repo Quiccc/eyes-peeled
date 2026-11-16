@@ -28,21 +28,38 @@ export const Colors = {
     success: '#2FB344',
     successEdge: '#176B27',
     successText: '#176B27',
+    /** Text and icons on a solid green (success) fill */
+    onSuccess: '#0B3313',
     danger: '#F0524F',
     dangerText: '#A12624',
+
+    /** Today's scoreboard card: a warm orange-tinted face with a brand-orange edge */
+    scoreFace: '#FFF1DC',
+    scoreEdge: '#FF8A00',
+    scoreDivider: '#FFD49A',
+    scoreNumber: '#C25F00',
+    /** Outline of the streak pill */
+    streakEdge: '#FF8A00',
+    /** Label and icon of the selected tab */
+    tabSelected: '#A84F00',
 
     easy: '#2FB344',
     easyBg: '#DDF5E1',
     easyText: '#176B27',
+    /** Faint tint for a whole card face in this difficulty */
+    easyFace: '#F3FBF4',
     medium: '#2D9CDB',
     mediumBg: '#DCEFFB',
     mediumText: '#155E8C',
+    mediumFace: '#F1F8FD',
     hard: '#F0524F',
     hardBg: '#FDE1E0',
     hardText: '#A12624',
+    hardFace: '#FEF4F3',
     expert: '#9B5DE5',
     expertBg: '#EDE2FB',
     expertText: '#5F2FA8',
+    expertFace: '#F8F2FE',
     /** Chunky bottom edge and text on a solid purple (Premium) fill */
     expertEdge: '#6F35B8',
     onExpert: '#FFFFFF',
@@ -71,21 +88,33 @@ export const Colors = {
     success: '#3CCB55',
     successEdge: '#1F7A30',
     successText: '#8BE79A',
+    onSuccess: '#0B2A11',
     danger: '#FF6B66',
     dangerText: '#FFAAA6',
+
+    scoreFace: '#3A2412',
+    scoreEdge: '#C46A00',
+    scoreDivider: '#5E3A16',
+    scoreNumber: '#FF9A1F',
+    streakEdge: '#C46A00',
+    tabSelected: '#FF9A1F',
 
     easy: '#3CCB55',
     easyBg: '#173D1E',
     easyText: '#8BE79A',
+    easyFace: '#1F2B1D',
     medium: '#4DB4F0',
     mediumBg: '#12364D',
     mediumText: '#9AD6FA',
+    mediumFace: '#1B2833',
     hard: '#FF6B66',
     hardBg: '#4A1C1B',
     hardText: '#FFAAA6',
+    hardFace: '#331F1D',
     expert: '#B583F5',
     expertBg: '#33214F',
     expertText: '#D5B8FB',
+    expertFace: '#2A2238',
     expertEdge: '#7E4FC2',
     onExpert: '#1F0F33',
 
@@ -99,12 +128,16 @@ export const Colors = {
 export type Theme = { [K in keyof typeof Colors.light]: string };
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
-/** The three shades of a difficulty: strong (borders, edges), soft background and readable text for pills. */
+/**
+ * The shades of a difficulty: strong (borders, edges), soft background and readable text for pills,
+ * and a faint face tint for a whole card.
+ */
 export function difficultyColors(theme: Theme, difficulty: Difficulty) {
   return {
     main: theme[difficulty],
     bg: theme[`${difficulty}Bg`],
     text: theme[`${difficulty}Text`],
+    face: theme[`${difficulty}Face`],
   };
 }
 

@@ -11,13 +11,18 @@ const OUTLINED_EDGE = 6;
 
 type Props = Omit<PressableProps, 'style' | 'children'> & {
   title: string;
-  /** primary: orange. secondary: card. danger: card with red label. ink: near-black (light) / cream (dark). ghost: text only. */
-  variant?: 'primary' | 'secondary' | 'danger' | 'ink' | 'ghost';
+  /**
+   * primary: orange. success: green (celebrating a find). secondary: card. danger: card with red label.
+   * ink: near-black (light) / cream (dark). ghost: text only.
+   */
+  variant?: 'primary' | 'success' | 'secondary' | 'danger' | 'ink' | 'ghost';
   size?: 'regular' | 'small';
   /** Face height override, e.g. 56 for hero calls to action. */
   height?: number;
   icon?: IconName;
   loading?: boolean;
+  /** Caps the label's Dynamic Type growth, for buttons inside fixed-height layouts. */
+  maxFontSizeMultiplier?: number;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -28,6 +33,7 @@ export function Button({
   height,
   icon,
   loading,
+  maxFontSizeMultiplier,
   disabled,
   style,
   ...rest
@@ -37,6 +43,7 @@ export function Button({
   const isDisabled = disabled || loading;
   const fg = {
     primary: theme.onTint,
+    success: theme.onSuccess,
     secondary: theme.text,
     danger: theme.dangerText,
     ink: theme.onInk,
@@ -59,6 +66,7 @@ export function Button({
       <ThemedText
         type={small ? 'smallBold' : tall && variant === 'primary' ? 'subtitle' : 'default'}
         style={[styles.label, { color: fg }]}
+        maxFontSizeMultiplier={maxFontSizeMultiplier}
         numberOfLines={1}>
         {title}
       </ThemedText>
@@ -84,6 +92,7 @@ export function Button({
 
   const face = {
     primary: { color: theme.tint, edge: theme.tintEdge, outlined: false },
+    success: { color: theme.success, edge: theme.successEdge, outlined: false },
     secondary: { color: theme.backgroundElement, edge: theme.border, outlined: true },
     danger: { color: theme.backgroundElement, edge: theme.border, outlined: true },
     ink: { color: theme.ink, edge: theme.inkEdge, outlined: false },
@@ -95,7 +104,7 @@ export function Button({
       edgeColor={face.edge}
       outlined={face.outlined}
       radius={small ? 14 : tall ? 18 : Radius.md}
-      edge={face.outlined ? OUTLINED_EDGE : small ? Edge.small : tall && variant === 'primary' ? Edge.card : Edge.button}
+      edge={face.outlined ? OUTLINED_EDGE : small ? Edge.small : tall && variant !== 'ink' ? Edge.card : Edge.button}
       disabled={isDisabled}
       style={style}
       contentStyle={[styles.row, sizeStyle]}

@@ -42,13 +42,15 @@ const FIRST_LOOK_MS = 2000;
 
 type Props = {
   size?: number;
+  /** Height of the darker bottom edge in px; scale it down with the logo (e.g. 3 at 40px). */
+  edge?: number;
   /** Set false for a still logo (Reduce Motion always makes it still). */
   animated?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
 /** The Eyes Peeled eyeball mascot. When animated, the eye looks around every few seconds. */
-export function EyesPeeledLogo({ size = 128, animated = true, style }: Props) {
+export function EyesPeeledLogo({ size = 128, edge = EDGE, animated = true, style }: Props) {
   const theme = useTheme();
   const reduced = useReducedMotion();
   const dx = useSharedValue(0);
@@ -93,7 +95,7 @@ export function EyesPeeledLogo({ size = 128, animated = true, style }: Props) {
       style={[
         styles.badge,
         // A darker tile peeking out below gives the chunky bottom edge, as in HeroBadge.
-        { width: size, height: size + EDGE, borderRadius: radius, backgroundColor: theme.tintEdge },
+        { width: size, height: size + edge, borderRadius: radius, backgroundColor: theme.tintEdge },
         style,
       ]}>
       <Svg width={size} height={size} viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}>

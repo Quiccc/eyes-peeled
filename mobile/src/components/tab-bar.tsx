@@ -33,7 +33,7 @@ export function TabBar({ state, navigateToTab }: TabBarProps) {
           const tab = TABS[route.name];
           if (!tab) return null;
           const focused = state.index === index;
-          const color = focused ? theme.text : theme.textSecondary;
+          const color = focused ? theme.tabSelected : theme.textSecondary;
           const badge = route.name === 'friends' && pending > 0 ? pending : 0;
 
           const onPress = () => {
