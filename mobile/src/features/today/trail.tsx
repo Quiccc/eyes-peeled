@@ -478,8 +478,9 @@ function StatusLine({
           numberOfLines={1}
           maxFontSizeMultiplier={MAX_FONT_SCALE}
           style={[styles.shrink, textStyle, { color: theme.successText }]}>
-          Found · +{sub.points} pts{sub.comboPoints > 0 ? ` · +${sub.comboPoints} combo` : ''}
-          {sub.rank ? ` · ${ordinal(sub.rank)} finder` : ''}
+          {/* One line: a combo takes the rank's place (the hunt result still shows the rank). */}
+          Found · +{sub.points} pts
+          {sub.comboPoints > 0 ? ` · +${sub.comboPoints} combo` : sub.rank ? ` · ${ordinal(sub.rank)} finder` : ''}
         </ThemedText>
       </View>
     );
