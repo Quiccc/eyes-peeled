@@ -10,24 +10,23 @@ import { useAuth } from '@/auth/auth-provider';
 import { isAppleSignInAvailable, SignInCancelled } from '@/auth/social-sign-in';
 import { Button } from '@/components/button';
 import { HeroBadge } from '@/components/hero-badge';
+import { SampleWordChip } from '@/components/sample-word-chip';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { PRIVACY_URL, TERMS_URL } from '@/constants/links';
-import { Edge, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useAsyncAction } from '@/hooks/use-async-action';
-import { useTheme } from '@/hooks/use-theme';
 
-const SAMPLE_WORDS: readonly { word: string; hue: Difficulty; tilt: string }[] = [
-  { word: 'SEARCH', hue: 'easy', tilt: '-3deg' },
-  { word: 'FIND', hue: 'medium', tilt: '2deg' },
-  { word: 'SNAP', hue: 'hard', tilt: '-2deg' },
+const SAMPLE_WORDS: readonly { word: string; hue: Difficulty; tilt: number }[] = [
+  { word: 'SEARCH', hue: 'easy', tilt: -3 },
+  { word: 'FIND', hue: 'medium', tilt: 2 },
+  { word: 'SNAP', hue: 'hard', tilt: -2 },
   // The premium word stays a mystery until you buy Premium.
-  { word: '? ? ? ?', hue: 'expert', tilt: '3deg' },
+  { word: '? ? ? ?', hue: 'expert', tilt: 3 },
 ];
 
 export default function SignInScreen() {
   const { signIn } = useAuth();
-  const theme = useTheme();
   const scheme = useColorScheme();
   const [appleAvailable, setAppleAvailable] = useState(false);
   const { busy: pending, run } = useAsyncAction<AuthProvider>();
@@ -56,17 +55,8 @@ export default function SignInScreen() {
             </ThemedText>
           </View>
           <View style={styles.samples} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-            {SAMPLE_WORDS.map((s) => (
-              <View
-                key={s.word}
-                style={[
-                  styles.sample,
-                  { backgroundColor: theme.backgroundElement, borderColor: theme[s.hue], transform: [{ rotate: s.tilt }] },
-                ]}>
-                <ThemedText type="subtitle" style={styles.sampleText}>
-                  {s.word}
-                </ThemedText>
-              </View>
+            {SAMPLE_WORDS.map((s, i) => (
+              <SampleWordChip key={s.word} word={s.word} hue={s.hue} tilt={s.tilt} index={i} />
             ))}
           </View>
         </View>
@@ -147,16 +137,6 @@ const styles = StyleSheet.create({
   samples: {
     alignItems: 'center',
     gap: Spacing.two,
-  },
-  sample: {
-    paddingHorizontal: 18,
-    paddingVertical: Spacing.two,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderBottomWidth: Edge.button,
-  },
-  sampleText: {
-    letterSpacing: 1,
   },
   center: {
     textAlign: 'center',

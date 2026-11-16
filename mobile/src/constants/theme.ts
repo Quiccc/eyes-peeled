@@ -43,6 +43,9 @@ export const Colors = {
     expert: '#9B5DE5',
     expertBg: '#EDE2FB',
     expertText: '#5F2FA8',
+    /** Chunky bottom edge and text on a solid purple (Premium) fill */
+    expertEdge: '#6F35B8',
+    onExpert: '#FFFFFF',
 
     gold: '#FFC83D',
     silver: '#C9D1D9',
@@ -83,6 +86,8 @@ export const Colors = {
     expert: '#B583F5',
     expertBg: '#33214F',
     expertText: '#D5B8FB',
+    expertEdge: '#7E4FC2',
+    onExpert: '#1F0F33',
 
     gold: '#FFC83D',
     silver: '#C9D1D9',
