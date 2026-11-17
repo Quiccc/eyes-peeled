@@ -73,8 +73,9 @@ Premium purchase (see [Purchases](#purchases-premium)). The app hides ads and sh
 Server flow:
 1. Reject if `wordId` isn't one of today's words (`404 word_not_found`), if it's the `expert` word and the user isn't Premium (`403 premium_required`), if the user already has a valid submission for it (`409 already_found`), if they have one still `pending` for it (`409 submission_pending`), or if they've hit the attempt limit (`429 rate_limited`; say in `message` when they can try again, e.g. *"That's 10 tries for this word today. Try again tomorrow!"*).
 2. **Record the receipt timestamp before running inference.** This timestamp decides the score.
-3. Store the image, then call the YOLO service with the image and the target class.
+3. An exact re-upload of a photo already on file (same SHA-256, from any player) is `invalid` straight away. It isn't stored and its `imageUrl` is `null`. Otherwise store the image, then call the YOLO service with the image and the target class.
 4. A detection of the target class at or above your confidence threshold is `valid`. Anything else is `invalid` with a helpful `message`, such as *"We couldn't spot a bicycle. Get closer and make sure it's in focus."*
+   If the YOLO service can't be reached or times out, the answer is also `invalid` (*"We couldn't check your photo right now…"*), but it doesn't count toward the attempt limit, and the same photo may be sent again.
 5. Return the verdict synchronously. If inference is slow, return `status: 'pending'` instead: the app polls `GET /submissions/:id` every 1.5 s for up to 45 s.
 
 `Submission.rank` is the order of this valid photo among all valid photos for the word (1 = first finder).

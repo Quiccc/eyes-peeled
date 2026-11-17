@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 
-import { and, count, countDistinct, eq, inArray, min, ne } from 'drizzle-orm';
+import { and, count, countDistinct, eq, inArray, min, notInArray } from 'drizzle-orm';
 
 import type { Daily, DailyWord, Submission } from '@shared/types';
 
@@ -94,7 +94,9 @@ export async function createSubmission(ctx: Ctx, user: UserRow, rawWordId: strin
   if (existing.some((s) => s.status === 'pending')) {
     throw new HttpError(409, 'submission_pending', "We're still checking your last photo for this word.");
   }
-  if (existing.length >= MAX_ATTEMPTS_PER_WORD) {
+  // Photos the verifier couldn't check (status 'error') don't use up a try.
+  const tries = existing.filter((s) => s.status !== 'error').length;
+  if (tries >= MAX_ATTEMPTS_PER_WORD) {
     throw new HttpError(
       429,
       'rate_limited',
@@ -105,11 +107,12 @@ export async function createSubmission(ctx: Ctx, user: UserRow, rawWordId: strin
   const sha = createHash('sha256').update(photo).digest('hex');
   const id = randomUUID();
 
-  // Exact re-uploads (your own or someone else's photo) never count, and aren't stored.
+  // Exact re-uploads (your own or someone else's photo) never count, and aren't stored. A photo the
+  // verifier couldn't check may be sent again.
   const [dupe] = await ctx.db
     .select({ n: count() })
     .from(submissions)
-    .where(and(eq(submissions.imageSha256, sha), ne(submissions.status, 'removed')));
+    .where(and(eq(submissions.imageSha256, sha), notInArray(submissions.status, ['removed', 'error'])));
   const isDupe = (dupe?.n ?? 0) > 0;
 
   const imageKey = isDupe ? null : `${user.id}/${id}.jpg`;

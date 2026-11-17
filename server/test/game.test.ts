@@ -155,14 +155,25 @@ describe('submissions', () => {
     }
   });
 
-  it('marks the photo invalid when the verifier is down', async () => {
+  it("answers invalid when the verifier is down, without using up a try", async () => {
     const a = await t.signIn('alex');
+    const word = (await daily(a.auth)).words[0]!;
     t.setVerdict(() => {
       throw new Error('YOLO down');
     });
-    const res = await submit(a.auth, (await daily(a.auth)).words[0]!.id);
+    const photo = jpeg('outage');
+    const res = await submit(a.auth, word.id, photo);
     expect(res.body.status).toBe('invalid');
     expect(res.body.message).toMatch(/couldn't check/);
+
+    // More outages than the attempt limit still leave every try.
+    for (let i = 0; i < 10; i++) expect((await submit(a.auth, word.id)).body.status).toBe('invalid');
+
+    // Once the verifier is back, the same photo counts.
+    t.setVerdict({ detected: true, confidence: 0.9 });
+    const retry = await submit(a.auth, word.id, photo);
+    expect(retry.status).toBe(200);
+    expect(retry.body.status).toBe('valid');
   });
 
   it('rejects non-JPEG uploads and missing files', async () => {

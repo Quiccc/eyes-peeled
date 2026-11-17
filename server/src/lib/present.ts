@@ -19,8 +19,8 @@ export function toSubmission(s: SubmissionRow, storage: Storage): Submission {
   return {
     id: s.id,
     wordId: s.dailyWordId,
-    // 'removed' (by moderation) looks invalid to the player
-    status: s.status === 'removed' ? 'invalid' : s.status,
+    // 'removed' (by moderation) and 'error' (verifier unreachable) look invalid to the player
+    status: s.status === 'removed' || s.status === 'error' ? 'invalid' : s.status,
     points: valid ? s.points : 0,
     comboPoints: valid ? s.comboPoints : 0,
     rank: valid ? s.rank : null,

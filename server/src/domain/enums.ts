@@ -8,7 +8,11 @@ import type { Difficulty } from '@shared/types';
 /** Easiest first. Also the order words are shown in. */
 export const difficulties = ['easy', 'medium', 'hard', 'expert'] as const satisfies readonly Difficulty[];
 
-export const submissionStatuses = ['pending', 'valid', 'invalid', 'removed'] as const;
+/**
+ * 'error': the verifier couldn't be reached. It doesn't use up a try, and the player sees it as
+ * invalid with a "try again" message. 'removed': hidden by moderation.
+ */
+export const submissionStatuses = ['pending', 'valid', 'invalid', 'error', 'removed'] as const;
 
 export const reportReasons = ['inappropriate', 'spam', 'cheating', 'other'] as const;
 export type ReportReason = (typeof reportReasons)[number];

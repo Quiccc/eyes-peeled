@@ -18,6 +18,14 @@ async function markInvalid(ctx: Ctx, submissionId: string, message: string, conf
     .where(and(eq(submissions.id, submissionId), eq(submissions.status, 'pending')));
 }
 
+/** The verifier failed (outage, timeout). The photo wasn't judged, so it doesn't cost the player a try. */
+async function markError(ctx: Ctx, submissionId: string) {
+  await ctx.db
+    .update(submissions)
+    .set({ status: 'error', message: "We couldn't check your photo right now. Please try again in a moment.", decidedAt: ctx.clock.now() })
+    .where(and(eq(submissions.id, submissionId), eq(submissions.status, 'pending')));
+}
+
 /**
  * Does the verdict count? The word's own threshold wins over YOLO_MIN_CONFIDENCE.
  * A detection without a confidence passes.
@@ -40,7 +48,7 @@ export async function decide(ctx: Ctx, submissionId: string, photo?: Buffer): Pr
     verdict = await ctx.verifier.verify(image, word.label);
   } catch (e) {
     console.error('verifier failed', e);
-    await markInvalid(ctx, submissionId, "We couldn't check your photo right now. Please try again in a moment.");
+    await markError(ctx, submissionId);
     return;
   }
 
