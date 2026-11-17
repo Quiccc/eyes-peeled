@@ -62,3 +62,6 @@ __pycache__/
 yolo/eval/photos/
 yolo/training/dataset/
 yolo/runs/
+
+# personal task list (kept local)
+/TODO.md
