@@ -128,6 +128,25 @@ describe('words the model knows', () => {
     expect((await words()).some((w) => w.label === 'person' && w.difficulty === 'hard')).toBe(true);
   });
 
+  it('only picks known words for days nobody planned', async () => {
+    await start(fakeModelInfo(known));
+    const a = await t.signIn('alex');
+    for (let day = 0; day < 25; day++) {
+      t.setNow(new Date(Date.UTC(2026, 10, 14 + day, 6)).toISOString());
+      const daily = (await t.http().get('/daily').set(a.auth)).body as Daily;
+      expect(daily.words.map((w) => w.word)).not.toContain('toaster');
+    }
+  });
+
+  it('still serves unplanned days when the YOLO service is down', async () => {
+    const down: ModelInfo = { ...fakeModelInfo([]), classes: () => Promise.reject(new Error('down')) };
+    await start(down);
+    const a = await t.signIn('alex');
+    const res = await t.http().get('/daily').set(a.auth);
+    expect(res.status).toBe(200);
+    expect((res.body as Daily).words).toHaveLength(3); // the expert word is Premium-only
+  });
+
   it('answers 503 when the YOLO service is down', async () => {
     const down: ModelInfo = { ...fakeModelInfo([]), classes: () => Promise.reject(new Error('down')) };
     await start(down);
