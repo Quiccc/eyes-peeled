@@ -29,7 +29,7 @@ export type AdminReport = {
   reason: 'inappropriate' | 'spam' | 'cheating' | 'other';
   status: 'open' | 'resolved';
   createdAt: string;
-  submission: { id: string; userId: string; status: string; imageUrl: string } | null;
+  submission: { id: string; userId: string; status: string; imageUrl: string | null } | null;
   /** The reported user: named directly, or the owner of the reported photo. */
   target: { id: string; username: string | null; bannedAt: string | null } | null;
 };

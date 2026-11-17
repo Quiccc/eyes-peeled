@@ -26,7 +26,7 @@ export function toSubmission(s: SubmissionRow, storage: Storage): Submission {
     rank: valid ? s.rank : null,
     confidence: s.confidence,
     message: s.status === 'removed' ? 'This photo was removed by a moderator.' : s.message,
-    imageUrl: storage.signedUrl(s.imageKey),
+    imageUrl: s.imageKey ? storage.signedUrl(s.imageKey) : null,
     createdAt: s.receivedAt.toISOString(),
   };
 }
@@ -44,7 +44,8 @@ export function toFeedItem(
     difficulty: word.difficulty,
     points: s.points,
     rank: s.rank,
-    imageUrl: storage.signedUrl(s.imageKey),
+    // Feed items are valid finds; only duplicates (always invalid) have no stored photo.
+    imageUrl: storage.signedUrl(s.imageKey!),
     createdAt: s.receivedAt.toISOString(),
   };
 }

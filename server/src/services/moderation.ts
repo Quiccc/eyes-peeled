@@ -54,7 +54,7 @@ export async function listReports(ctx: Ctx, status: ReportStatus): Promise<Admin
       ...report,
       createdAt: report.createdAt.toISOString(),
       submission: submission
-        ? { id: submission.id, userId: submission.userId, status: submission.status, imageUrl: ctx.storage.signedUrl(submission.imageKey) }
+        ? { id: submission.id, userId: submission.userId, status: submission.status, imageUrl: submission.imageKey ? ctx.storage.signedUrl(submission.imageKey) : null }
         : null,
       target: target ? { ...target, bannedAt: target.bannedAt?.toISOString() ?? null } : null,
     };
@@ -79,7 +79,7 @@ export async function removeSubmission(ctx: Ctx, id: string): Promise<void> {
     return removed;
   });
   if (!row) throw notFound('Submission not found.');
-  await ctx.storage.delete(row.imageKey);
+  if (row.imageKey) await ctx.storage.delete(row.imageKey);
 }
 
 /** Ban: blocks sign-in and API access, hides the user everywhere. */

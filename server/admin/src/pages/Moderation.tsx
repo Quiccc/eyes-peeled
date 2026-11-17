@@ -42,12 +42,12 @@ export function Moderation() {
           const sub = r.submission;
           return (
             <article key={r.id} className="card report">
-              {sub && sub.status !== 'removed' ? (
+              {sub && sub.status !== 'removed' && sub.imageUrl ? (
                 <a href={sub.imageUrl} target="_blank" rel="noreferrer">
                   <img src={sub.imageUrl} alt="Reported photo" loading="lazy" />
                 </a>
               ) : (
-                <div className="no-photo muted">{sub ? 'Photo removed' : 'No photo (user report)'}</div>
+                <div className="no-photo muted">{!sub ? 'No photo (user report)' : sub.status === 'removed' ? 'Photo removed' : 'Duplicate photo (not stored)'}</div>
               )}
               <div className="report-body">
                 <p>

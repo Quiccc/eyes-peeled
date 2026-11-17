@@ -35,7 +35,8 @@ export async function decide(ctx: Ctx, submissionId: string, photo?: Buffer): Pr
 
   let verdict: Verdict;
   try {
-    const image = photo ?? (await ctx.storage.read(sub.imageKey));
+    if (!photo && !sub.imageKey) throw new Error(`submission ${sub.id} has no stored photo`);
+    const image = photo ?? (await ctx.storage.read(sub.imageKey!));
     verdict = await ctx.verifier.verify(image, word.label);
   } catch (e) {
     console.error('verifier failed', e);

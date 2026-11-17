@@ -56,6 +56,8 @@ export async function startTestServer(envOverrides: Record<string, string> = {},
   return {
     ctx,
     app,
+    /** Where the test's photos are stored. */
+    storageDir: dir,
     http: () => request(app),
     setNow(iso: string) {
       now = new Date(iso);

@@ -104,15 +104,16 @@ export async function createSubmission(ctx: Ctx, user: UserRow, rawWordId: strin
 
   const sha = createHash('sha256').update(photo).digest('hex');
   const id = randomUUID();
-  const imageKey = `${user.id}/${id}.jpg`;
-  await ctx.storage.put(imageKey, photo);
 
-  // Exact re-uploads (your own or someone else's photo) never count.
+  // Exact re-uploads (your own or someone else's photo) never count, and aren't stored.
   const [dupe] = await ctx.db
     .select({ n: count() })
     .from(submissions)
     .where(and(eq(submissions.imageSha256, sha), ne(submissions.status, 'removed')));
   const isDupe = (dupe?.n ?? 0) > 0;
+
+  const imageKey = isDupe ? null : `${user.id}/${id}.jpg`;
+  if (imageKey) await ctx.storage.put(imageKey, photo);
 
   const [row] = await ctx.db
     .insert(submissions)

@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { readdirSync } from 'node:fs';
 
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Daily, Leaderboard } from '@shared/types';
 
 import { removeSubmission } from '../src/services/moderation';
@@ -107,6 +108,9 @@ describe('submissions', () => {
     const copy = await submit(b.auth, word.id, photo);
     expect(copy.body.status).toBe('invalid');
     expect(copy.body.message).toMatch(/seen this exact photo/);
+    // The copy is never written to storage.
+    expect(copy.body.imageUrl).toBeNull();
+    expect(readdirSync(t.storageDir, { recursive: true }).filter((f) => String(f).endsWith('.jpg'))).toHaveLength(1);
   });
 
   it('keeps the Premium word for Premium players', async () => {

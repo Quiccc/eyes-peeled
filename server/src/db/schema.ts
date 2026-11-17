@@ -99,7 +99,8 @@ export const submissions = pgTable(
     rank: integer('rank'),
     confidence: real('confidence'),
     message: text('message'),
-    imageKey: text('image_key').notNull(),
+    /** Null for exact duplicates: their photo is never stored. */
+    imageKey: text('image_key'),
     imageSha256: text('image_sha256').notNull(),
     /** Server receipt time. This decides the score. */
     receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
