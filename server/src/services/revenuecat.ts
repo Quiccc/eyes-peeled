@@ -52,7 +52,9 @@ export async function deleteCustomer(ctx: Ctx, userId: string): Promise<void> {
 }
 
 const GRANT = new Set(['INITIAL_PURCHASE', 'NON_RENEWING_PURCHASE', 'RENEWAL', 'UNCANCELLATION', 'PRODUCT_CHANGE']);
-const REVOKE = new Set(['CANCELLATION', 'EXPIRATION']);
+
+/** RevenueCat's cancel_reason for a refund. Other reasons (e.g. UNSUBSCRIBE) leave access in place. */
+const REFUND = 'CUSTOMER_SUPPORT';
 
 export type WebhookEvent = {
   type?: string;
@@ -64,20 +66,33 @@ export type WebhookEvent = {
   cancel_reason?: string;
 };
 
+/**
+ * Set isPremium from what RevenueCat says the user owns now. Without a secret key (dev) there is
+ * nothing to ask, so `assumed` (what the event implies) is used. A RevenueCat outage throws, so the
+ * webhook answers 5xx and RevenueCat retries it.
+ */
+async function applyEntitlement(ctx: Ctx, userId: string, assumed: boolean): Promise<void> {
+  const owns = ctx.env.REVENUECAT_SECRET_KEY ? await hasPremium(ctx, userId) : assumed;
+  await setPremium(ctx, userId, owns);
+}
+
 /** RevenueCat webhook. Keeps isPremium right without the app (refunds, transfers). */
 export async function handleWebhook(ctx: Ctx, event: WebhookEvent): Promise<void> {
   const type = event.type ?? '';
 
   if (type === 'TRANSFER') {
-    for (const id of event.transferred_from ?? []) if (isUuid(id)) await setPremium(ctx, id, false);
-    for (const id of event.transferred_to ?? []) if (isUuid(id)) await setPremium(ctx, id, true);
+    // The event alone doesn't say the transferred purchase includes Premium, so ask.
+    for (const id of event.transferred_from ?? []) if (isUuid(id)) await applyEntitlement(ctx, id, false);
+    for (const id of event.transferred_to ?? []) if (isUuid(id)) await applyEntitlement(ctx, id, true);
     return;
   }
   const userId = isUuid(event.app_user_id) ? event.app_user_id : event.original_app_user_id;
   if (!isUuid(userId)) return; // anonymous RevenueCat ids are not ours
   if (event.entitlement_ids && !event.entitlement_ids.includes(ENTITLEMENT)) return;
 
-  // A lifetime purchase is only lost through a refund (CANCELLATION with reason CUSTOMER_SUPPORT / refund).
   if (GRANT.has(type)) await setPremium(ctx, userId, true);
-  else if (REVOKE.has(type)) await setPremium(ctx, userId, false);
+  // A lifetime purchase is only lost through a refund. Even then the user may own Premium through
+  // another purchase, so ask RevenueCat rather than revoking outright.
+  else if (type === 'CANCELLATION' && event.cancel_reason === REFUND) await applyEntitlement(ctx, userId, false);
+  else if (type === 'EXPIRATION') await applyEntitlement(ctx, userId, false);
 }

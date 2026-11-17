@@ -120,7 +120,10 @@ One non-consumable purchase, **Premium**: no ads + the daily Expert word. It is 
 | POST | `/me/purchases/sync` | — | `User` with an up-to-date `isPremium` |
 
 - **Sync:** the app calls this right after a purchase or a restore. Fetch `GET https://api.revenuecat.com/v1/subscribers/{user.id}` with your RevenueCat **secret** API key (server-only, never in the app). Set `isPremium = true` when `subscriber.entitlements.premium` is present and not expired (a lifetime purchase has `expires_date: null`). Return the user.
-- **Webhook:** also configure a RevenueCat webhook (with an `Authorization` header you check) and update `isPremium` on `INITIAL_PURCHASE`, `NON_RENEWING_PURCHASE`, `TRANSFER` and `CANCELLATION` (refunds), so premium stays right without the app.
+- **Webhook:** also configure a RevenueCat webhook (with an `Authorization` header you check) and update `isPremium` from its events, so premium stays right without the app:
+  - `INITIAL_PURCHASE`, `NON_RENEWING_PURCHASE`, `RENEWAL`, `UNCANCELLATION` and `PRODUCT_CHANGE` grant Premium (events whose `entitlement_ids` don't include `premium` are ignored).
+  - `CANCELLATION` with `cancel_reason: CUSTOMER_SUPPORT` (a refund), `EXPIRATION` and `TRANSFER` (both the `transferred_from` and `transferred_to` users) re-check the entitlement through the subscribers endpoint above, because the user may still own Premium another way. Other cancellation reasons keep Premium.
+  - If RevenueCat can't be reached, answer `502` so it retries the webhook.
 - `isPremium` is decided **only** by the server. Never accept it from the client.
 - When a user loses Premium (refund), stop returning the Expert word. Keep points already earned.
 

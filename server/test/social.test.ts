@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Daily, Leaderboard, UserProfile } from '@shared/types';
 
@@ -249,10 +249,18 @@ describe('account and moderation', () => {
       const a = await hook.signIn('alex');
       const send = (type: string, auth = 'Bearer hook') =>
         hook.http().post('/webhooks/revenuecat').set('Authorization', auth).send({ event: { type, app_user_id: a.id } });
+      const sendEvent = (event: object) =>
+        hook.http().post('/webhooks/revenuecat').set('Authorization', 'Bearer hook').send({ event });
       expect((await send('INITIAL_PURCHASE', 'Bearer wrong')).status).toBe(401);
       await send('NON_RENEWING_PURCHASE');
       expect((await hook.http().get('/me').set(a.auth)).body.isPremium).toBe(true);
-      await send('CANCELLATION');
+      // Only a refund takes a lifetime purchase away.
+      await sendEvent({ type: 'CANCELLATION', cancel_reason: 'UNSUBSCRIBE', app_user_id: a.id });
+      expect((await hook.http().get('/me').set(a.auth)).body.isPremium).toBe(true);
+      await sendEvent({ type: 'CANCELLATION', cancel_reason: 'CUSTOMER_SUPPORT', app_user_id: a.id });
+      expect((await hook.http().get('/me').set(a.auth)).body.isPremium).toBe(false);
+      // Events for other entitlements are ignored.
+      await sendEvent({ type: 'INITIAL_PURCHASE', entitlement_ids: ['other'], app_user_id: a.id });
       expect((await hook.http().get('/me').set(a.auth)).body.isPremium).toBe(false);
 
       // Restoring on a new account moves Premium from the old user to the new one.
@@ -266,6 +274,50 @@ describe('account and moderation', () => {
       expect((await hook.http().get('/me').set(a.auth)).body.isPremium).toBe(false);
       expect((await hook.http().get('/me').set(b.auth)).body.isPremium).toBe(true);
     } finally {
+      await hook.close();
+    }
+  });
+
+  it('asks RevenueCat who owns Premium on refunds and transfers', async () => {
+    const hook = await startTestServer({ REVENUECAT_WEBHOOK_AUTH: 'Bearer hook', REVENUECAT_SECRET_KEY: 'sk_test' });
+    const owners = new Set<string>();
+    let storeDown = false;
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (storeDown) return new Response('down', { status: 503 });
+      const id = decodeURIComponent(url.split('/subscribers/')[1]!);
+      const entitlements = owners.has(id) ? { premium: { expires_date: null } } : {};
+      return Response.json({ subscriber: { entitlements } });
+    });
+    try {
+      const a = await hook.signIn('alex');
+      const b = await hook.signIn('blair');
+      const send = (event: object) =>
+        hook.http().post('/webhooks/revenuecat').set('Authorization', 'Bearer hook').send({ event });
+      const premium = async (auth: Record<string, string>) => (await hook.http().get('/me').set(auth)).body.isPremium;
+
+      // A transfer of a purchase that doesn't include Premium grants nothing.
+      await send({ type: 'TRANSFER', transferred_from: [a.id], transferred_to: [b.id] });
+      expect(await premium(b.auth)).toBe(false);
+
+      // A refund of one purchase keeps Premium the user still owns another way.
+      owners.add(a.id);
+      await send({ type: 'NON_RENEWING_PURCHASE', app_user_id: a.id });
+      await send({ type: 'CANCELLATION', cancel_reason: 'CUSTOMER_SUPPORT', app_user_id: a.id });
+      expect(await premium(a.auth)).toBe(true);
+
+      // A real transfer moves it.
+      owners.delete(a.id);
+      owners.add(b.id);
+      await send({ type: 'TRANSFER', transferred_from: [a.id], transferred_to: [b.id] });
+      expect(await premium(a.auth)).toBe(false);
+      expect(await premium(b.auth)).toBe(true);
+
+      // RevenueCat unreachable: answer an error so the webhook is retried.
+      storeDown = true;
+      expect((await send({ type: 'EXPIRATION', app_user_id: b.id })).status).toBe(502);
+      expect(await premium(b.auth)).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
       await hook.close();
     }
   });
