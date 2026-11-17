@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Daily, Leaderboard, UserProfile } from '@shared/types';
+import type { BlockedUser, Daily, Leaderboard, UserProfile } from '@shared/types';
 
 import { jpeg, startTestServer, type TestServer } from './helpers';
 
@@ -123,6 +123,33 @@ describe('friends', () => {
     expect((await t.http().get('/users/search').query({ q: 'alex' }).set(b.auth)).body).toEqual([]);
     expect((await t.http().get(`/users/${a.id}`).set(b.auth)).status).toBe(404);
     expect((await board(a, 'global')).entries.map((e) => e.user.username)).toEqual(['alex']);
+  });
+
+  it('lists blocked players and unblocks them', async () => {
+    const a = await t.signIn('alex');
+    const b = await t.signIn('bob');
+    await t.http().post('/blocks').set(a.auth).send({ userId: b.id });
+
+    const listed = await t.http().get('/blocks').set(a.auth);
+    expect(listed.status).toBe(200);
+    expect(listed.body.map((x: BlockedUser) => x.user.username)).toEqual(['bob']);
+    expect((await t.http().get('/blocks').set(b.auth)).body).toEqual([]);
+    const add = () => t.http().post('/friends/requests').set(a.auth).send({ userId: b.id });
+    expect((await add()).body.message).toMatch(/Unblock/);
+
+    // Only the blocker can lift a block.
+    expect((await t.http().delete(`/blocks/${a.id}`).set(b.auth)).status).toBe(204);
+    expect((await t.http().get(`/users/${a.id}`).set(b.auth)).status).toBe(404);
+
+    expect((await t.http().delete(`/blocks/${b.id}`).set(a.auth)).status).toBe(204);
+    expect((await t.http().get('/blocks').set(a.auth)).body).toEqual([]);
+    expect((await t.http().get(`/users/${a.id}`).set(b.auth)).status).toBe(200);
+    expect((await t.http().get('/users/search').query({ q: 'bob' }).set(a.auth)).body).toHaveLength(1);
+    expect((await add()).status).toBe(204);
+
+    // Unblocking someone who isn't blocked is fine; a malformed id isn't.
+    expect((await t.http().delete(`/blocks/${b.id}`).set(a.auth)).status).toBe(204);
+    expect((await t.http().delete('/blocks/nope').set(a.auth)).status).toBe(400);
   });
 });
 

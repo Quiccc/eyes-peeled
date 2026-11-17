@@ -217,4 +217,13 @@ export const mockApi: Api = {
     state.outgoing.delete(userId);
     state.incoming = state.incoming.filter((r) => r.from.id !== userId);
   },
+  async unblockUser(userId) {
+    await latency();
+    state.blocked.delete(userId);
+  },
+  async getBlockedUsers() {
+    await latency();
+    const blockedAt = new Date().toISOString();
+    return others.filter((o) => state.blocked.has(o.id)).map((user) => ({ user, blockedAt }));
+  },
 };

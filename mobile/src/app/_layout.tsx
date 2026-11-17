@@ -81,6 +81,7 @@ function RootNavigator() {
           options={{ presentation: 'fullScreenModal', headerShown: false, gestureEnabled: false }}
         />
         <Stack.Screen name="user/[userId]" options={{ headerShown: false }} />
+        <Stack.Screen name="blocked" options={{ title: 'Blocked users' }} />
         <Stack.Screen name="premium" options={{ presentation: 'modal', headerShown: false }} />
       </Stack.Protected>
     </Stack>

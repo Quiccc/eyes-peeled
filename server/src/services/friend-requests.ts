@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 
-import type { FriendRequest } from '@shared/types';
+import type { BlockedUser, FriendRequest } from '@shared/types';
 
 import type { Ctx } from '../context';
 import { blocks, friendRequests, friendships, users, type UserRow } from '../db/schema';
@@ -9,7 +9,7 @@ import { toUser } from '../lib/present';
 import { existingId, isUuid } from '../lib/validation';
 import { blockedIds, pair, relation, unfriend, userNotFound, visibleUser } from './relationships';
 
-/** Asking, accepting, declining, unfriending and blocking. */
+/** Asking, accepting, declining, unfriending, blocking and unblocking. */
 
 const requestNotFound = () => notFound('Request not found.');
 
@@ -71,4 +71,22 @@ export async function block(ctx: Ctx, me: UserRow, rawOtherId: string) {
   if (!other) throw userNotFound();
   await ctx.db.insert(blocks).values({ blockerId: me.id, blockedId: otherId }).onConflictDoNothing();
   await unfriend(ctx, me.id, otherId);
+}
+
+/** Unblock. They see each other again; the friendship that block() ended doesn't come back. */
+export async function unblock(ctx: Ctx, me: UserRow, otherId: string) {
+  await ctx.db.delete(blocks).where(and(eq(blocks.blockerId, me.id), eq(blocks.blockedId, otherId)));
+}
+
+/** Players I blocked, most recent first. Banned players are hidden, as everywhere else. */
+export async function blockedUsers(ctx: Ctx, me: UserRow): Promise<BlockedUser[]> {
+  const rows = await ctx.db
+    .select({ user: users, blockedAt: blocks.createdAt })
+    .from(blocks)
+    .innerJoin(users, eq(users.id, blocks.blockedId))
+    .where(eq(blocks.blockerId, me.id))
+    .orderBy(desc(blocks.createdAt));
+  return rows
+    .filter((r) => !r.user.bannedAt)
+    .map((r) => ({ user: toUser(r.user), blockedAt: r.blockedAt.toISOString() }));
 }

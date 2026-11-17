@@ -124,6 +124,12 @@ export type FriendRequest = {
   createdAt: string;
 };
 
+/** GET /blocks: a player the current user blocked. */
+export type BlockedUser = {
+  user: User;
+  blockedAt: string;
+};
+
 export type UserSearchResult = {
   user: User;
   friendStatus: FriendStatus;

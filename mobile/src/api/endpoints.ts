@@ -5,6 +5,7 @@ import { mockApi } from './mock';
 import type {
   AuthRequest,
   AuthResponse,
+  BlockedUser,
   Daily,
   FeedItem,
   FriendRequest,
@@ -53,6 +54,8 @@ export type Api = {
   // safety
   report(params: { submissionId?: string; userId?: string; reason: ReportReason }): Promise<void>;
   blockUser(userId: string): Promise<void>;
+  unblockUser(userId: string): Promise<void>;
+  getBlockedUsers(): Promise<BlockedUser[]>;
 };
 
 const httpApi: Api = {
@@ -90,6 +93,8 @@ const httpApi: Api = {
 
   report: (params) => request('/reports', { method: 'POST', body: params }),
   blockUser: (userId) => request('/blocks', { method: 'POST', body: { userId } }),
+  unblockUser: (userId) => request(`/blocks/${encodeURIComponent(userId)}`, { method: 'DELETE' }),
+  getBlockedUsers: () => request('/blocks'),
 };
 
 const MOCK_REQUESTED = process.env.EXPO_PUBLIC_USE_MOCK_API === 'true';

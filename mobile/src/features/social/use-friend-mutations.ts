@@ -26,7 +26,17 @@ export function useSendFriendRequest() {
   });
 }
 
-/** Label of the main button on a profile, per relationship. Blocked users get no button. */
+/** Unblock a player. Pair it with confirmUnblock() from the safety menu. */
+export function useUnblockUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => api.unblockUser(userId),
+    onSuccess: () => invalidateSocial(queryClient),
+    onError: (e) => Alert.alert('Could not unblock', errorMessage(e)),
+  });
+}
+
+/** Label of the main button on a profile, per relationship. Blocked users get an Unblock button instead. */
 export const FRIEND_ACTION_TITLE: Record<FriendStatus, string> = {
   none: 'Add friend',
   incoming: 'Accept request',

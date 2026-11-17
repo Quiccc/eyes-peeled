@@ -167,6 +167,8 @@ Image URLs in `FeedItem.imageUrl` and `Submission.imageUrl` should be short-live
 |---|---|---|---|
 | POST | `/reports` | `{ submissionId?, userId?, reason: 'inappropriate'\|'spam'\|'cheating'\|'other' }` | 204 |
 | POST | `/blocks` | `{ userId }` | 204. Also removes any friendship and pending requests. |
+| GET | `/blocks` | — | `BlockedUser[]`: players I blocked, newest first. |
+| DELETE | `/blocks/:userId` | — | 204, also when they weren't blocked. The friendship doesn't come back. |
 
 Apple expects a way to act on reports within 24 hours, such as an admin queue that can remove photos and ban users.
 

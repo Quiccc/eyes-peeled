@@ -22,6 +22,10 @@ export function useFriendRequests() {
   return useQuery({ queryKey: queryKeys.friendRequests, queryFn: api.getFriendRequests });
 }
 
+export function useBlockedUsers() {
+  return useQuery({ queryKey: queryKeys.blockedUsers, queryFn: api.getBlockedUsers });
+}
+
 export function useFeedToday() {
   return useQuery({ queryKey: queryKeys.feed, queryFn: api.getFeedToday });
 }

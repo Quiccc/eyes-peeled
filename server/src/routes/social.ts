@@ -6,7 +6,15 @@ import { reportReasons } from '../domain/enums';
 import { badRequest } from '../lib/errors';
 import { me, requireAuth } from '../middleware/auth';
 import { feedToday } from '../services/feed';
-import { block, incomingRequests, removeFriend, respond, sendRequest } from '../services/friend-requests';
+import {
+  block,
+  blockedUsers,
+  incomingRequests,
+  removeFriend,
+  respond,
+  sendRequest,
+  unblock,
+} from '../services/friend-requests';
 import { fileReport } from '../services/moderation';
 import { profileOf } from '../services/profile';
 import { profileSubject } from '../services/relationships';
@@ -61,8 +69,17 @@ export function socialRoutes(ctx: Ctx) {
     res.status(204).end();
   });
 
+  r.get('/blocks', auth, async (req, res) => {
+    res.json(await blockedUsers(ctx, me(req)));
+  });
+
   r.post('/blocks', auth, async (req, res) => {
     await block(ctx, me(req), userIdBody.parse(req.body).userId);
+    res.status(204).end();
+  });
+
+  r.delete('/blocks/:userId', auth, async (req, res) => {
+    await unblock(ctx, me(req), z.uuid().parse(req.params.userId));
     res.status(204).end();
   });
 

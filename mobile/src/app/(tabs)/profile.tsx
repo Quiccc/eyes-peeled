@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -29,6 +30,7 @@ const APPEARANCE_OPTIONS: readonly { value: AppearancePref; label: string }[] = 
 
 export default function ProfileScreen() {
   const { user, signOut, deleteAccount } = useAuth();
+  const router = useRouter();
   const profile = useMyProfile();
   const appearance = useAppearancePref();
   const { share, sheet: shareSheet } = useShareFind();
@@ -56,6 +58,7 @@ export default function ProfileScreen() {
   const accountRows: SettingsRow[] = [
     { title: 'Restore purchases', onPress: premium.restore, loading: premium.busy === 'restore' },
     ...(user.isPremium ? [] : [{ title: 'Ad privacy options', onPress: showAdPrivacyOptions }]),
+    { title: 'Blocked users', onPress: () => router.push('/blocked') },
     { title: 'Sign out', onPress: signOut },
   ];
 

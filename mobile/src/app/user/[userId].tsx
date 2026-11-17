@@ -16,8 +16,8 @@ import { SectionLabel } from '@/components/section-label';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import { openSafetyMenu } from '@/features/safety/safety-menu';
-import { FRIEND_ACTION_TITLE, useFriendAction } from '@/features/social/use-friend-mutations';
+import { confirmUnblock, openSafetyMenu } from '@/features/safety/safety-menu';
+import { FRIEND_ACTION_TITLE, useFriendAction, useUnblockUser } from '@/features/social/use-friend-mutations';
 import { useTheme } from '@/hooks/use-theme';
 import { displayName } from '@/lib/format';
 
@@ -35,6 +35,7 @@ export default function UserProfileScreen() {
   const queryClient = useQueryClient();
   const profile = useUserProfile(userId);
   const action = useFriendAction();
+  const unblock = useUnblockUser();
   const p = profile.data;
 
   const onPrimary = (p: UserProfile) => {
@@ -69,7 +70,14 @@ export default function UserProfileScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="More options"
-              onPress={() => openSafetyMenu({ user: p.user, onBlocked })}
+              onPress={() =>
+                openSafetyMenu({
+                  user: p.user,
+                  blocked: p.friendStatus === 'blocked',
+                  onBlocked,
+                  onUnblocked: () => invalidateSocial(queryClient),
+                })
+              }
               style={({ pressed }) => [styles.headerButton, { opacity: pressed ? 0.6 : 1 }]}>
               <Icon name="more" size={22} />
             </Pressable>
@@ -83,7 +91,14 @@ export default function UserProfileScreen() {
             <ScrollView contentContainerStyle={styles.content}>
               <ProfileHeader user={p.user} ring="hue" />
 
-              {p.friendStatus !== 'blocked' && (
+              {p.friendStatus === 'blocked' ? (
+                <Button
+                  title="Unblock"
+                  variant="secondary"
+                  loading={unblock.isPending}
+                  onPress={() => confirmUnblock(p.user, () => unblock.mutate(p.user.id))}
+                />
+              ) : (
                 <Button
                   title={FRIEND_ACTION_TITLE[p.friendStatus]}
                   icon={FRIEND_ACTION_ICON[p.friendStatus]}
