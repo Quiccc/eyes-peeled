@@ -7,7 +7,9 @@ FROM node:26-slim AS admin
 WORKDIR /repo/server/admin
 COPY server/admin/package.json server/admin/package-lock.json ./
 RUN npm ci
+# The panel imports response types from the server (@server/*) and the app (@shared/*).
 COPY mobile/src/api/types.ts /repo/mobile/src/api/types.ts
+COPY server/src/dto/admin.ts /repo/server/src/dto/admin.ts
 COPY server/admin/ ./
 RUN npm run build
 
