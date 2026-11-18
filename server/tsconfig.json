@@ -14,5 +14,5 @@
       "@shared/*": ["../mobile/src/api/*"]
     }
   },
-  "include": ["src", "test", "vitest.config.ts", "drizzle.config.ts"]
+  "include": ["src", "test", "scripts", "vitest.config.ts", "drizzle.config.ts"]
 }

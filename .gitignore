@@ -56,6 +56,7 @@ graphify-out/
 server/data/
 server/.env
 deploy/.env
+server/eval-photos/
 
 # personal task list (kept local)
 /TODO.md

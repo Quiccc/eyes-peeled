@@ -31,7 +31,7 @@ async function markError(ctx: Ctx, submissionId: string) {
  * Does the verdict count? The word's own threshold wins over VERIFY_MIN_CONFIDENCE.
  * A detection without a confidence passes.
  */
-function passes(verdict: Verdict, threshold: number) {
+export function passes(verdict: Verdict, threshold: number) {
   return verdict.detected && (verdict.confidence ?? 1) >= threshold;
 }
 
