@@ -10,7 +10,8 @@ mkdir -p "$DEST"
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 
 docker compose exec -T db pg_dump -U eyespeeled -d eyespeeled --format=custom > "$DEST/db-$stamp.dump"
-docker compose exec -T api tar -C /data -czf - uploads > "$DEST/uploads-$stamp.tar.gz"
+# The server creates uploads/ on the first photo; make sure it exists so a fresh install backs up too.
+docker compose exec -T api sh -c 'mkdir -p /data/uploads && tar -C /data -czf - uploads' > "$DEST/uploads-$stamp.tar.gz"
 
 find "$DEST" -type f -mtime +"$KEEP_DAYS" -delete
 echo "$(date -u) backup ok: $DEST/*-$stamp.*"
