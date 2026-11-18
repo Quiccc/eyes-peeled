@@ -53,7 +53,7 @@ export type Submission = {
   comboPoints: number;
   /** Order in which this valid photo arrived for the word (1 = first finder). null unless valid. */
   rank: number | null;
-  /** Model confidence 0–1, informational */
+  /** AI confidence 0–1 that the object is in the photo, informational */
   confidence: number | null;
   /** Human-readable explanation, mainly for invalid results */
   message: string | null;

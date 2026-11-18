@@ -4,7 +4,6 @@ import { Navigate, NavLink, Route, Routes, useNavigate } from 'react-router';
 import { checkToken, token } from './api';
 import { message } from './hooks';
 import { Login } from './pages/Login';
-import { Model } from './pages/Model';
 import { Moderation } from './pages/Moderation';
 import { Schedule } from './pages/Schedule';
 import { Stats } from './pages/Stats';
@@ -14,7 +13,6 @@ const PAGES = [
   { path: '/schedule', label: 'Schedule' },
   { path: '/words', label: 'Words' },
   { path: '/moderation', label: 'Moderation' },
-  { path: '/model', label: 'Model' },
   { path: '/stats', label: 'Stats' },
 ];
 
@@ -76,7 +74,6 @@ export function App() {
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/words" element={<Words />} />
           <Route path="/moderation" element={<Moderation />} />
-          <Route path="/model" element={<Model />} />
           <Route path="/stats" element={<Stats />} />
           <Route path="*" element={<Navigate to="/schedule" replace />} />
         </Routes>

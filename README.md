@@ -1,6 +1,6 @@
 # Eyes Peeled
 
-A daily real-world scavenger hunt for iOS and Android. Every day at 00:00 UTC, three words go live (Rookie, Scout, Ranger), plus a 4th Premium word for Premium players. (In code and the API these levels are `easy`, `medium`, `hard` and `expert`.) Players find the real object, photograph it in the app, and a YOLO model checks the photo. Earlier valid photos and harder words earn more points. Leaderboards reset monthly, and friends can see each other's finds for the day.
+A daily real-world scavenger hunt for iOS and Android. Every day at 00:00 UTC, three words go live (Rookie, Scout, Ranger), plus a 4th Premium word for Premium players. (In code and the API these levels are `easy`, `medium`, `hard` and `expert`.) Players find the real object, photograph it in the app, and Claude (Anthropic's AI model) checks the photo. Earlier valid photos and harder words earn more points. Leaderboards reset monthly, and friends can see each other's finds for the day.
 
 Built with Expo SDK 58, Expo Router (native tabs), TanStack Query, AdMob, RevenueCat, and Apple/Google sign-in.
 
@@ -10,13 +10,12 @@ The repo has three parts, each with its own dependencies and checks:
 |---|---|
 | [`mobile/`](mobile/) | The Expo app (iOS + Android) |
 | [`server/`](server/README.md) | Express 5 + Drizzle + Postgres API, plus the [admin panel](server/admin/README.md) it serves |
-| [`yolo/`](yolo/README.md) | Python service that checks photos with the YOLO model |
 
 [`docs/api-contract.md`](docs/api-contract.md) is the contract between the app and the server.
 
 ## Run it
 
-**Everything at once (Windows):** `.\run.ps1` from the repo root opens a window each for the YOLO service, the server, the admin panel and Expo (installs missing `node_modules` and copies `.env` files on first run). Skip parts with `-NoYolo`, `-NoAdmin`, `-NoMobile`.
+**Everything at once (Windows):** `.\run.ps1` from the repo root opens a window each for the server, the admin panel and Expo (installs missing `node_modules` and copies `.env` files on first run). Skip parts with `-NoAdmin`, `-NoMobile`.
 
 The app uses native modules (camera, AdMob, Google Sign-In), so it needs a **development build**. Expo Go won't work.
 
@@ -37,7 +36,7 @@ With `EXPO_PUBLIC_USE_MOCK_API=true`, or with no `EXPO_PUBLIC_API_URL` set in a 
 
 ## Backend
 
-The backend lives in [`server/`](server/README.md): Express 5 + Drizzle + Postgres, implementing [`docs/api-contract.md`](docs/api-contract.md). It runs locally with no database install. Photo checks come from a separate Python YOLO service in [`yolo/`](yolo/README.md).
+The backend lives in [`server/`](server/README.md): Express 5 + Drizzle + Postgres, implementing [`docs/api-contract.md`](docs/api-contract.md). It runs locally with no database install. Photo checks are a call to Claude's vision API (set `ANTHROPIC_API_KEY` in `server/.env`; without it a random stub judges photos).
 
 ```bash
 cd server && npm install && cp .env.example .env
@@ -84,5 +83,4 @@ mobile/src/hooks/          generic hooks (theme, debounce, async button actions)
 cd mobile && npx tsc --noEmit && npx expo lint && npx expo-doctor
 cd server && npm run typecheck && npm test
 cd server/admin && npm run build
-cd yolo && uv run pytest
 ```

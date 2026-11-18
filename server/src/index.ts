@@ -7,12 +7,11 @@ import { openDatabase } from './db/client';
 import { loadEnv } from './env';
 import { systemClock } from './lib/clock';
 import { seedWords } from './seed/words';
-import { wordsUnknownToModel } from './services/model-labels';
 import { createQueue } from './services/queue';
 import { autoSchedule } from './services/schedule';
 import { localStorage } from './services/storage';
 import { requeuePending } from './services/verification';
-import { yoloClients } from './services/yolo-client';
+import { verifierFor } from './services/verifier';
 
 const env = loadEnv();
 // Relative folders in .env are relative to server/, wherever the process was started from.
@@ -33,7 +32,7 @@ const ctx: Ctx = {
     secret: env.FILE_URL_SECRET,
     now: () => systemClock.now(),
   }),
-  ...yoloClients(env),
+  verifier: verifierFor(env),
   queue: createQueue(2),
 };
 
@@ -42,18 +41,11 @@ const requeued = await requeuePending(ctx);
 const server = createApp(ctx, { log: true, adminPanelDir }).listen(env.PORT, '0.0.0.0', () => {
   console.log(`Eyes Peeled API on http://localhost:${env.PORT}`);
   console.log(`  database: ${env.DATABASE_URL ? 'Postgres (DATABASE_URL)' : `PGlite in ${path.join(dataDir, 'db')}`}`);
-  console.log(`  verifier: ${env.YOLO_URL ? `YOLO at ${env.YOLO_URL}` : 'stub (random ~60% pass). Set YOLO_URL for real checks.'}`);
+  console.log(`  verifier: ${env.ANTHROPIC_API_KEY ? `Claude (${env.VERIFY_MODEL})` : 'stub (random ~60% pass). Set ANTHROPIC_API_KEY for real checks.'}`);
   if (env.AUTH_DEV_LOGIN) console.log('  dev login: ON (idToken "dev:<name>")');
   if (env.ADMIN_TOKEN) console.log(`  admin panel: http://localhost:${env.PORT}/admin-panel/ (after building server/admin/)`);
   if (requeued) console.log(`  re-checking ${requeued} pending photo(s)`);
 });
-
-// Words the model can't judge would fail every player. Warn early; scheduling refuses them anyway.
-wordsUnknownToModel(ctx)
-  .then((unknown) => {
-    if (unknown.length) console.warn(`  WARNING: the YOLO model doesn't know these enabled words: ${unknown.join(', ')}`);
-  })
-  .catch((e: unknown) => console.warn(`  WARNING: couldn't ask the YOLO service which words it knows (${String(e)})`));
 
 let autoTimer: NodeJS.Timeout | undefined;
 if (env.AUTO_SCHEDULE) {

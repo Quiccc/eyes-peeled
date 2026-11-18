@@ -5,7 +5,7 @@ const POLL_INTERVAL_MS = 1500;
 const POLL_TIMEOUT_MS = 45_000;
 
 /**
- * Upload a photo and wait for the YOLO verdict. The backend may answer
+ * Upload a photo and wait for the AI verdict. The backend may answer
  * synchronously (valid/invalid) or with status 'pending' — in that case poll.
  */
 export async function submitAndWait(wordId: string, photo: PhotoFile): Promise<Submission> {

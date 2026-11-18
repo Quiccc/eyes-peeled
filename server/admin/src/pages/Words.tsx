@@ -35,8 +35,8 @@ export function Words() {
       </div>
       <p className="muted">
         Retire a word instead of deleting it: it stays in history but is never scheduled again. A threshold overrides
-        the server's default for that word only (higher = stricter). New words must be ones the running model knows;
-        train it first (yolo/README.md, "Adding words").
+        the server's default for that word only (higher = stricter). Any physical object works as a word: Claude
+        judges the photos.
       </p>
 
       <form className="inline-form card" onSubmit={add}>
@@ -64,7 +64,6 @@ export function Words() {
                 <th>Level</th>
                 <th>Enabled</th>
                 <th>Threshold</th>
-                <th>Model</th>
                 <th>Last used</th>
                 <th>Next planned</th>
               </tr>
@@ -87,15 +86,6 @@ export function Words() {
                       word={w}
                       onSave={(v) => act(() => api.patch(`/admin/words/${w.id}`, { minConfidence: v }))}
                     />
-                  </td>
-                  <td>
-                    {w.knownByModel === null ? (
-                      <span className="muted">no model</span>
-                    ) : w.knownByModel ? (
-                      <span className="pill ok">knows it</span>
-                    ) : (
-                      <span className="pill bad">unknown</span>
-                    )}
                   </td>
                   <td className="nowrap">{w.lastUsed ? formatDay(w.lastUsed) : <span className="muted">never</span>}</td>
                   <td className="nowrap">{w.nextUse ? formatDay(w.nextUse) : <span className="muted">–</span>}</td>

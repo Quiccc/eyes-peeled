@@ -3,17 +3,16 @@ import { z } from 'zod';
 
 import type { Ctx } from '../../context';
 import { difficulties } from '../../domain/enums';
-import type { AdminWord, ModelStatus, MonthSchedule, WordDayStats } from '../../dto/admin';
+import type { AdminWord, MonthSchedule, WordDayStats } from '../../dto/admin';
 import { zIsoDate, zMonth } from '../../lib/validation';
 import { wordStats } from '../../services/admin-stats';
-import { wordsUnknownToModel } from '../../services/model-labels';
 import { fillMonth, getSchedule, setDay } from '../../services/schedule';
 import { addWord, listWords, updateWord } from '../../services/words';
 
 const monthQuery = z.object({ month: zMonth });
 const difficulty = z.enum(difficulties);
 
-/** The admin panel's API: the schedule, the word list, the YOLO model and per-word stats. */
+/** The admin panel's API: the schedule, the word list and per-word stats. */
 export function panelRoutes(ctx: Ctx, admin: RequestHandler) {
   const r = Router();
 
@@ -55,41 +54,10 @@ export function panelRoutes(ctx: Ctx, admin: RequestHandler) {
     res.status(204).end();
   });
 
-  /** YOLO service health, latest word-test report, and enabled words the model doesn't know. */
-  r.get('/admin/model', admin, async (_req, res) => {
-    res.json(await modelStatus(ctx));
-  });
-
   r.get('/admin/stats', admin, async (req, res) => {
     const range = z.object({ from: zIsoDate.optional(), to: zIsoDate.optional() }).parse(req.query);
     res.json((await wordStats(ctx, range)) satisfies WordDayStats[]);
   });
 
   return r;
-}
-
-/**
- * Everything the panel's Model page shows. Each part is fetched on its own, so a failing
- * /classes call doesn't hide a working health check or report.
- */
-async function modelStatus(ctx: Ctx): Promise<ModelStatus> {
-  const threshold = ctx.env.YOLO_MIN_CONFIDENCE;
-  if (!ctx.model.configured) {
-    return { configured: false, threshold, health: null, report: null, unknownWords: [], error: null };
-  }
-  const [health, report, unknownWords] = await Promise.allSettled([
-    ctx.model.health(),
-    ctx.model.report(),
-    wordsUnknownToModel(ctx),
-  ]);
-  const failure = [health, report, unknownWords].find((p) => p.status === 'rejected');
-  const value = <T,>(p: PromiseSettledResult<T>, fallback: T) => (p.status === 'fulfilled' ? p.value : fallback);
-  return {
-    configured: true,
-    threshold,
-    health: value(health, null),
-    report: value(report, null),
-    unknownWords: value(unknownWords, []),
-    error: failure ? (failure.reason instanceof Error ? failure.reason.message : 'YOLO service unreachable') : null,
-  };
 }

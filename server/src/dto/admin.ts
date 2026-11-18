@@ -15,8 +15,6 @@ export type AdminWord = {
   difficulty: Difficulty;
   enabled: boolean;
   minConfidence: number | null;
-  /** null when no YOLO service is configured, so it can't be checked */
-  knownByModel: boolean | null;
   lastUsed: string | null;
   nextUse: string | null;
 };
@@ -32,42 +30,6 @@ export type AdminReport = {
   submission: { id: string; userId: string; status: string; imageUrl: string | null } | null;
   /** The reported user: named directly, or the owner of the reported photo. */
   target: { id: string; username: string | null; bannedAt: string | null } | null;
-};
-
-/** GET /health of the YOLO service. */
-export type ModelHealth = { ok: boolean; model: string; modelVersion: string; classes: number };
-
-/** One word in a word-test report (yolo/eval/evaluate.py). */
-export type EvalWord = {
-  word: string;
-  pass: boolean;
-  problems: string[];
-  positives: number;
-  positivePassed: number;
-  passRate: number | null;
-  negatives: number;
-  negativePassed: number;
-  falseRate: number | null;
-};
-
-/** The latest word-test report (yolo/eval/latest.json). */
-export type EvalReport = {
-  modelVersion: string;
-  model: string;
-  createdAt: string;
-  minConfidence: number;
-  bars: { minPass: number; maxFalse: number };
-  comparedWith: string | null;
-  words: EvalWord[];
-};
-
-export type ModelStatus = {
-  configured: boolean;
-  threshold: number;
-  health: ModelHealth | null;
-  report: EvalReport | null;
-  unknownWords: string[];
-  error: string | null;
 };
 
 export type WordDayStats = {

@@ -53,7 +53,7 @@ export function Stats() {
       </div>
       <p className="muted">
         Rows in red: under {pct(LOW_PASS)} of photos pass with at least {MIN_ATTEMPTS} attempts. That word may be
-        unfair: check it in the word test, raise or lower its threshold, or retire it.
+        unfair: try a few photos of it yourself, lower its threshold, or retire it.
       </p>
       {stats.error && <p className="error">{stats.error}</p>}
 

@@ -159,7 +159,7 @@ describe('submissions', () => {
     const a = await t.signIn('alex');
     const word = (await daily(a.auth)).words[0]!;
     t.setVerdict(() => {
-      throw new Error('YOLO down');
+      throw new Error('Claude API down');
     });
     const photo = jpeg('outage');
     const res = await submit(a.auth, word.id, photo);

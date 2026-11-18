@@ -3,16 +3,14 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { Daily, Difficulty } from '@shared/types';
 
 import { WORD_POOL } from '../src/seed/words';
-import { fakeModelInfo, type ModelInfo } from '../src/services/model-info';
 import type { AdminWord, MonthSchedule } from '../src/dto/admin';
 import { jpeg, startTestServer, type TestServer } from './helpers';
 
 const ADMIN = { Authorization: 'Bearer test-admin-token' };
-const ALL_SEEDED = Object.values(WORD_POOL).flat();
 
 let t: TestServer;
-const start = async (model?: ModelInfo) => {
-  t = await startTestServer({ ADMIN_TOKEN: 'test-admin-token' }, { model });
+const start = async () => {
+  t = await startTestServer({ ADMIN_TOKEN: 'test-admin-token' });
   return t;
 };
 afterEach(() => t.close());
@@ -105,67 +103,29 @@ describe('monthly schedule', () => {
   });
 });
 
-describe('words the model knows', () => {
-  const known = [...ALL_SEEDED.filter((w) => w !== 'toaster'), 'person'];
+describe('adding words', () => {
+  it('accepts any new word, stored trimmed and lower case, and schedules it', async () => {
+    await start();
+    const add = (label: string) => t.http().post('/admin/words').set(ADMIN).send({ label, difficulty: 'hard' });
+    expect((await add(' Unicorn Mug ')).status).toBe(204);
+    expect((await add('unicorn mug')).status).toBe(409);
 
-  it('never schedules or adds a word the model does not know', async () => {
-    await start(fakeModelInfo(known));
-    await fill();
-    expect((await schedule()).days.some((d) => d.words.medium?.label === 'toaster')).toBe(false);
-
-    const toaster = await wordId('toaster', 'medium');
-    const refused = await setDay('2026-11-25', 'medium', toaster);
-    expect(refused.status).toBe(400);
-    expect(refused.body.message).toContain('toaster');
-
-    const list = await words();
-    expect(list.find((w) => w.label === 'toaster')!.knownByModel).toBe(false);
-    expect(list.find((w) => w.label === 'cup')!.knownByModel).toBe(true);
-
-    expect((await t.http().post('/admin/words').set(ADMIN).send({ label: 'unicorn', difficulty: 'hard' })).status).toBe(400);
-    expect((await t.http().post('/admin/words').set(ADMIN).send({ label: ' Person ', difficulty: 'hard' })).status).toBe(204);
-    expect((await t.http().post('/admin/words').set(ADMIN).send({ label: 'person', difficulty: 'hard' })).status).toBe(409);
-    expect((await words()).some((w) => w.label === 'person' && w.difficulty === 'hard')).toBe(true);
-  });
-
-  it('only picks known words for days nobody planned', async () => {
-    await start(fakeModelInfo(known));
-    const a = await t.signIn('alex');
-    for (let day = 0; day < 25; day++) {
-      t.setNow(new Date(Date.UTC(2026, 10, 14 + day, 6)).toISOString());
-      const daily = (await t.http().get('/daily').set(a.auth)).body as Daily;
-      expect(daily.words.map((w) => w.word)).not.toContain('toaster');
-    }
-  });
-
-  it('still serves unplanned days when the YOLO service is down', async () => {
-    const down: ModelInfo = { ...fakeModelInfo([]), classes: () => Promise.reject(new Error('down')) };
-    await start(down);
-    const a = await t.signIn('alex');
-    const res = await t.http().get('/daily').set(a.auth);
-    expect(res.status).toBe(200);
-    expect((res.body as Daily).words).toHaveLength(3); // the expert word is Premium-only
-  });
-
-  it('answers 503 when the YOLO service is down', async () => {
-    const down: ModelInfo = { ...fakeModelInfo([]), classes: () => Promise.reject(new Error('down')) };
-    await start(down);
-    const res = await fill();
-    expect(res.status).toBe(503);
-    expect(res.body.code).toBe('model_unavailable');
+    const mug = await wordId('unicorn mug', 'hard');
+    expect((await setDay('2026-11-25', 'hard', mug)).status).toBe(204);
+    expect((await schedule()).days.find((d) => d.date === '2026-11-25')!.words.hard?.label).toBe('unicorn mug');
   });
 });
 
 describe('per-word threshold', () => {
-  it('uses the word threshold instead of YOLO_MIN_CONFIDENCE', async () => {
+  it('uses the word threshold instead of VERIFY_MIN_CONFIDENCE', async () => {
     await start();
     const a = await t.signIn('alex');
     const daily = (await t.http().get('/daily').set(a.auth)).body as Daily;
     const [easy, medium] = daily.words;
-    t.setVerdict({ detected: true, confidence: 0.6 });
+    t.setVerdict({ detected: true, confidence: 0.8 });
 
     const easyWord = await wordId(easy!.word, 'easy');
-    await t.http().patch(`/admin/words/${easyWord}`).set(ADMIN).send({ minConfidence: 0.7 });
+    await t.http().patch(`/admin/words/${easyWord}`).set(ADMIN).send({ minConfidence: 0.9 });
 
     const strict = await t.http().post(`/words/${easy!.id}/submissions`).set(a.auth).attach('photo', jpeg(), 'p.jpg');
     expect(strict.body.status).toBe('invalid');

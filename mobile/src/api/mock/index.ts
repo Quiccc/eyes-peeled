@@ -1,6 +1,6 @@
 /**
  * In-memory fake backend so the app can be built and demoed before the real
- * backend + YOLO service exist. Enabled when EXPO_PUBLIC_USE_MOCK_API=true or, in dev builds only, when
+ * backend is running. Enabled when EXPO_PUBLIC_USE_MOCK_API=true or, in dev builds only, when
  * no EXPO_PUBLIC_API_URL is set. State resets when the JS bundle reloads.
  */
 import { ApiError } from '@/api/client';

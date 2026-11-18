@@ -55,7 +55,7 @@ Premium purchase (see [Purchases](#purchases-premium)). The app hides ads and sh
 - Do **not** include the `expert` word for users without `isPremium`. The app shows a locked teaser card in its place.
 - Players see these levels as **Rookie** (`easy`), **Scout** (`medium`), **Ranger** (`hard`) and **Premium** (`expert`). The names are display-only; the API keys stay as listed here.
 - The day rolls over at **00:00 UTC** for everyone. `nextResetAt` is the next 00:00 UTC, and the app's countdown uses it.
-- Each word must be a class label in the YOLO model, so the backend knows which class to check for. One shared model knows every word; words are planned a month ahead in the admin panel (`server/admin/`), which only offers enabled words the running model knows. See [`yolo/README.md`](../yolo/README.md) for adding words.
+- Each word is the name of a physical object. Photos are judged by an AI vision model (Claude), so any object works; words are planned a month ahead in the admin panel (`server/admin/`) from the enabled words.
 - `foundCount` is the number of distinct users with a valid submission for that word today.
 - `firstFoundAt` is the receipt timestamp (ISO 8601) of the earliest valid submission for that word today, or `null` while nobody has found it. The app shows it as "First found at 09:42" in the player's local time.
 - `status` is for the calling user:
@@ -63,7 +63,7 @@ Premium purchase (see [Purchases](#purchases-premium)). The app hides ads and sh
   - `'pending'`: they have a submission still being checked; `submission` is it (with `imageUrl` set). If the app was closed mid-analysis, it uses this to resume polling `GET /submissions/:id` instead of letting the user start over.
   - `'open'`: neither; `submission` is `null`.
 
-## Photo submission (YOLO)
+## Photo submission (AI check)
 
 | Method | Path | Body | Response |
 |---|---|---|---|
@@ -73,9 +73,9 @@ Premium purchase (see [Purchases](#purchases-premium)). The app hides ads and sh
 Server flow:
 1. Reject if `wordId` isn't one of today's words (`404 word_not_found`), if it's the `expert` word and the user isn't Premium (`403 premium_required`), if the user already has a valid submission for it (`409 already_found`), if they have one still `pending` for it (`409 submission_pending`), or if they've hit the attempt limit (`429 rate_limited`; say in `message` when they can try again, e.g. *"That's 10 tries for this word today. Try again tomorrow!"*).
 2. **Record the receipt timestamp before running inference.** This timestamp decides the score.
-3. An exact re-upload of a photo already on file (same SHA-256, from any player) is `invalid` straight away. It isn't stored and its `imageUrl` is `null`. Otherwise store the image, then call the YOLO service with the image and the target class.
-4. A detection of the target class at or above your confidence threshold is `valid`. Anything else is `invalid` with a helpful `message`, such as *"We couldn't spot a bicycle. Get closer and make sure it's in focus."*
-   If the YOLO service can't be reached or times out, the answer is also `invalid` (*"We couldn't check your photo right now…"*), but it doesn't count toward the attempt limit, and the same photo may be sent again.
+3. An exact re-upload of a photo already on file (same SHA-256, from any player) is `invalid` straight away. It isn't stored and its `imageUrl` is `null`. Otherwise store the image, then ask Claude whether a real example of the target word is in it.
+4. A detection of the target word at or above your confidence threshold is `valid`. Anything else (including photos of screens or printed pictures) is `invalid` with a helpful `message`, such as *"We couldn't spot a bicycle. Get closer and make sure it's in focus."*
+   If the AI service can't be reached or times out, the answer is also `invalid` (*"We couldn't check your photo right now…"*), but it doesn't count toward the attempt limit, and the same photo may be sent again.
 5. Return the verdict synchronously. If inference is slow, return `status: 'pending'` instead: the app polls `GET /submissions/:id` every 1.5 s for up to 45 s.
 
 `Submission.rank` is the order of this valid photo among all valid photos for the word (1 = first finder).

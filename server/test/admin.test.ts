@@ -9,15 +9,14 @@ import { createApp } from '../src/app';
 
 import type { Daily } from '@shared/types';
 
-import { fakeModelInfo, type ModelInfo } from '../src/services/model-info';
 import type { WordDayStats } from '../src/dto/admin';
 import { jpeg, startTestServer, type TestServer } from './helpers';
 
 const ADMIN = { Authorization: 'Bearer test-admin-token' };
 
 let t: TestServer;
-const start = async (model?: ModelInfo) => {
-  t = await startTestServer({ ADMIN_TOKEN: 'test-admin-token' }, { model });
+const start = async () => {
+  t = await startTestServer({ ADMIN_TOKEN: 'test-admin-token' });
   return t;
 };
 afterEach(() => t.close());
@@ -69,40 +68,6 @@ describe('GET /admin/stats', () => {
     expect(rows[2]).toMatchObject({ attempts: 0, passRate: null });
 
     expect((await t.http().get('/admin/stats?from=2026-11-15&to=2026-11-01').set(ADMIN)).status).toBe(400);
-  });
-});
-
-describe('GET /admin/model', () => {
-  it('reports no YOLO service when none is configured', async () => {
-    await start();
-    const res = await t.http().get('/admin/model').set(ADMIN);
-    expect(res.body).toMatchObject({ configured: false, health: null, unknownWords: [], threshold: 0.5 });
-  });
-
-  it('shows health, the word-test report and enabled words the model lacks', async () => {
-    const report = { modelVersion: 'fake', words: [{ word: 'cup', pass: true }] };
-    await start(fakeModelInfo(['cup', 'chair'], { report }));
-    const res = await t.http().get('/admin/model').set(ADMIN);
-    expect(res.body.configured).toBe(true);
-    expect(res.body.health).toMatchObject({ ok: true, modelVersion: 'fake' });
-    expect(res.body.report).toEqual(report);
-    expect(res.body.unknownWords).toContain('bicycle');
-    expect(res.body.unknownWords).not.toContain('cup');
-  });
-
-  it('shows the error when the service is down', async () => {
-    await start({ ...fakeModelInfo([]), health: () => Promise.reject(new Error('connect ECONNREFUSED')) });
-    const res = await t.http().get('/admin/model').set(ADMIN);
-    expect(res.status).toBe(200);
-    expect(res.body.error).toContain('ECONNREFUSED');
-  });
-
-  it('keeps the parts that worked when one call fails', async () => {
-    const report = { modelVersion: 'fake', words: [] };
-    await start({ ...fakeModelInfo(['cup'], { report }), health: () => Promise.reject(new Error('timeout')) });
-    const res = await t.http().get('/admin/model').set(ADMIN);
-    expect(res.body).toMatchObject({ health: null, report, error: 'timeout' });
-    expect(res.body.unknownWords).toContain('chair');
   });
 });
 

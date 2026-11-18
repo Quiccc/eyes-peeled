@@ -12,7 +12,7 @@ export const MAX_POINTS: Record<Difficulty, number> = { easy: 100, medium: 250, 
 export const FREE_DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
 export const ALL_DIFFICULTIES: Difficulty[] = [...FREE_DIFFICULTIES, 'expert'];
 
-/** How long the fake YOLO queue takes to judge a photo. */
+/** How long the fake AI check takes to judge a photo. */
 export const INFERENCE_MS = 2500;
 export const PAGE_SIZE = 20;
 

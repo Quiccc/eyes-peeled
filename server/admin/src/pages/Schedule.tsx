@@ -13,10 +13,10 @@ export function Schedule() {
   const schedule = useLoad(() => api.get<MonthSchedule>(`/admin/schedule?month=${month}`), [month]);
   const words = useLoad(() => api.get<AdminWord[]>('/admin/words'), []);
 
-  // Words that can be picked for a day: enabled and not known to be missing from the model.
+  // Words that can be picked for a day: the enabled ones.
   const choices = useMemo(() => {
     const by: Record<Difficulty, AdminWord[]> = { easy: [], medium: [], hard: [], expert: [] };
-    for (const w of words.data ?? []) if (w.enabled && w.knownByModel !== false) by[w.difficulty].push(w);
+    for (const w of words.data ?? []) if (w.enabled) by[w.difficulty].push(w);
     return by;
   }, [words.data]);
 

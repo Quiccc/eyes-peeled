@@ -7,9 +7,6 @@ export type { Difficulty };
 export type {
   AdminReport as Report,
   AdminWord,
-  EvalReport,
-  EvalWord,
-  ModelStatus,
   MonthSchedule,
   ScheduleDay,
   ScheduledWord,

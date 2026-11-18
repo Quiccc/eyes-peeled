@@ -9,7 +9,6 @@ import type { MonthSchedule, ScheduleDay } from '../dto/admin';
 import { badRequest, notFound } from '../lib/errors';
 import { addDays, nextMonthStartUtc, todayUtc, utcMonth } from '../lib/time';
 import { pickWord } from './daily-words';
-import { assertKnown, isKnownBy, knownLabels } from './model-labels';
 
 /** The calendar of daily words, planned a month at a time in the admin panel (Schedule page). */
 
@@ -45,19 +44,18 @@ export async function getSchedule(ctx: Ctx, month: string): Promise<MonthSchedul
 
 /**
  * Fill every empty slot of `month` from today on. Never overwrites a planned day. Picks only enabled
- * words the model knows, avoiding repeats within 14 days. Returns how many slots were filled.
+ * words, avoiding repeats within 14 days. Returns how many slots were filled.
  */
 export async function fillMonth(ctx: Ctx, month: string): Promise<{ filled: number; schedule: MonthSchedule }> {
   const today = todayUtc(ctx.clock);
-  const allowed = isKnownBy(await knownLabels(ctx));
   const before = await getSchedule(ctx, month);
   let filled = 0;
   for (const day of before.days) {
     if (day.date < today) continue;
     for (const difficulty of difficulties) {
       if (day.words[difficulty]) continue;
-      const pick = await pickWord(ctx, day.date, difficulty, allowed);
-      if (!pick) throw badRequest(`No enabled ${difficulty} words the model knows. Add or enable some first.`);
+      const pick = await pickWord(ctx, day.date, difficulty);
+      if (!pick) throw badRequest(`No enabled ${difficulty} words. Add or enable some first.`);
       const inserted = await ctx.db
         .insert(dailyWords)
         .values({ date: day.date, difficulty, wordId: pick.id })
@@ -76,7 +74,6 @@ export async function setDay(ctx: Ctx, date: string, difficulty: Difficulty, wor
   if (!word) throw notFound('Word not found.');
   if (word.difficulty !== difficulty) throw badRequest(`"${word.label}" is a ${word.difficulty} word, not ${difficulty}.`);
   if (!word.enabled) throw badRequest(`"${word.label}" is retired. Enable it first.`);
-  assertKnown(await knownLabels(ctx), word.label);
 
   await ctx.db
     .insert(dailyWords)

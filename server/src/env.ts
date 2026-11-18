@@ -21,9 +21,11 @@ const schema = z.object({
     .string()
     .optional()
     .transform((v) => v === 'true'),
-  YOLO_URL: optional,
-  YOLO_KEY: optional,
-  YOLO_MIN_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.5),
+  /** Photos are checked by Claude when set; without it a random stub judges them (dev only). */
+  ANTHROPIC_API_KEY: optional,
+  VERIFY_MODEL: z.string().default('claude-haiku-5-5'),
+  /** Default pass threshold for Claude's confidence; a word's own minConfidence wins. */
+  VERIFY_MIN_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.7),
   /** How long POST /submissions waits for a verdict before answering 'pending'. */
   VERIFY_SYNC_WAIT_MS: z.coerce.number().int().min(0).default(8000),
   REVENUECAT_SECRET_KEY: optional,
@@ -50,11 +52,10 @@ const PLACEHOLDER = 'change-me';
 /** Settings that fail silently in production (random verdicts, guessable tokens), so refuse to start. */
 function productionProblems(env: z.infer<typeof schema>): string[] {
   const problems: string[] = [];
-  if (!env.YOLO_URL) problems.push('YOLO_URL: required (without it photos are judged at random)');
-  if (!env.YOLO_KEY) problems.push('YOLO_KEY: required');
+  if (!env.ANTHROPIC_API_KEY) problems.push('ANTHROPIC_API_KEY: required (without it photos are judged at random)');
   if (!env.REVENUECAT_SECRET_KEY) problems.push('REVENUECAT_SECRET_KEY: required (Premium restores fail without it)');
   if (!env.REVENUECAT_WEBHOOK_AUTH) problems.push('REVENUECAT_WEBHOOK_AUTH: required');
-  const secrets = ['JWT_SECRET', 'FILE_URL_SECRET', 'YOLO_KEY', 'ADMIN_TOKEN', 'REVENUECAT_WEBHOOK_AUTH'] as const;
+  const secrets = ['JWT_SECRET', 'FILE_URL_SECRET', 'ANTHROPIC_API_KEY', 'ADMIN_TOKEN', 'REVENUECAT_WEBHOOK_AUTH'] as const;
   for (const key of secrets) {
     if (env[key]?.includes(PLACEHOLDER)) problems.push(`${key}: still the placeholder from .env.example`);
   }

@@ -46,18 +46,3 @@ jobs:
       - name: Admin panel build
         working-directory: server/admin
         run: npm ci && npm run build
-
-  yolo:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: yolo
-    steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
-      - run: uv venv --python 3.12
-      # CPU-only PyTorch: the default wheels bundle CUDA and are several GB.
-      - run: uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-      - run: uv pip install -r requirements.txt -r requirements-dev.txt
-      # The real-model tests download yolo11s.pt on first use.
-      - run: uv run pytest

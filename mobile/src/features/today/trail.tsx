@@ -403,7 +403,7 @@ function ActionTile({
   icon: IconName;
   title: string;
   /**
-   * A short sentence under the shutter's label. Keep it free of the word itself: labels are model classes
+   * A short sentence under the shutter's label. Keep it free of the word itself: labels are bare object names
    * ("scissors", "fire hydrant"), so articles and possessives go wrong.
    */
   subtitle: string;

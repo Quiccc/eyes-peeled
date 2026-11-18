@@ -6,9 +6,8 @@ with the server's `ADMIN_TOKEN`.
 | Page | What it does |
 |---|---|
 | **Schedule** | A month at a time: fill empty days, change any future day's word. Today and past days are locked. |
-| **Words** | Add words, retire them (enabled off), set a per-word pass threshold, see which words the model knows. |
+| **Words** | Add any object as a word, retire words (enabled off), set a per-word pass threshold. |
 | **Moderation** | Reports with the photo: resolve, remove the photo, ban or unban the user. |
-| **Model** | YOLO service status, model version, the latest word test (yolo/eval), words the model doesn't know. |
 | **Stats** | Per day and word: attempts, finds, pass rate, finders. Low pass rates point to unfair words. |
 
 ## Run it

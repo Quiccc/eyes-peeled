@@ -28,7 +28,7 @@ export const state = {
   monthPoints: 0,
   totalFinds: 0,
   /**
-   * Submissions start 'pending' and get their verdict a few seconds later, like an async YOLO queue.
+   * Submissions start 'pending' and get their verdict a few seconds later, like the server's async verdict queue.
    * The verdict and points are fixed at upload time (the receipt timestamp decides the score).
    */
   verdicts: new Map<string, { at: number; result: Submission }>(),

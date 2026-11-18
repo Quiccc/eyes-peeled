@@ -8,8 +8,11 @@ import { me, requireAuth } from '../middleware/auth';
 import { getLeaderboard } from '../services/leaderboard';
 import { createSubmission, getDaily, getSubmissionFor } from '../services/submissions';
 
-/** Largest photo accepted. The app sends ~1 MB JPEGs; the YOLO service has the same limit. */
-export const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+/**
+ * Largest photo accepted. The app sends ≤1280px JPEGs (usually < 500 KB). Claude rejects images over
+ * 5 MB once base64-encoded (4/3 larger), so anything bigger could never be checked.
+ */
+export const MAX_PHOTO_BYTES = Math.floor(3.75 * 1024 * 1024);
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_PHOTO_BYTES, files: 1 } });
 

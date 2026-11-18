@@ -2,8 +2,8 @@ import type { Db } from '../db/client';
 import { words } from '../db/schema';
 
 /**
- * Word pool by difficulty. Every label must be a class your YOLO model detects.
- * These are COCO classes, which the stock Ultralytics models (yolo11n.pt etc.) know.
+ * Starting word pool by difficulty. Claude judges the photos, so any physical object works; add more
+ * in the admin panel (Words).
  */
 export const WORD_POOL = {
   easy: ['chair', 'cup', 'bottle', 'book', 'clock', 'car', 'potted plant', 'laptop', 'cell phone', 'bowl', 'couch', 'bed'],

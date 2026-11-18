@@ -8,14 +8,12 @@ import { byDifficulty } from '../domain/enums';
 import type { AdminWord } from '../dto/admin';
 import { HttpError, notFound } from '../lib/errors';
 import { todayUtc } from '../lib/time';
-import { assertKnown, knownLabels } from './model-labels';
 
 /** The word catalogue managed in the admin panel (Words page). */
 
 export async function listWords(ctx: Ctx): Promise<AdminWord[]> {
   const today = todayUtc(ctx.clock);
-  const [known, rows, past, future] = await Promise.all([
-    knownLabels(ctx).catch(() => null),
+  const [rows, past, future] = await Promise.all([
     ctx.db.select().from(words),
     ctx.db
       .select({ wordId: dailyWords.wordId, at: max(dailyWords.date) })
@@ -38,16 +36,14 @@ export async function listWords(ctx: Ctx): Promise<AdminWord[]> {
       difficulty: w.difficulty,
       enabled: w.enabled,
       minConfidence: w.minConfidence,
-      knownByModel: known ? known.has(w.label.toLowerCase()) : null,
       lastUsed: lastUsed.get(w.id) ?? null,
       nextUse: nextUse.get(w.id) ?? null,
     }));
 }
 
-/** Add a word the model knows. Labels are stored lower case. */
+/** Add a word. Any physical object works: Claude judges the photos. Labels are stored lower case. */
 export async function addWord(ctx: Ctx, label: string, difficulty: Difficulty): Promise<void> {
   const clean = label.trim().toLowerCase();
-  assertKnown(await knownLabels(ctx), clean);
   const inserted = await ctx.db
     .insert(words)
     .values({ label: clean, difficulty })

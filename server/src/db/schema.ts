@@ -57,12 +57,12 @@ export const words = pgTable(
   'words',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    /** YOLO class label, also what players see */
+    /** The object to find: what players see and what Claude looks for in the photo */
     label: text('label').notNull(),
     difficulty: text('difficulty', { enum: difficulties }).notNull(),
     /** Retired words stay for history but are never scheduled again. */
     enabled: boolean('enabled').notNull().default(true),
-    /** Per-word pass threshold; null = YOLO_MIN_CONFIDENCE. */
+    /** Per-word pass threshold; null = VERIFY_MIN_CONFIDENCE. */
     minConfidence: real('min_confidence'),
   },
   (t) => [uniqueIndex('words_label_difficulty_idx').on(t.label, t.difficulty)],

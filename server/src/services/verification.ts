@@ -27,7 +27,7 @@ async function markError(ctx: Ctx, submissionId: string) {
 }
 
 /**
- * Does the verdict count? The word's own threshold wins over YOLO_MIN_CONFIDENCE.
+ * Does the verdict count? The word's own threshold wins over VERIFY_MIN_CONFIDENCE.
  * A detection without a confidence passes.
  */
 function passes(verdict: Verdict, threshold: number) {
@@ -52,7 +52,9 @@ export async function decide(ctx: Ctx, submissionId: string, photo?: Buffer): Pr
     return;
   }
 
-  if (!passes(verdict, word.minConfidence ?? ctx.env.YOLO_MIN_CONFIDENCE)) {
+  if (verdict.reason) console.log(`verdict ${submissionId} (${word.label}): ${verdict.detected ? 'found' : 'not found'}, ${verdict.reason}`);
+
+  if (!passes(verdict, word.minConfidence ?? ctx.env.VERIFY_MIN_CONFIDENCE)) {
     await markInvalid(
       ctx,
       submissionId,
