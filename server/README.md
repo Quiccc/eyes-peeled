@@ -87,9 +87,12 @@ test/
 
 ## Before production
 
+Deploying to a VPS (Docker Compose with Postgres and Caddy for HTTPS) is covered step by step in [`deploy/README.md`](../deploy/README.md).
+
 - Use a real Postgres (`DATABASE_URL`), long random secrets, `NODE_ENV=production` (this turns dev login off), and HTTPS.
 - With `NODE_ENV=production` the server refuses to start if `ANTHROPIC_API_KEY`, `REVENUECAT_SECRET_KEY` or `REVENUECAT_WEBHOOK_AUTH` is missing, or if a secret is still a `change-me` placeholder from `.env.example`.
-- Behind a load balancer, set `TRUST_PROXY` (e.g. `1`) so rate limits see each client's IP. `/auth/*` allows 20 requests a minute per IP; everything else allows 120.
+- Behind a proxy, set `TRUST_PROXY` (e.g. `1`) so rate limits see each client's IP. Per IP per minute, `/auth/*` allows 20 requests, `/files/*` (photos) 600, and everything else 120.
 - Set `GOOGLE_WEB_CLIENT_ID`, the RevenueCat keys, `ADMIN_TOKEN` and `MIN_APP_VERSION`.
-- Move photos to object storage.
-- **Not implemented yet: Apple token revocation on account deletion.** The app has to send Apple's `authorizationCode`. There's a TODO in `src/services/account.ts`.
+- Set `APPLE_TEAM_ID`, `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY` (a key with Sign in with Apple enabled). Without them, deleting an Apple account doesn't revoke its Apple token, which App Review requires.
+- Logs are JSON lines from pino (`LOG_LEVEL`, default `info`). Every response has an `x-request-id` header that also appears in its log lines.
+- Photos are stored on local disk under `DATA_DIR`. That's fine on a single VPS with a volume and backups; implement the `Storage` interface in `src/services/storage.ts` for S3/R2 if you ever run more than one instance.

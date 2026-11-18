@@ -16,6 +16,15 @@ const schema = z.object({
   ACCESS_TOKEN_TTL_SEC: z.coerce.number().int().positive().default(15 * 60),
   FILE_URL_SECRET: z.string().min(32),
   APPLE_BUNDLE_ID: z.string().default('com.eyespeeled.app'),
+  /**
+   * Sign in with Apple key (developer.apple.com → Keys), used to revoke a user's Apple token when
+   * they delete their account. All three or none; without them revocation is skipped with a warning.
+   */
+  APPLE_TEAM_ID: optional,
+  APPLE_KEY_ID: optional,
+  /** The .p8 file's contents; newlines may be written as 
+. */
+  APPLE_PRIVATE_KEY: optional,
   GOOGLE_WEB_CLIENT_ID: optional,
   AUTH_DEV_LOGIN: z
     .string()

@@ -1,3 +1,5 @@
+import { logger } from '../lib/logger';
+
 /** Runs jobs with limited concurrency. `run` resolves when that job finishes (or fails). */
 export type VerificationQueue = {
   run(id: string, job: () => Promise<void>): Promise<void>;
@@ -36,7 +38,7 @@ export function createQueue(concurrency = 2): VerificationQueue {
         try {
           await job();
         } catch (e) {
-          console.error(`verification ${id} failed`, e);
+          logger.error({ err: e, submissionId: id }, 'verification failed');
         } finally {
           release();
           inFlight.delete(id);

@@ -25,6 +25,7 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npx expo lint
+      - run: npm test
 
   server:
     runs-on: ubuntu-latest

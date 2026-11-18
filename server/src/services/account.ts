@@ -4,6 +4,7 @@ import type { Ctx } from '../context';
 import { users, type UserRow } from '../db/schema';
 import { HttpError } from '../lib/errors';
 import { isUniqueViolation } from '../lib/sql';
+import { revokeAppleToken } from './apple-revoke';
 import { deleteCustomer } from './revenuecat';
 
 /** Lowercase letters, digits and underscores, 3–20 long. The app checks the same rule. */
@@ -24,10 +25,18 @@ export async function setUsername(ctx: Ctx, user: UserRow, username: string): Pr
   }
 }
 
-/** Delete the account and everything it owns. Required by the App Store. */
-export async function deleteAccount(ctx: Ctx, user: UserRow): Promise<void> {
-  // TODO(apple): revoking the Apple token needs the app to send Apple's authorizationCode
-  // (exchange it at https://appleid.apple.com/auth/token, then POST /auth/revoke). Not sent yet.
+/**
+ * Delete the account and everything it owns. Required by the App Store. Apple accounts also get
+ * their Sign in with Apple token revoked, from the fresh authorization code the app sends.
+ */
+export async function deleteAccount(
+  ctx: Ctx,
+  user: UserRow,
+  opts: { appleAuthorizationCode?: string } = {},
+): Promise<void> {
+  if (user.provider === 'apple' && opts.appleAuthorizationCode) {
+    await revokeAppleToken(ctx.env, opts.appleAuthorizationCode);
+  }
   await deleteCustomer(ctx, user.id);
   // Cascades to submissions, tokens, friendships, requests and blocks.
   await ctx.db.delete(users).where(eq(users.id, user.id));

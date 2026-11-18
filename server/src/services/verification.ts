@@ -2,6 +2,7 @@ import { and, count, eq } from 'drizzle-orm';
 
 import type { Ctx } from '../context';
 import { dailyWords, submissions } from '../db/schema';
+import { logger } from '../lib/logger';
 import { isUniqueViolation } from '../lib/sql';
 import { creditCombo } from './combos';
 import { dailyWordById } from './daily-words';
@@ -47,12 +48,15 @@ export async function decide(ctx: Ctx, submissionId: string, photo?: Buffer): Pr
     const image = photo ?? (await ctx.storage.read(sub.imageKey!));
     verdict = await ctx.verifier.verify(image, word.label);
   } catch (e) {
-    console.error('verifier failed', e);
+    logger.error({ err: e, submissionId }, 'verifier failed');
     await markError(ctx, submissionId);
     return;
   }
 
-  if (verdict.reason) console.log(`verdict ${submissionId} (${word.label}): ${verdict.detected ? 'found' : 'not found'}, ${verdict.reason}`);
+  logger.info(
+    { submissionId, word: word.label, detected: verdict.detected, confidence: verdict.confidence, reason: verdict.reason },
+    'verdict',
+  );
 
   if (!passes(verdict, word.minConfidence ?? ctx.env.VERIFY_MIN_CONFIDENCE)) {
     await markInvalid(

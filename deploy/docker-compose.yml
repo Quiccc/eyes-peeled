@@ -1,0 +1,63 @@
+# Eyes Peeled on one VPS: API + Postgres + Caddy (automatic HTTPS).
+# See deploy/README.md. Run from this folder: docker compose up -d --build
+
+name: eyespeeled
+
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: eyespeeled
+      POSTGRES_USER: eyespeeled
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eyespeeled -d eyespeeled"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # Not published: only the api container can reach it.
+
+  api:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://eyespeeled:${POSTGRES_PASSWORD}@db:5432/eyespeeled
+      PUBLIC_BASE_URL: https://${API_DOMAIN:?set API_DOMAIN in deploy/.env}
+      DATA_DIR: /data
+      # Caddy is the one proxy in front.
+      TRUST_PROXY: "1"
+    volumes:
+      - uploads:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    stop_grace_period: 30s
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:

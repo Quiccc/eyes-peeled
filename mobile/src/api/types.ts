@@ -28,6 +28,15 @@ export type AuthRequest = {
   fullName?: string | null;
 };
 
+/** Optional body of DELETE /me. */
+export type DeleteAccountRequest = {
+  /**
+   * Apple accounts: a fresh `authorizationCode` from Sign in with Apple (valid ~5 minutes, one use).
+   * The server trades it for a token and revokes it, as Apple requires on account deletion.
+   */
+  appleAuthorizationCode?: string;
+};
+
 export type AuthTokens = {
   accessToken: string;
   refreshToken: string;

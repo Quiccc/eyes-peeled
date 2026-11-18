@@ -1,11 +1,15 @@
+import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
 import express from 'express';
 import { rateLimit } from 'express-rate-limit';
+import helmet from 'helmet';
+import { pinoHttp } from 'pino-http';
 
 import type { Ctx } from './context';
 import { errorHandler, notFoundHandler } from './lib/errors';
+import { logger } from './lib/logger';
 import { requireAppVersion } from './middleware/app-version';
 import { adminRoutes } from './routes/admin';
 import { authRoutes } from './routes/auth';
@@ -15,28 +19,35 @@ import { meRoutes } from './routes/me';
 import { socialRoutes } from './routes/social';
 import { webhookRoutes } from './routes/webhooks';
 
-export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean; adminPanelDir?: string } = {}) {
+export function createApp(ctx: Ctx, opts: { rateLimit?: boolean; adminPanelDir?: string } = {}) {
   const app = express();
   app.disable('x-powered-by');
   // Behind a load balancer, rate limits must key on the client's IP, not the proxy's.
   if (ctx.env.TRUST_PROXY) app.set('trust proxy', parseTrustProxy(ctx.env.TRUST_PROXY));
   app.set('query parser', 'simple');
 
-  if (opts.log) {
-    app.use((req, res, next) => {
-      const started = Date.now();
-      const path = req.originalUrl.split('?')[0];
-      res.on('finish', () => {
-        console.log(`${req.method} ${path} ${res.statusCode} ${Date.now() - started}ms`);
-      });
-      // A connection that drops before the response (e.g. an upload cut off mid-way) would
-      // otherwise leave no trace at all.
-      res.on('close', () => {
-        if (!res.writableFinished) console.log(`${req.method} ${path} aborted after ${Date.now() - started}ms`);
-      });
-      next();
-    });
-  }
+  // Every response carries an x-request-id (the caller's, or a new one); it is on every log line
+  // for that request, so a user's report can be traced in `docker compose logs`.
+  app.use(
+    pinoHttp({
+      logger,
+      genReqId: (req, res) => {
+        const incoming = req.headers['x-request-id'];
+        const id = typeof incoming === 'string' && /^[\w-]{1,64}$/.test(incoming) ? incoming : randomUUID();
+        res.setHeader('x-request-id', id);
+        return id;
+      },
+      autoLogging: { ignore: (req) => req.url === '/health' },
+      // Never log tokens or cookies.
+      serializers: {
+        req: (req: { id: unknown; method: string; url: string }) => ({ id: req.id, method: req.method, url: req.url.split('?')[0] }),
+        res: (res: { statusCode: number }) => ({ statusCode: res.statusCode }),
+      },
+      customLogLevel: (_req, res, err) => (err || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'),
+    }),
+  );
+  // Photos are shown in the app's <Image> and the admin panel, so they may load cross-origin.
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
   app.get('/health', (_req, res) => {
     res.json({ ok: true });
@@ -52,9 +63,6 @@ export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean; 
     });
   }
 
-  // Photos load in <Image>, so they skip the JSON/version middleware below.
-  app.use(fileRoutes(ctx));
-
   if (opts.rateLimit !== false) {
     const limiter = (limit: number) =>
       rateLimit({
@@ -66,10 +74,17 @@ export function createApp(ctx: Ctx, opts: { log?: boolean; rateLimit?: boolean; 
           res.status(429).json({ code: 'rate_limited', message: 'Slow down a little and try again in a minute.' });
         },
       });
-    app.use(limiter(120));
+    // Photos get their own, larger budget: a feed or leaderboard loads many at once.
+    app.use('/files', limiter(600));
+    const general = limiter(120);
+    app.use((req, res, next) => (req.path.startsWith('/files/') ? next() : general(req, res, next)));
     // Sign-in and token refresh are cheap to hammer and expensive to serve (provider token checks).
     app.use('/auth', limiter(20));
   }
+
+  // Photos load in <Image>, so they skip the JSON/version middleware below.
+  app.use(fileRoutes(ctx));
+
   app.use(express.json({ limit: '100kb' }));
   app.use(requireAppVersion(ctx.env.MIN_APP_VERSION));
 

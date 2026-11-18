@@ -55,6 +55,21 @@ export async function getAppleCredential(): Promise<AuthRequest> {
   }
 }
 
+/**
+ * Account deletion: ask Apple for a fresh authorization code (it lasts ~5 minutes and works once,
+ * so the one from sign-in can't be kept). The server uses it to revoke the app's Apple token.
+ */
+export async function getAppleAuthorizationCode(): Promise<string> {
+  try {
+    const credential = await AppleAuthentication.signInAsync({ requestedScopes: [] });
+    if (!credential.authorizationCode) throw new Error('Apple did not return an authorization code.');
+    return credential.authorizationCode;
+  } catch (e) {
+    if ((e as { code?: string }).code === 'ERR_REQUEST_CANCELED') throw new SignInCancelled();
+    throw e;
+  }
+}
+
 export async function getGoogleCredential(): Promise<AuthRequest> {
   configureGoogle();
   try {

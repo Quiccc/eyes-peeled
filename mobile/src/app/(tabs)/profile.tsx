@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { showAdPrivacyOptions } from '@/ads/ads';
 import { useMyProfile } from '@/api/queries';
 import { useAuth } from '@/auth/auth-provider';
+import { SignInCancelled } from '@/auth/social-sign-in';
 import { FeedCard } from '@/components/feed-card';
 import { ProfileHeader } from '@/components/profile-header';
 import { ProfileStats } from '@/components/profile-stats';
@@ -48,7 +49,12 @@ export default function ProfileScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => deletion.run('delete', deleteAccount, { errorTitle: 'Could not delete account' }),
+          onPress: () =>
+            deletion.run('delete', deleteAccount, {
+              errorTitle: 'Could not delete account',
+              // Dismissed the Apple confirmation sheet: keep the account, no error.
+              ignore: (e) => e instanceof SignInCancelled,
+            }),
         },
       ],
     );

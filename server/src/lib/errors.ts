@@ -2,6 +2,8 @@ import type { ErrorRequestHandler, RequestHandler } from 'express';
 import multer from 'multer';
 import { ZodError } from 'zod';
 
+import { logger } from './logger';
+
 /** Thrown anywhere in a handler; becomes `{ code, message }` with this status. */
 export class HttpError extends Error {
   constructor(
@@ -26,7 +28,7 @@ export const notFoundHandler: RequestHandler = (_req, _res, next) => {
   next(new HttpError(404, 'not_found', 'Not found.'));
 };
 
-export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof HttpError) {
     res.status(err.status).json({ code: err.code, message: err.message });
     return;
@@ -52,6 +54,6 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     res.status(400).json({ code: 'bad_request', message: 'Invalid JSON body.' });
     return;
   }
-  console.error(err);
+  (req.log ?? logger).error({ err }, 'unhandled error');
   res.status(500).json({ code: 'server_error', message: 'Something went wrong on our side. Please try again.' });
 };

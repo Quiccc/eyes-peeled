@@ -17,6 +17,7 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+google-service-account*.json
 
 # Metro
 .metro-health-check*
@@ -54,6 +55,7 @@ graphify-out/
 # backend
 server/data/
 server/.env
+deploy/.env
 
 # personal task list (kept local)
 /TODO.md

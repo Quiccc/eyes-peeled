@@ -7,6 +7,7 @@ import type {
   AuthResponse,
   BlockedUser,
   Daily,
+  DeleteAccountRequest,
   FeedItem,
   FriendRequest,
   Leaderboard,
@@ -27,7 +28,7 @@ export type Api = {
   signOut(): Promise<void>;
   getMe(): Promise<User>;
   updateMe(patch: { username: string }): Promise<User>;
-  deleteMe(): Promise<void>;
+  deleteMe(req?: DeleteAccountRequest): Promise<void>;
   getMyProfile(): Promise<UserProfile>;
 
   // purchases
@@ -63,7 +64,7 @@ const httpApi: Api = {
   signOut: () => request('/auth/signout', { method: 'POST' }),
   getMe: () => request('/me'),
   updateMe: (patch) => request('/me', { method: 'PATCH', body: patch }),
-  deleteMe: () => request('/me', { method: 'DELETE' }),
+  deleteMe: (req) => request('/me', { method: 'DELETE', body: req }),
   getMyProfile: () => request('/me/profile'),
 
   syncPurchases: () => request('/me/purchases/sync', { method: 'POST' }),

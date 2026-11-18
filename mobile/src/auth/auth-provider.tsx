@@ -6,8 +6,13 @@ import { api, USE_MOCK_API } from '@/api/endpoints';
 import type { AuthProvider as Provider, User } from '@/api/types';
 import { initPurchases, resetPurchases } from '@/purchases/purchases';
 
-import { getAppleCredential, getGoogleCredential, signOutOfProviders } from './social-sign-in';
-import { clearTokens, loadTokens, saveTokens } from './token-store';
+import {
+  getAppleAuthorizationCode,
+  getAppleCredential,
+  getGoogleCredential,
+  signOutOfProviders,
+} from './social-sign-in';
+import { clearTokens, loadSignInProvider, loadTokens, saveSignInProvider, saveTokens } from './token-store';
 
 /** Dev only: sign in to a local server as this test user, skipping Apple/Google. Never set it in release builds. */
 const DEV_LOGIN = __DEV__ ? process.env.EXPO_PUBLIC_DEV_LOGIN?.trim() || null : null;
@@ -80,6 +85,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           : await getGoogleCredential();
       const res = await api.signIn(credential);
       await saveTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+      await saveSignInProvider(provider);
       setState({ status: 'signedIn', user: res.user });
     },
     async signOut() {
@@ -92,7 +98,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       await resetLocal();
     },
     async deleteAccount() {
-      await api.deleteMe();
+      // Apple requires revoking our Sign in with Apple token on deletion; that needs a fresh code.
+      // Cancelling the Apple sheet throws SignInCancelled and the account is kept.
+      const appleSignIn = !USE_MOCK_API && !DEV_LOGIN && (await loadSignInProvider()) === 'apple';
+      const appleAuthorizationCode = appleSignIn ? await getAppleAuthorizationCode() : undefined;
+      await api.deleteMe(appleAuthorizationCode ? { appleAuthorizationCode } : undefined);
       await signOutOfProviders();
       await resetLocal();
     },

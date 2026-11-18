@@ -35,7 +35,7 @@ export function localStorage(opts: { dir: string; baseUrl: string; secret: strin
       await mkdir(path.dirname(file), { recursive: true });
       await writeFile(file, data);
     },
-    read(key) {
+    async read(key) {
       return readFile(fileFor(key));
     },
     async delete(keyOrPrefix) {

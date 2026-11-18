@@ -6,6 +6,7 @@ import type { Ctx } from './context';
 import { openDatabase } from './db/client';
 import { loadEnv } from './env';
 import { systemClock } from './lib/clock';
+import { logger } from './lib/logger';
 import { seedWords } from './seed/words';
 import { createQueue } from './services/queue';
 import { autoSchedule } from './services/schedule';
@@ -38,33 +39,49 @@ const ctx: Ctx = {
 
 const requeued = await requeuePending(ctx);
 
-const server = createApp(ctx, { log: true, adminPanelDir }).listen(env.PORT, '0.0.0.0', () => {
-  console.log(`Eyes Peeled API on http://localhost:${env.PORT}`);
-  console.log(`  database: ${env.DATABASE_URL ? 'Postgres (DATABASE_URL)' : `PGlite in ${path.join(dataDir, 'db')}`}`);
-  console.log(`  verifier: ${env.ANTHROPIC_API_KEY ? `Claude (${env.VERIFY_MODEL})` : 'stub (random ~60% pass). Set ANTHROPIC_API_KEY for real checks.'}`);
-  if (env.AUTH_DEV_LOGIN) console.log('  dev login: ON (idToken "dev:<name>")');
-  if (env.ADMIN_TOKEN) console.log(`  admin panel: http://localhost:${env.PORT}/admin-panel/ (after building server/admin/)`);
-  if (requeued) console.log(`  re-checking ${requeued} pending photo(s)`);
+const server = createApp(ctx, { adminPanelDir }).listen(env.PORT, '0.0.0.0', () => {
+  logger.info(
+    {
+      port: env.PORT,
+      database: env.DATABASE_URL ? 'postgres' : `pglite (${path.join(dataDir, 'db')})`,
+      verifier: env.ANTHROPIC_API_KEY ? `claude (${env.VERIFY_MODEL})` : 'stub (random ~60% pass; set ANTHROPIC_API_KEY)',
+      devLogin: env.AUTH_DEV_LOGIN,
+      adminPanel: env.ADMIN_TOKEN ? `${env.PUBLIC_BASE_URL}/admin-panel/` : 'off',
+      requeuedPhotos: requeued,
+    },
+    `Eyes Peeled API on http://localhost:${env.PORT}`,
+  );
 });
 
 let autoTimer: NodeJS.Timeout | undefined;
 if (env.AUTO_SCHEDULE) {
   const run = () =>
     autoSchedule(ctx)
-      .then((n) => n && console.log(`  auto-schedule: planned ${n} word slot(s) for next month`))
-      .catch((e: unknown) => console.error('auto-schedule failed', e));
+      .then((n) => n && logger.info({ slots: n }, 'auto-schedule planned next month'))
+      .catch((err: unknown) => logger.error({ err }, 'auto-schedule failed'));
   void run();
   autoTimer = setInterval(run, 6 * 60 * 60 * 1000);
   autoTimer.unref();
 }
 
-const shutdown = () => {
+let stopping = false;
+const shutdown = (signal: string) => {
+  if (stopping) return;
+  stopping = true;
+  logger.info({ signal }, 'shutting down');
   clearInterval(autoTimer);
+  // Don't let a stuck connection or photo check hold `docker stop` until it SIGKILLs us;
+  // pending photos are re-checked on the next start anyway.
+  setTimeout(() => {
+    logger.warn('shutdown timed out, exiting');
+    process.exit(1);
+  }, 10_000).unref();
   server.close(async () => {
     await ctx.queue.idle();
     await database.close();
     process.exit(0);
   });
+  server.closeIdleConnections();
 };
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));

@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { Ctx } from '../context';
 import { users, type UserRow } from '../db/schema';
 import { HttpError } from '../lib/errors';
+import { logger } from '../lib/logger';
 import { isUuid } from '../lib/validation';
 
 const API = 'https://api.revenuecat.com/v1';
@@ -47,7 +48,7 @@ export async function deleteCustomer(ctx: Ctx, userId: string): Promise<void> {
       signal: AbortSignal.timeout(10_000),
     });
   } catch (e) {
-    console.warn('RevenueCat delete failed', e);
+    logger.warn({ err: e, userId }, 'RevenueCat delete failed');
   }
 }
 

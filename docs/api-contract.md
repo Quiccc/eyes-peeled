@@ -42,8 +42,10 @@ Premium purchase (see [Purchases](#purchases-premium)). The app hides ads and sh
 |---|---|---|---|
 | GET | `/me` | — | `User` |
 | PATCH | `/me` | `{ username }` | `User`. 400 `invalid_username` (rule: `^[a-z0-9_]{3,20}$`), 409 `username_taken` |
-| DELETE | `/me` | — | 204. Delete the account, photos, friendships and leaderboard rows. Required by the App Store. For Apple users, also revoke the Apple token (**not done yet:** the app must first send Apple's `authorizationCode`; see the TODO in `server/src/routes/me.ts`). Also delete the RevenueCat customer (`DELETE /v1/subscribers/:id`). |
+| DELETE | `/me` | `DeleteAccountRequest?` `{ appleAuthorizationCode? }` | 204. Delete the account, photos, friendships and leaderboard rows. Required by the App Store. Also delete the RevenueCat customer (`DELETE /v1/subscribers/:id`). |
 | GET | `/me/profile` | — | `UserProfile` (`today` = the user's own valid finds today) |
+
+- **Apple accounts on deletion:** Apple requires the app's Sign in with Apple token to be revoked. Before calling `DELETE /me`, the app asks Apple for a fresh `authorizationCode` (a sign-in sheet with no scopes; the code lasts about 5 minutes and works once) and sends it as `appleAuthorizationCode`. The server exchanges it at `https://appleid.apple.com/auth/token` and revokes the token at `/auth/revoke`, signing with the Sign in with Apple key (`APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`). This is best effort: if Apple can't be reached, the account is still deleted. If the user dismisses the Apple sheet, the app keeps the account.
 
 ## Daily words
 
@@ -172,21 +174,35 @@ Image URLs in `FeedItem.imageUrl` and `Submission.imageUrl` should be short-live
 
 Apple expects a way to act on reports within 24 hours, such as an admin queue that can remove photos and ban users.
 
+## Infrastructure
+
+These routes are not called through `endpoints.ts`.
+
+| Method | Path | Auth | Response |
+|---|---|---|---|
+| GET | `/health` | — | `{ ok: true }`. For uptime checks and the Docker healthcheck. |
+| GET | `/files/*key?exp=&sig=` | Signature in the URL | The photo (JPEG). `imageUrl` values point here. Each URL is signed (HMAC) for 1 hour. Gives 403 `forbidden` for a bad or expired signature and 404 `not_found` for a missing file. Rate-limited separately from the API, at 600 requests a minute per IP. |
+| POST | `/webhooks/revenuecat` | `Authorization` = `REVENUECAT_WEBHOOK_AUTH` | `200 { ok: true }`. Gives 401 `unauthorized` when the header is wrong or the server has no webhook secret set, and 502 when RevenueCat can't be reached, so it retries. See [Purchases](#purchases-premium). |
+
+Every response has an `x-request-id` header: the caller's own value if it was a valid id, otherwise a new UUID. Server logs include it, so quote it when reporting a problem.
+
 ## Error codes
 
 | Status | `code` | When |
 |---|---|---|
 | 400 | `invalid_username` | `PATCH /me` with a username that fails `^[a-z0-9_]{3,20}$` |
 | 400 | `bad_request` | Any other malformed body or query |
-| 401 | `unauthorized` | Missing, invalid or expired access token (the app refreshes once, then signs out) |
+| 401 | `unauthorized` | Missing, invalid or expired access token (the app refreshes once, then signs out); also a bad webhook secret |
+| 401 | `invalid_token` | `POST /auth/signin` with an Apple/Google `idToken` that fails verification |
 | 403 | `premium_required` | Submitting to the `expert` word without Premium |
 | 403 | `banned` | The account was banned by moderation |
+| 403 | `forbidden` | A `/files` link with a bad or expired signature |
 | 404 | `word_not_found` | Submitting to a word that isn't one of today's |
 | 404 | `not_found` | Unknown submission, user or request id |
 | 409 | `username_taken` | `PATCH /me` with a taken username |
 | 409 | `already_found` | Submitting to a word the user already found today |
 | 409 | `submission_pending` | Submitting while an earlier photo for that word is still being checked |
-| 413 | `photo_too_large` | Upload above your size limit (the app sends ≤1280px JPEGs, usually < 500 KB) |
+| 413 | `photo_too_large` | Upload above the size limit, 3.75 MB on the reference server (the app sends ≤1280px JPEGs, usually < 500 KB) |
 | 426 | `upgrade_required` | App version below the minimum (see [Planned](#planned)) |
 | 429 | `rate_limited` | Too many attempts or requests; `message` should say when to try again |
 | 5xx | `server_error` | Anything unexpected. Keep `message` generic. |

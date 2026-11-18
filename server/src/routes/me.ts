@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 
-import type { User, UserProfile } from '@shared/types';
+import type { DeleteAccountRequest, User, UserProfile } from '@shared/types';
 
 import type { Ctx } from '../context';
 import { toUser } from '../lib/present';
@@ -24,7 +24,10 @@ export function meRoutes(ctx: Ctx) {
   });
 
   r.delete('/me', auth, async (req, res) => {
-    await deleteAccount(ctx, me(req));
+    const body: DeleteAccountRequest = z
+      .object({ appleAuthorizationCode: z.string().min(1).max(2000).optional() })
+      .parse(req.body ?? {});
+    await deleteAccount(ctx, me(req), body);
     res.status(204).end();
   });
 
