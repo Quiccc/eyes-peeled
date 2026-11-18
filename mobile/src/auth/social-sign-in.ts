@@ -17,6 +17,14 @@ export class SignInCancelled extends Error {
   }
 }
 
+/**
+ * Whether this build has the Google client IDs it needs (iOS also needs its own client ID). Without
+ * them the button could only fail, so the sign-in screen hides it (e.g. early TestFlight builds).
+ */
+export const GOOGLE_SIGN_IN_AVAILABLE =
+  !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID &&
+  (Platform.OS !== 'ios' || !!process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
+
 let googleConfigured = false;
 
 function configureGoogle() {

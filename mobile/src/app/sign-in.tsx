@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { USE_MOCK_API } from '@/api/endpoints';
 import type { AuthProvider, Difficulty } from '@/api/types';
 import { useAuth } from '@/auth/auth-provider';
-import { isAppleSignInAvailable, SignInCancelled } from '@/auth/social-sign-in';
+import { GOOGLE_SIGN_IN_AVAILABLE, isAppleSignInAvailable, SignInCancelled } from '@/auth/social-sign-in';
 import { Button } from '@/components/button';
 import { EyesPeeledLogo } from '@/components/eyes-peeled-logo';
 import { SampleWordChip } from '@/components/sample-word-chip';
@@ -85,14 +85,16 @@ export default function SignInScreen() {
               onPress={() => handle('apple')}
             />
           ) : null}
-          <Button
-            title="Continue with Google"
-            variant="secondary"
-            height={56}
-            loading={pending === 'google'}
-            disabled={!!pending}
-            onPress={() => handle('google')}
-          />
+          {(GOOGLE_SIGN_IN_AVAILABLE || USE_MOCK_API) && (
+            <Button
+              title="Continue with Google"
+              variant="secondary"
+              height={56}
+              loading={pending === 'google'}
+              disabled={!!pending}
+              onPress={() => handle('google')}
+            />
+          )}
           <ThemedText type="small" themeColor="textSecondary" style={[styles.center, styles.legal]}>
             By continuing you agree to the{' '}
             <ThemedText type="small" style={styles.link} accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)}>
