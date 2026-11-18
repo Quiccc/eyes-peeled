@@ -1,9 +1,11 @@
 import { readdirSync } from 'node:fs';
+import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Daily, Leaderboard } from '@shared/types';
 
 import { removeSubmission } from '../src/services/moderation';
+import { MAX_QUEUED_CHECKS } from '../src/services/submissions';
 import { jpeg, startTestServer, type TestServer } from './helpers';
 
 let t: TestServer;
@@ -153,6 +155,53 @@ describe('submissions', () => {
     } finally {
       await slow.close();
     }
+  });
+
+  it('lets only one of several parallel uploads for a word through', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const slow = await startTestServer({ VERIFY_SYNC_WAIT_MS: '0' });
+    try {
+      slow.setVerdict(async () => {
+        await gate;
+        return { detected: false, confidence: 0.2 };
+      });
+      const a = await slow.signIn('alex');
+      const word = ((await slow.http().get('/daily').set(a.auth)).body as Daily).words[0]!;
+      const results = await Promise.all(
+        Array.from({ length: 6 }, () =>
+          slow.http().post(`/words/${word.id}/submissions`).set(a.auth).attach('photo', jpeg(), 'p.jpg'),
+        ),
+      );
+      const ok = results.filter((r) => r.status === 200);
+      expect(ok).toHaveLength(1);
+      expect(ok[0]!.body.status).toBe('pending');
+      for (const r of results.filter((r) => r.status !== 200)) {
+        expect(r.status).toBe(409);
+        expect(r.body.code).toBe('submission_pending');
+      }
+      // The losers' photos were cleaned up.
+      expect(readdirSync(path.join(slow.storageDir, a.id))).toHaveLength(1);
+    } finally {
+      release();
+      await slow.close();
+    }
+  });
+
+  it('turns photos away while too many are waiting for a verdict', async () => {
+    const a = await t.signIn('alex');
+    const word = (await daily(a.auth)).words[0]!;
+    t.ctx.queue.size = () => MAX_QUEUED_CHECKS;
+    const res = await submit(a.auth, word.id);
+    expect(res.status).toBe(429);
+    expect(res.body.code).toBe('rate_limited');
+  });
+
+  it('refuses uploads with extra form fields', async () => {
+    const a = await t.signIn('alex');
+    const word = (await daily(a.auth)).words[0]!;
+    const res = await t.http().post(`/words/${word.id}/submissions`).set(a.auth).field('x', 'y').attach('photo', jpeg(), 'p.jpg');
+    expect(res.status).toBe(400);
   });
 
   it("answers invalid when the verifier is down, without using up a try", async () => {

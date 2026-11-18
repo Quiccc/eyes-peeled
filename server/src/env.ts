@@ -22,8 +22,7 @@ const schema = z.object({
    */
   APPLE_TEAM_ID: optional,
   APPLE_KEY_ID: optional,
-  /** The .p8 file's contents; newlines may be written as 
-. */
+  /** The .p8 file's contents; newlines may be written as \n. */
   APPLE_PRIVATE_KEY: optional,
   GOOGLE_WEB_CLIENT_ID: optional,
   AUTH_DEV_LOGIN: z
@@ -57,6 +56,8 @@ const schema = z.object({
 
 /** Placeholder values from .env.example contain this; they must never reach production. */
 const PLACEHOLDER = 'change-me';
+/** Shared secrets that guard admin rights or Premium grants must not be guessable. */
+const MIN_SECRET_LENGTH = 32;
 
 /** Settings that fail silently in production (random verdicts, guessable tokens), so refuse to start. */
 function productionProblems(env: z.infer<typeof schema>): string[] {
@@ -67,6 +68,12 @@ function productionProblems(env: z.infer<typeof schema>): string[] {
   const secrets = ['JWT_SECRET', 'FILE_URL_SECRET', 'ANTHROPIC_API_KEY', 'ADMIN_TOKEN', 'REVENUECAT_WEBHOOK_AUTH'] as const;
   for (const key of secrets) {
     if (env[key]?.includes(PLACEHOLDER)) problems.push(`${key}: still the placeholder from .env.example`);
+  }
+  for (const key of ['ADMIN_TOKEN', 'REVENUECAT_WEBHOOK_AUTH'] as const) {
+    const value = env[key];
+    if (value && value.length < MIN_SECRET_LENGTH) {
+      problems.push(`${key}: at least ${MIN_SECRET_LENGTH} characters (use openssl rand -hex 32)`);
+    }
   }
   return problems;
 }

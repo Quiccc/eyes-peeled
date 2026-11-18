@@ -7,6 +7,7 @@ import type { Daily, DailyWord, Submission } from '@shared/types';
 import type { Ctx } from '../context';
 import { submissions, type SubmissionRow, type UserRow } from '../db/schema';
 import { HttpError, notFound } from '../lib/errors';
+import { isUniqueViolation } from '../lib/sql';
 import { toSubmission } from '../lib/present';
 import { existingId } from '../lib/validation';
 import { nextDayStartUtc, utcDate } from '../lib/time';
@@ -15,8 +16,12 @@ import { MAX_POINTS } from './scoring';
 import { decide } from './verification';
 
 const MAX_ATTEMPTS_PER_WORD = 10;
+/** Photos waiting for a verdict across all players. Each holds its buffer (up to 3.75 MB) in memory. */
+export const MAX_QUEUED_CHECKS = 50;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const wordGone = () => new HttpError(404, 'word_not_found', 'This word is no longer active.');
+const stillPending = () =>
+  new HttpError(409, 'submission_pending', "We're still checking your last photo for this word.");
 
 // ---- GET /daily ---------------------------------------------------------------
 
@@ -91,9 +96,7 @@ export async function createSubmission(ctx: Ctx, user: UserRow, rawWordId: strin
   if (existing.some((s) => s.status === 'valid')) {
     throw new HttpError(409, 'already_found', 'You already found this one today.');
   }
-  if (existing.some((s) => s.status === 'pending')) {
-    throw new HttpError(409, 'submission_pending', "We're still checking your last photo for this word.");
-  }
+  if (existing.some((s) => s.status === 'pending')) throw stillPending();
   // Photos the verifier couldn't check (status 'error') don't use up a try.
   const tries = existing.filter((s) => s.status !== 'error').length;
   if (tries >= MAX_ATTEMPTS_PER_WORD) {
@@ -102,6 +105,10 @@ export async function createSubmission(ctx: Ctx, user: UserRow, rawWordId: strin
       'rate_limited',
       `That's ${MAX_ATTEMPTS_PER_WORD} tries for this word today. New words arrive at midnight UTC!`,
     );
+  }
+
+  if (ctx.queue.size() >= MAX_QUEUED_CHECKS) {
+    throw new HttpError(429, 'rate_limited', 'Lots of photos are being checked right now. Try again in a minute.');
   }
 
   const sha = createHash('sha256').update(photo).digest('hex');
@@ -118,6 +125,7 @@ export async function createSubmission(ctx: Ctx, user: UserRow, rawWordId: strin
   const imageKey = isDupe ? null : `${user.id}/${id}.jpg`;
   if (imageKey) await ctx.storage.put(imageKey, photo);
 
+  // The SELECT above can race with a parallel upload; submissions_one_pending_idx settles it.
   const [row] = await ctx.db
     .insert(submissions)
     .values({
@@ -131,7 +139,12 @@ export async function createSubmission(ctx: Ctx, user: UserRow, rawWordId: strin
       receivedAt,
       decidedAt: isDupe ? receivedAt : null,
     })
-    .returning();
+    .returning()
+    .catch(async (e: unknown) => {
+      if (!isUniqueViolation(e)) throw e;
+      if (imageKey) await ctx.storage.delete(imageKey);
+      throw stillPending();
+    });
   if (!row) throw new Error('insert failed');
   if (isDupe) return toSubmission(row, ctx.storage);
 

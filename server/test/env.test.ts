@@ -9,7 +9,8 @@ const prod = {
   FILE_URL_SECRET: 'b'.repeat(40),
   ANTHROPIC_API_KEY: 'sk-ant-real',
   REVENUECAT_SECRET_KEY: 'sk_live',
-  REVENUECAT_WEBHOOK_AUTH: 'Bearer real',
+  REVENUECAT_WEBHOOK_AUTH: `Bearer ${'w'.repeat(40)}`,
+  ADMIN_TOKEN: 'c'.repeat(40),
   AUTH_DEV_LOGIN: 'true',
 };
 
@@ -28,6 +29,15 @@ describe('loadEnv in production', () => {
 
   it('defaults to Claude Haiku and a 0.7 pass threshold', () => {
     expect(loadEnv(prod)).toMatchObject({ VERIFY_MODEL: 'claude-haiku-5-5', VERIFY_MIN_CONFIDENCE: 0.7 });
+  });
+
+  it('refuses short admin and webhook secrets', () => {
+    expect(() => loadEnv({ ...prod, ADMIN_TOKEN: 'admin2026' })).toThrow(/ADMIN_TOKEN: at least 32/);
+    expect(() => loadEnv({ ...prod, REVENUECAT_WEBHOOK_AUTH: 'Bearer real' })).toThrow(/REVENUECAT_WEBHOOK_AUTH: at least 32/);
+  });
+
+  it('leaves the admin panel off when ADMIN_TOKEN is unset', () => {
+    expect(loadEnv({ ...prod, ADMIN_TOKEN: '' }).ADMIN_TOKEN).toBeUndefined();
   });
 
   it('requires the RevenueCat keys', () => {

@@ -109,6 +109,8 @@ export const submissions = pgTable(
   (t) => [
     // At most one valid find per user per word.
     uniqueIndex('submissions_one_valid_idx').on(t.userId, t.dailyWordId).where(sql`${t.status} = 'valid'`),
+    // At most one photo being checked per user per word, so parallel uploads can't skip the limits.
+    uniqueIndex('submissions_one_pending_idx').on(t.userId, t.dailyWordId).where(sql`${t.status} = 'pending'`),
     index('submissions_word_status_idx').on(t.dailyWordId, t.status),
     index('submissions_user_received_idx').on(t.userId, t.receivedAt),
     index('submissions_sha_idx').on(t.imageSha256),

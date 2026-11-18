@@ -3,6 +3,8 @@ import { logger } from '../lib/logger';
 /** Runs jobs with limited concurrency. `run` resolves when that job finishes (or fails). */
 export type VerificationQueue = {
   run(id: string, job: () => Promise<void>): Promise<void>;
+  /** Jobs queued or running. */
+  size(): number;
   /** Resolves when everything queued so far is done (tests, shutdown). */
   idle(): Promise<void>;
 };
@@ -47,6 +49,7 @@ export function createQueue(concurrency = 2): VerificationQueue {
       inFlight.set(id, p);
       return p;
     },
+    size: () => inFlight.size,
     async idle() {
       while (inFlight.size) await Promise.all([...inFlight.values()]);
     },

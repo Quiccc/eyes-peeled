@@ -28,7 +28,7 @@ Docker Desktop (Windows/macOS) can run the same stack with no VPS and no DNS:
    git clone <repo> /opt/eyespeeled
    cd /opt/eyespeeled/deploy
    ```
-5. **Secrets.** Run `cp .env.example .env`. Fill in every `change-me` with `openssl rand -hex 32`, and use your real `ANTHROPIC_API_KEY`. The server refuses to start while a placeholder is left.
+5. **Secrets.** Run `cp .env.example .env`. Fill in every `change-me` with `openssl rand -hex 32`, and use your real `ANTHROPIC_API_KEY`. The server refuses to start while a placeholder is left, or while `ADMIN_TOKEN` or `REVENUECAT_WEBHOOK_AUTH` is shorter than 32 characters.
 6. **Start.**
    ```sh
    docker compose up -d --build
@@ -68,4 +68,4 @@ docker compose start api
 ```
 
 ## Limits
-Run **one** api container. The photo-check queue, the rate limits and the uploads folder are all local to the process (see TODO P2 "Scale").
+Run **one** api container. The photo-check queue, the rate limits and the uploads folder are all local to the process. Scaling out would need a shared queue, a shared rate-limit store and object storage for photos.

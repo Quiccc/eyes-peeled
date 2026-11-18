@@ -14,7 +14,11 @@ import { createSubmission, getDaily, getSubmissionFor } from '../services/submis
  */
 export const MAX_PHOTO_BYTES = Math.floor(3.75 * 1024 * 1024);
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_PHOTO_BYTES, files: 1 } });
+// The route reads only the "photo" file; cap everything else multer would buffer in memory.
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_PHOTO_BYTES, files: 1, fields: 0, parts: 1, headerPairs: 20 },
+});
 
 const isJpeg = (b: Buffer) => b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
 

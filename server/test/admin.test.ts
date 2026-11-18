@@ -42,6 +42,22 @@ describe('admin panel files', () => {
   });
 });
 
+describe('admin rate limit', () => {
+  it('slows down token guessing but not real use', async () => {
+    await start();
+    const guess = request(createApp(t.ctx));
+    for (let i = 0; i < 10; i++) {
+      expect((await guess.get('/admin/check').set({ Authorization: `Bearer wrong-${i}` })).status).toBe(404);
+    }
+    expect((await guess.get('/admin/check').set({ Authorization: 'Bearer wrong' })).status).toBe(429);
+
+    const admin = request(createApp(t.ctx));
+    for (let i = 0; i < 15; i++) {
+      expect((await admin.get('/admin/check').set(ADMIN)).status).toBe(204);
+    }
+  });
+});
+
 describe('GET /admin/stats', () => {
   it('counts attempts, finds and finders per daily word', async () => {
     await start();

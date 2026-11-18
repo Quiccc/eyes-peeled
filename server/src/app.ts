@@ -64,8 +64,9 @@ export function createApp(ctx: Ctx, opts: { rateLimit?: boolean; adminPanelDir?:
   }
 
   if (opts.rateLimit !== false) {
-    const limiter = (limit: number) =>
+    const limiter = (limit: number, extra: Partial<Parameters<typeof rateLimit>[0]> = {}) =>
       rateLimit({
+        ...extra,
         windowMs: 60_000,
         limit,
         standardHeaders: 'draft-8',
@@ -80,6 +81,8 @@ export function createApp(ctx: Ctx, opts: { rateLimit?: boolean; adminPanelDir?:
     app.use((req, res, next) => (req.path.startsWith('/files/') ? next() : general(req, res, next)));
     // Sign-in and token refresh are cheap to hammer and expensive to serve (provider token checks).
     app.use('/auth', limiter(20));
+    // A wrong admin token gets a 404; only those count, so guessing is slow and real use isn't.
+    app.use('/admin', limiter(10, { skipSuccessfulRequests: true, requestWasSuccessful: (_req, res) => res.statusCode !== 404 }));
   }
 
   // Photos load in <Image>, so they skip the JSON/version middleware below.

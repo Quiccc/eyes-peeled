@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "submissions_one_pending_idx" ON "submissions" USING btree ("user_id","daily_word_id") WHERE "submissions"."status" = 'pending';
