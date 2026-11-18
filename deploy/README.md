@@ -7,6 +7,15 @@ One machine runs three Docker containers:
 
 Uploaded photos live in the `uploads` volume, so a single VPS doesn't need S3.
 
+## Try it locally first
+Docker Desktop (Windows/macOS) can run the same stack with no VPS and no DNS:
+1. `cp .env.example .env`, then set `API_DOMAIN=localhost`. Caddy signs its own certificate for localhost. Fill every `change-me` with random hex. Use made-up values for the RevenueCat keys; they only need to be non-empty to start. Use a real `ANTHROPIC_API_KEY` only if you want photo checks to work.
+2. Run `docker compose up --build`. The api log should show `database: postgres`.
+3. `curl -k https://localhost/health` should return `{"ok":true}`. Log in at `https://localhost/admin-panel/` with `ADMIN_TOKEN` and schedule a word.
+4. Run `docker compose restart api`. Migrations and the seed run again and must not fail or create duplicates.
+5. Test a backup and restore from Git Bash: `BACKUP_DIR=./backups-test bash backup.sh`, then run the **Restore** commands below with `./backups-test/...` paths. The scheduled word should still be there.
+6. Run `docker compose down -v` to remove everything, then delete `backups-test/`.
+
 ## First setup
 1. **The VPS.** Any Linux box with 1 vCPU, 1–2 GB RAM and 20 GB disk is enough to start. Install Docker by following https://docs.docker.com/engine/install/. The compose plugin is included.
 2. **DNS.** Create an `A` record (and `AAAA` if you have IPv6) for your API domain, e.g. `api.eyespeeled.app`, pointing to the VPS IP.
