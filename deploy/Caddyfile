@@ -1,9 +1,17 @@
 # Caddy gets and renews the Let's Encrypt certificate for API_DOMAIN by itself.
 {$API_DOMAIN} {
 	encode zstd gzip
-	# Photos are at most 3.75 MB and JSON bodies 100 KB; refuse anything bigger before it reaches the api.
-	request_body {
-		max_size 5MB
+	# Static pages the stores link to (privacy policy), from deploy/site/.
+	handle /privacy {
+		root * /srv/site
+		rewrite * /privacy.html
+		file_server
 	}
-	reverse_proxy api:4000
+	handle {
+		# Photos are at most 3.75 MB and JSON bodies 100 KB; refuse anything bigger before it reaches the api.
+		request_body {
+			max_size 5MB
+		}
+		reverse_proxy api:4000
+	}
 }
