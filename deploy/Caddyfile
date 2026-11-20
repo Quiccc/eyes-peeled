@@ -20,3 +20,20 @@
 		reverse_proxy api:4000
 	}
 }
+
+# The bare domain the store listings link to: privacy policy and AdMob's app-ads.txt
+# (AdMob only looks for app-ads.txt on the root domain of the developer website).
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	root * /srv/site
+	handle /privacy {
+		rewrite * /privacy.html
+		file_server
+	}
+	handle /app-ads.txt {
+		file_server
+	}
+	handle {
+		redir * /privacy
+	}
+}

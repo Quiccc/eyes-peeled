@@ -45,6 +45,8 @@ services:
     restart: unless-stopped
     environment:
       API_DOMAIN: ${API_DOMAIN}
+      # Bare domain for the store pages; the localhost fallback keeps a local stack working without it.
+      SITE_DOMAIN: ${SITE_DOMAIN:-site.localhost}
     ports:
       - "80:80"
       - "443:443"
