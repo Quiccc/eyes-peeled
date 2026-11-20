@@ -1,10 +1,15 @@
 # Caddy gets and renews the Let's Encrypt certificate for API_DOMAIN by itself.
 {$API_DOMAIN} {
 	encode zstd gzip
-	# Static pages the stores link to (privacy policy), from deploy/site/.
+	# Static pages the stores link to (privacy policy, terms), from deploy/site/.
 	handle /privacy {
 		root * /srv/site
 		rewrite * /privacy.html
+		file_server
+	}
+	handle /terms {
+		root * /srv/site
+		rewrite * /terms.html
 		file_server
 	}
 	# AdMob's seller list (deploy/site/app-ads.txt).
@@ -28,6 +33,10 @@
 	root * /srv/site
 	handle /privacy {
 		rewrite * /privacy.html
+		file_server
+	}
+	handle /terms {
+		rewrite * /terms.html
 		file_server
 	}
 	handle /app-ads.txt {
