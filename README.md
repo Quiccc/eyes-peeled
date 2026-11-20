@@ -52,9 +52,10 @@ One non-consumable purchase removes ads and unlocks the daily Premium word. Setu
 1. Create the product: a **non-consumable** in App Store Connect and a **one-time product** in Google Play Console.
 2. In RevenueCat, add both apps and the product. Create an entitlement with the identifier **`premium`** and attach the product. Add it to the **current** offering as the **Lifetime** package.
 3. Put the public SDK keys in `mobile/.env.local` (`EXPO_PUBLIC_REVENUECAT_IOS_KEY`, `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY`).
-4. Backend: implement `POST /me/purchases/sync` and the RevenueCat webhook (see [Purchases](docs/api-contract.md#purchases-premium)).
+4. Backend (already implemented: `POST /me/purchases/sync` and `POST /webhooks/revenuecat`, see [Purchases](docs/api-contract.md#purchases-premium)): set `REVENUECAT_SECRET_KEY` to a **v1 (legacy) secret key** (`sk_…`). The server calls the v1 `/subscribers` API, which v2 keys can't use. Set `REVENUECAT_WEBHOOK_AUTH` to a random value of at least 32 characters.
+5. In RevenueCat → Integrations → Webhooks, set the URL to `https://<API_DOMAIN>/webhooks/revenuecat` and the Authorization header to the same value as `REVENUECAT_WEBHOOK_AUTH`.
 
-Purchases need a development build and a sandbox / test-track account, or RevenueCat's Test Store key.
+Purchases need a development build and a sandbox / test-track account, or RevenueCat's Test Store key. The Test Store needs no App Store or Play setup: add its product to the same entitlement and Lifetime package, and put the Test Store key in `EXPO_PUBLIC_REVENUECAT_*_KEY` for local test builds only. **Never ship the Test Store key in a store build**, because it gives Premium away for free.
 
 ## Before shipping
 
