@@ -14,7 +14,7 @@ import MobileAds, { AdEventType, AdsConsent, InterstitialAd, TestIds } from 'rea
 
 const PROD_UNIT_ID = Platform.select({
   ios: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS,
-  android: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID,
+  android: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID || 'ca-app-pub-5078516573680218/6985552962',
 });
 const UNIT_ID = __DEV__ || !PROD_UNIT_ID ? TestIds.INTERSTITIAL : PROD_UNIT_ID;
 

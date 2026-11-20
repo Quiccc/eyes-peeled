@@ -7,6 +7,11 @@
 		rewrite * /privacy.html
 		file_server
 	}
+	# AdMob's seller list (deploy/site/app-ads.txt).
+	handle /app-ads.txt {
+		root * /srv/site
+		file_server
+	}
 	handle {
 		# Photos are at most 3.75 MB and JSON bodies 100 KB; refuse anything bigger before it reaches the api.
 		request_body {
