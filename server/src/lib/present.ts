@@ -5,11 +5,12 @@ import type { Storage } from '../services/storage';
 
 /** DB rows -> the shapes in mobile/src/api/types.ts. */
 
-export const toUser = (u: UserRow): User => ({
+export const toUser = (u: UserRow, storage: Storage): User => ({
   id: u.id,
   username: u.username,
   displayName: u.displayName,
-  avatarUrl: u.avatarUrl,
+  // A picture the player uploaded wins over the one from Google.
+  avatarUrl: u.avatarKey ? storage.avatarUrl(u.avatarKey) : u.avatarUrl,
   isPremium: u.isPremium,
   joinedAt: u.createdAt.toISOString(),
 });
@@ -39,7 +40,7 @@ export function toFeedItem(
 ): FeedItem {
   return {
     submissionId: s.id,
-    user: toUser(user),
+    user: toUser(user, storage),
     word: word.label,
     difficulty: word.difficulty,
     points: s.points,

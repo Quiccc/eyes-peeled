@@ -4,11 +4,11 @@ import { z } from 'zod';
 import type { Ctx } from '../../context';
 import { reportStatuses } from '../../domain/enums';
 import type { AdminReport } from '../../dto/admin';
-import { banUser, listReports, removeSubmission, resolveReport, unbanUser } from '../../services/moderation';
+import { banUser, listReports, removeAvatar, removeSubmission, resolveReport, unbanUser } from '../../services/moderation';
 
 const idParam = (id: unknown) => z.uuid().parse(id);
 
-/** Reports and what to do about them: resolve, remove the photo, ban or unban the user. */
+/** Reports and what to do about them: resolve, remove the photo or profile picture, ban or unban the user. */
 export function moderationRoutes(ctx: Ctx, admin: RequestHandler) {
   const r = Router();
 
@@ -24,6 +24,11 @@ export function moderationRoutes(ctx: Ctx, admin: RequestHandler) {
 
   r.post('/admin/submissions/:id/remove', admin, async (req, res) => {
     await removeSubmission(ctx, idParam(req.params.id));
+    res.status(204).end();
+  });
+
+  r.post('/admin/users/:id/remove-avatar', admin, async (req, res) => {
+    await removeAvatar(ctx, idParam(req.params.id));
     res.status(204).end();
   });
 

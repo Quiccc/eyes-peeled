@@ -50,6 +50,16 @@ export const mockApi: Api = {
     state.me = { ...self, username: clean };
     return state.me;
   },
+  async setAvatar(photo) {
+    await latency();
+    state.me = { ...requireMe(), avatarUrl: photo.uri };
+    return state.me;
+  },
+  async removeAvatar() {
+    await latency();
+    state.me = { ...requireMe(), avatarUrl: null };
+    return state.me;
+  },
   async deleteMe() {
     await latency();
     resetMe();

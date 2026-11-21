@@ -363,6 +363,17 @@ table.schedule select {
 .report-body p {
   margin: 0 0 8px;
 }
+.report-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.report img.report-avatar {
+  width: 48px;
+  height: 48px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
 .actions {
   display: flex;
   gap: 6px;

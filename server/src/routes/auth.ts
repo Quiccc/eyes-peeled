@@ -23,7 +23,7 @@ export function authRoutes(ctx: Ctx) {
   r.post('/auth/signin', async (req, res) => {
     const identity = await verifyIdentity(ctx.env, signInBody.parse(req.body));
     const { user, isNewUser } = await signInUser(ctx, identity);
-    res.json({ ...(await issueTokens(ctx, user.id)), user: toUser(user), isNewUser } satisfies AuthResponse);
+    res.json({ ...(await issueTokens(ctx, user.id)), user: toUser(user, ctx.storage), isNewUser } satisfies AuthResponse);
   });
 
   r.post('/auth/refresh', async (req, res) => {

@@ -29,7 +29,8 @@ export type AdminReport = {
   createdAt: string;
   submission: { id: string; userId: string; status: string; imageUrl: string | null } | null;
   /** The reported user: named directly, or the owner of the reported photo. */
-  target: { id: string; username: string | null; bannedAt: string | null } | null;
+  /** `avatarUrl`: the profile picture the player uploaded, if any (Google pictures aren't listed). */
+  target: { id: string; username: string | null; bannedAt: string | null; avatarUrl: string | null } | null;
 };
 
 export type WordDayStats = {

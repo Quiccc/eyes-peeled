@@ -34,7 +34,16 @@ export function Avatar({ user, size = 40, ring }: Props) {
   const ringStyle = ring ? { borderWidth: 4, borderColor: own ? theme.tint : c.main } : null;
 
   if (user.avatarUrl) {
-    return <Image source={user.avatarUrl} style={[dims, ringStyle]} contentFit="cover" />;
+    return (
+      <Image
+        // Uploaded pictures come as signed links that change every day; cache by the file, not the signature.
+        source={{ uri: user.avatarUrl, cacheKey: user.avatarUrl.split('?')[0] }}
+        recyclingKey={user.id}
+        style={[dims, ringStyle]}
+        contentFit="cover"
+        accessibilityIgnoresInvertColors
+      />
+    );
   }
   return (
     <View

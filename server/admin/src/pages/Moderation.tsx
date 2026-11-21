@@ -54,14 +54,19 @@ export function Moderation() {
                   <span className={`pill ${r.reason === 'inappropriate' ? 'bad' : ''}`}>{r.reason}</span>{' '}
                   <span className="muted">{new Date(r.createdAt).toLocaleString()}</span>
                 </p>
-                <p>
+                <p className="report-user">
+                  {user?.avatarUrl && (
+                    <a href={user.avatarUrl} target="_blank" rel="noreferrer">
+                      <img className="report-avatar" src={user.avatarUrl} alt="Profile picture" loading="lazy" />
+                    </a>
+                  )}
                   {user ? (
-                    <>
+                    <span>
                       <strong>{user.username ?? 'no username'}</strong>{' '}
                       {user.bannedAt && <span className="pill bad">banned</span>}
                       <br />
                       <code className="muted">{user.id}</code>
-                    </>
+                    </span>
                   ) : (
                     <span className="muted">User deleted</span>
                   )}
@@ -80,6 +85,18 @@ export function Moderation() {
                       }
                     >
                       Remove photo
+                    </button>
+                  )}
+                  {user?.avatarUrl && (
+                    <button
+                      className="danger"
+                      onClick={() =>
+                        act(`Remove ${user.username ?? 'this user'}'s profile picture? The file is deleted.`, () =>
+                          api.post(`/admin/users/${user.id}/remove-avatar`),
+                        )
+                      }
+                    >
+                      Remove picture
                     </button>
                   )}
                   {user &&

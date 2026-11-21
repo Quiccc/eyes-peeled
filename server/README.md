@@ -80,7 +80,7 @@ test/
 - **Photos:** each upload is saved and then checked by the verifier, two at a time. If the verdict takes longer than 8 s, the app gets `pending` and polls. Pending photos left over from a restart are checked again at startup.
 - **Image URLs:** these are signed and expire after 1 h. Files live in `server/data/uploads`. Moving to S3/R2 only means implementing the interface in `services/storage.ts`.
 - **Admin** (needs `ADMIN_TOKEN`; wrong or missing token = 404). Use the [admin panel](admin/README.md) at `/admin-panel/`, or call the API with `Authorization: Bearer <ADMIN_TOKEN>`:
-  - Moderation: `GET /admin/reports?status=open|resolved`, `POST /admin/reports/:id/resolve`, `POST /admin/submissions/:id/remove`, `POST /admin/users/:id/ban`, `POST /admin/users/:id/unban`
+  - Moderation: `GET /admin/reports?status=open|resolved`, `POST /admin/reports/:id/resolve`, `POST /admin/submissions/:id/remove`, `POST /admin/users/:id/remove-avatar`, `POST /admin/users/:id/ban`, `POST /admin/users/:id/unban`
   - Schedule: `GET /admin/schedule?month=YYYY-MM`, `POST /admin/schedule { month }` (fills empty days only), `PUT /admin/schedule/:date/:difficulty { wordId }` (future days only)
   - Words: `GET /admin/words`, `POST /admin/words { label, difficulty }`, `PATCH /admin/words/:id { enabled?, minConfidence? }`
   - `GET /admin/stats?from&to`, `GET /admin/check`

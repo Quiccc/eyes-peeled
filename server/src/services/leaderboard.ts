@@ -73,7 +73,7 @@ export async function getLeaderboard(
   const byId = new Map(people.map((u) => [u.id, u]));
   const entry = (r: Ranked): LeaderboardEntry | null => {
     const u = byId.get(r.user_id);
-    return u ? { rank: Number(r.rank), user: toUser(u), points: Number(r.points) } : null;
+    return u ? { rank: Number(r.rank), user: toUser(u, ctx.storage), points: Number(r.points) } : null;
   };
 
   return {

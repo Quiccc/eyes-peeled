@@ -27,6 +27,8 @@ export const users = pgTable(
     username: text('username'),
     displayName: text('display_name'),
     avatarUrl: text('avatar_url'),
+    /** A picture the player uploaded (storage key). Shown instead of the provider's `avatarUrl`. */
+    avatarKey: text('avatar_key'),
     isPremium: boolean('is_premium').notNull().default(false),
     bannedAt: timestamp('banned_at', { withTimezone: true }),
     createdAt: createdAt(),

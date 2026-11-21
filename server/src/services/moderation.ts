@@ -7,6 +7,7 @@ import type { ReportReason, ReportStatus } from '../domain/enums';
 import type { AdminReport } from '../dto/admin';
 import { notFound } from '../lib/errors';
 import { isForeignKeyViolation } from '../lib/sql';
+import { clearAvatar } from './account';
 import { recomputeCombos } from './combos';
 
 /** Reports and the actions on them (Apple guideline 1.2: act on reports within 24 hours). */
@@ -41,7 +42,7 @@ export async function listReports(ctx: Ctx, status: ReportStatus): Promise<Admin
   const targetIds = [...new Set(rows.map(targetOf).filter((id): id is string => !!id))];
   const targets = targetIds.length
     ? await ctx.db
-        .select({ id: users.id, username: users.username, bannedAt: users.bannedAt })
+        .select({ id: users.id, username: users.username, bannedAt: users.bannedAt, avatarKey: users.avatarKey })
         .from(users)
         .where(inArray(users.id, targetIds))
     : [];
@@ -56,7 +57,14 @@ export async function listReports(ctx: Ctx, status: ReportStatus): Promise<Admin
       submission: submission
         ? { id: submission.id, userId: submission.userId, status: submission.status, imageUrl: submission.imageKey ? ctx.storage.signedUrl(submission.imageKey) : null }
         : null,
-      target: target ? { ...target, bannedAt: target.bannedAt?.toISOString() ?? null } : null,
+      target: target
+        ? {
+            id: target.id,
+            username: target.username,
+            bannedAt: target.bannedAt?.toISOString() ?? null,
+            avatarUrl: target.avatarKey ? ctx.storage.signedUrl(target.avatarKey) : null,
+          }
+        : null,
     };
   });
 }
@@ -80,6 +88,11 @@ export async function removeSubmission(ctx: Ctx, id: string): Promise<void> {
   });
   if (!row) throw notFound('Submission not found.');
   if (row.imageKey) await ctx.storage.delete(row.imageKey);
+}
+
+/** Take down a profile picture the player uploaded. They fall back to their Google picture or initial. */
+export async function removeAvatar(ctx: Ctx, id: string): Promise<void> {
+  await clearAvatar(ctx, id);
 }
 
 /** Ban: blocks sign-in and API access, hides the user everywhere. */

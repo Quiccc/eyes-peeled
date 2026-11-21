@@ -23,7 +23,7 @@ export async function incomingRequests(ctx: Ctx, me: UserRow): Promise<FriendReq
     .orderBy(desc(friendRequests.createdAt));
   return rows
     .filter((r) => !blocked.has(r.from.id) && !r.from.bannedAt)
-    .map((r) => ({ id: r.req.id, from: toUser(r.from), createdAt: r.req.createdAt.toISOString() }));
+    .map((r) => ({ id: r.req.id, from: toUser(r.from, ctx.storage), createdAt: r.req.createdAt.toISOString() }));
 }
 
 /** Ask to be friends. If they already asked us, this accepts their request instead. */
@@ -88,5 +88,5 @@ export async function blockedUsers(ctx: Ctx, me: UserRow): Promise<BlockedUser[]
     .orderBy(desc(blocks.createdAt));
   return rows
     .filter((r) => !r.user.bannedAt)
-    .map((r) => ({ user: toUser(r.user), blockedAt: r.blockedAt.toISOString() }));
+    .map((r) => ({ user: toUser(r.user, ctx.storage), blockedAt: r.blockedAt.toISOString() }));
 }

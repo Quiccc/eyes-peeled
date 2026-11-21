@@ -16,6 +16,7 @@ import { DangerLink, SettingsGroup, type SettingsRow } from '@/components/settin
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, Spacing } from '@/constants/theme';
+import { useAvatarPicker } from '@/features/profile/use-avatar-picker';
 import { PremiumStatusCard } from '@/features/premium/premium-status-card';
 import { usePremiumPurchase } from '@/features/premium/use-premium-purchase';
 import { useShareFind } from '@/features/share/share-find-sheet';
@@ -39,6 +40,7 @@ export default function ProfileScreen() {
     onPremium: () => Alert.alert('Premium restored', 'Ads are off and the Premium word is unlocked.'),
   });
   const deletion = useAsyncAction<'delete'>();
+  const avatar = useAvatarPicker();
 
   const confirmDelete = () =>
     Alert.alert(
@@ -74,7 +76,7 @@ export default function ProfileScreen() {
         <ScrollView
           contentContainerStyle={styles.content}
           refreshControl={<RefreshControl refreshing={profile.isRefetching} onRefresh={() => void profile.refetch()} />}>
-          <ProfileHeader user={user} ring />
+          <ProfileHeader user={user} ring onEditAvatar={avatar.open} avatarBusy={avatar.busy} />
 
           {profile.isPending ? (
             <ActivityIndicator />

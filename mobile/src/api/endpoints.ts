@@ -30,6 +30,10 @@ export type Api = {
   updateMe(patch: { username: string }): Promise<User>;
   deleteMe(req?: DeleteAccountRequest): Promise<void>;
   getMyProfile(): Promise<UserProfile>;
+  /** Upload a square JPEG as the profile picture. Returns the user with the new `avatarUrl`. */
+  setAvatar(photo: PhotoFile): Promise<User>;
+  /** Remove the uploaded profile picture (back to the Google picture or initial). */
+  removeAvatar(): Promise<User>;
 
   // purchases
   /** Ask the server to re-check the user's RevenueCat entitlement (after a purchase/restore). Returns the updated user. */
@@ -66,6 +70,13 @@ const httpApi: Api = {
   updateMe: (patch) => request('/me', { method: 'PATCH', body: patch }),
   deleteMe: (req) => request('/me', { method: 'DELETE', body: req }),
   getMyProfile: () => request('/me/profile'),
+  setAvatar: (photo) => {
+    const form = new FormData();
+    // An expo-file-system File, like submitPhoto below (Expo's fetch rejects { uri, name, type }).
+    form.append('photo', new File(photo.uri) as unknown as Blob, photo.name);
+    return request('/me/avatar', { method: 'PUT', form });
+  },
+  removeAvatar: () => request('/me/avatar', { method: 'DELETE' }),
 
   syncPurchases: () => request('/me/purchases/sync', { method: 'POST' }),
 

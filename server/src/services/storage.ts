@@ -12,16 +12,26 @@ export type Storage = {
   delete(keyOrPrefix: string): Promise<void>;
   /** Short-lived URL the app can load without an Authorization header. */
   signedUrl(key: string): string;
+  /**
+   * Longer-lived URL for a profile picture. The app keeps the signed-in user for as long as it stays
+   * open, so these last 7 to 8 days. `exp` is rounded up to the next UTC midnight, so the URL stays
+   * the same all day and image caches keep working.
+   */
+  avatarUrl(key: string): string;
   /** Absolute path of a file, when the signature in `query` is valid and unexpired; otherwise null. */
   resolveSigned(key: string, exp: string | undefined, sig: string | undefined): string | null;
 };
 
 const URL_TTL_SEC = 60 * 60;
+const AVATAR_TTL_SEC = 7 * 24 * 60 * 60;
+const DAY_SEC = 24 * 60 * 60;
 const SAFE_KEY = /^[a-zA-Z0-9_-]+(\/[a-zA-Z0-9_-]+)*\.jpg$/;
 
 export function localStorage(opts: { dir: string; baseUrl: string; secret: string; now: () => Date }): Storage {
   const root = path.resolve(opts.dir);
   const sign = (key: string, exp: number) => createHmac('sha256', opts.secret).update(`${key}:${exp}`).digest('base64url');
+  const urlFor = (key: string, exp: number) =>
+    `${opts.baseUrl.replace(/\/$/, '')}/files/${key}?exp=${exp}&sig=${sign(key, exp)}`;
   const fileFor = (key: string) => {
     const full = path.resolve(root, key);
     if (!full.startsWith(root + path.sep)) throw new Error(`Bad storage key: ${key}`);
@@ -42,8 +52,11 @@ export function localStorage(opts: { dir: string; baseUrl: string; secret: strin
       await rm(fileFor(keyOrPrefix.replace(/\/$/, '')), { recursive: true, force: true });
     },
     signedUrl(key) {
-      const exp = Math.floor(opts.now().getTime() / 1000) + URL_TTL_SEC;
-      return `${opts.baseUrl.replace(/\/$/, '')}/files/${key}?exp=${exp}&sig=${sign(key, exp)}`;
+      return urlFor(key, Math.floor(opts.now().getTime() / 1000) + URL_TTL_SEC);
+    },
+    avatarUrl(key) {
+      const min = Math.floor(opts.now().getTime() / 1000) + AVATAR_TTL_SEC;
+      return urlFor(key, Math.ceil(min / DAY_SEC) * DAY_SEC);
     },
     resolveSigned(key, exp, sig) {
       if (!SAFE_KEY.test(key) || !exp || !sig || !/^\d+$/.test(exp)) return null;

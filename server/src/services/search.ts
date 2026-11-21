@@ -26,5 +26,5 @@ export async function search(ctx: Ctx, me: UserRow, q: string): Promise<UserSear
     me.id,
     shown.map((u) => u.id),
   );
-  return shown.map((u) => ({ user: toUser(u), friendStatus: relations.get(u.id)!.status }));
+  return shown.map((u) => ({ user: toUser(u, ctx.storage), friendStatus: relations.get(u.id)!.status }));
 }

@@ -55,6 +55,10 @@
       "permissions": [
         "android.permission.CAMERA",
         "com.google.android.gms.permission.AD_ID"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "plugins": [
@@ -70,9 +74,17 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Eyes Peeled uses your camera to photograph the daily words you find.",
+          "cameraPermission": "Eyes Peeled uses your camera to photograph the daily words you find and to take your profile picture.",
           "recordAudioAndroid": false,
           "barcodeScannerEnabled": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Eyes Peeled uses your photos so you can choose a profile picture.",
+          "cameraPermission": "Eyes Peeled uses your camera to photograph the daily words you find and to take your profile picture.",
+          "microphonePermission": false
         }
       ],
       "expo-apple-authentication",

@@ -44,7 +44,7 @@ export async function profileOf(ctx: Ctx, viewer: UserRow, subject: UserRow): Pr
   const standing = await monthStanding(ctx, viewer, subject.id);
 
   return {
-    user: toUser(subject),
+    user: toUser(subject, ctx.storage),
     friendStatus: rel.status,
     requestId: rel.requestId,
     monthPoints: standing.monthPoints,
