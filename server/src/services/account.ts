@@ -40,7 +40,7 @@ export async function setAvatar(ctx: Ctx, user: UserRow, jpeg: Buffer): Promise<
   return row;
 }
 
-/** Remove the uploaded picture. The player falls back to their Google picture or their initial. */
+/** Remove the uploaded picture. The app shows their initial instead. */
 export async function clearAvatar(ctx: Ctx, userId: string): Promise<UserRow> {
   const [old] = await ctx.db.select({ avatarKey: users.avatarKey }).from(users).where(eq(users.id, userId));
   if (!old) throw notFound('User not found.');

@@ -9,8 +9,7 @@ export const toUser = (u: UserRow, storage: Storage): User => ({
   id: u.id,
   username: u.username,
   displayName: u.displayName,
-  // A picture the player uploaded wins over the one from Google.
-  avatarUrl: u.avatarKey ? storage.avatarUrl(u.avatarKey) : u.avatarUrl,
+  avatarUrl: u.avatarKey ? storage.avatarUrl(u.avatarKey) : null,
   isPremium: u.isPremium,
   joinedAt: u.createdAt.toISOString(),
 });

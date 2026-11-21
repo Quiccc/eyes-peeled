@@ -29,7 +29,7 @@ export type AdminReport = {
   createdAt: string;
   submission: { id: string; userId: string; status: string; imageUrl: string | null } | null;
   /** The reported user: named directly, or the owner of the reported photo. */
-  /** `avatarUrl`: the profile picture the player uploaded, if any (Google pictures aren't listed). */
+  /** `avatarUrl`: the player's profile picture, if they uploaded one. */
   target: { id: string; username: string | null; bannedAt: string | null; avatarUrl: string | null } | null;
 };
 

@@ -11,6 +11,7 @@ export type User = {
   /** null until the user picks one on first login */
   username: string | null;
   displayName: string | null;
+  /** The profile picture the player uploaded (a signed link), or null to show their initial. */
   avatarUrl: string | null;
   /** Bought the one-time Premium purchase (no ads + the daily Premium word). Set by the server only. */
   isPremium: boolean;

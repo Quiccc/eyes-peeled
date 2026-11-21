@@ -10,7 +10,6 @@ export type Identity = {
   provider: 'apple' | 'google' | 'dev';
   sub: string;
   displayName: string | null;
-  avatarUrl: string | null;
 };
 
 const appleKeys = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
@@ -23,7 +22,7 @@ export async function verifyIdentity(env: Env, req: AuthRequest): Promise<Identi
   if (env.AUTH_DEV_LOGIN && req.idToken.startsWith('dev:')) {
     const name = req.idToken.slice(4).trim().toLowerCase();
     if (!/^[a-z0-9_]{1,20}$/.test(name)) throw new HttpError(400, 'bad_request', 'Dev login names use a-z, 0-9 and _.');
-    return { provider: 'dev', sub: name, displayName: name, avatarUrl: null };
+    return { provider: 'dev', sub: name, displayName: name };
   }
 
   if (req.provider === 'apple') {
@@ -34,7 +33,7 @@ export async function verifyIdentity(env: Env, req: AuthRequest): Promise<Identi
       });
       if (!payload.sub) throw invalid();
       // Apple only sends the name on the very first sign-in, via the app.
-      return { provider: 'apple', sub: payload.sub, displayName: req.fullName?.trim() || null, avatarUrl: null };
+      return { provider: 'apple', sub: payload.sub, displayName: req.fullName?.trim() || null };
     } catch (e) {
       if (e instanceof HttpError) throw e;
       throw invalid();
@@ -54,7 +53,6 @@ export async function verifyIdentity(env: Env, req: AuthRequest): Promise<Identi
       provider: 'google',
       sub: payload.sub,
       displayName: typeof payload.name === 'string' ? payload.name : null,
-      avatarUrl: typeof payload.picture === 'string' ? payload.picture : null,
     };
   } catch (e) {
     if (e instanceof HttpError) throw e;

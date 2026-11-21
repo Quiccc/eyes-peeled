@@ -31,7 +31,7 @@ The mobile app talks to your backend only through the endpoints below. TypeScrip
 - **Google:** verify `idToken` against Google's JWKS, with `aud` = your **web** client id (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`). The stable user id is the `sub` claim.
 - New users start with `username: null`. The app then forces the username picker.
 - `displayName` comes from the provider and the app never edits it: Google's `name` claim, Apple's `fullName` from the first sign-in. Refresh Google's value on each sign-in.
-- `avatarUrl` is the player's own profile picture when they set one (see [Account](#account)), otherwise Google's `picture` claim (refreshed on each sign-in). Apple never gives an avatar, so without an upload it stays `null` and the app shows an initial.
+- `avatarUrl` is only ever a profile picture the player uploaded (see [Account](#account)); the provider's picture (Google's `picture` claim) is not used. Without an upload it is `null` and the app shows an initial.
 
 ## Account
 
@@ -45,7 +45,7 @@ Premium purchase (see [Purchases](#purchases-premium)). The app hides ads and sh
 | PATCH | `/me` | `{ username }` | `User`. 400 `invalid_username` (rule: `^[a-z0-9_]{3,20}$`), 409 `username_taken` |
 | DELETE | `/me` | `DeleteAccountRequest?` `{ appleAuthorizationCode? }` | 204. Delete the account, photos, friendships and leaderboard rows. Required by the App Store. Also delete the RevenueCat customer (`DELETE /v1/subscribers/:id`). |
 | PUT | `/me/avatar` | multipart, field `photo` (JPEG, 512×512, EXIF stripped) | `User` with the new `avatarUrl`. 400 `bad_request` (missing or not a JPEG), 413 `photo_too_large` (over 1 MB) |
-| DELETE | `/me/avatar` | — | `User`. Removes the uploaded picture; `avatarUrl` falls back to the Google picture or `null`. Fine when there is none. |
+| DELETE | `/me/avatar` | — | `User`. Removes the uploaded picture; `avatarUrl` becomes `null`. Fine when there is none. |
 | GET | `/me/profile` | — | `UserProfile` (`today` = the user's own valid finds today) |
 
 - **Profile pictures:** the app takes the picture with the camera or picks it from the photo library, crops it square and sends a 512px JPEG. Uploaded `avatarUrl`s are signed `/files` links valid for at least 7 days; `exp` is rounded to a UTC midnight so the URL stays the same all day and image caches keep working. Replacing or removing a picture deletes the old file. Pictures are moderated through [reports](#safety-app-store-guideline-12-user-generated-content): the admin panel can remove one.

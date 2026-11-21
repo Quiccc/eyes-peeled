@@ -11,8 +11,8 @@ export async function findUser(ctx: Ctx, id: string): Promise<UserRow | null> {
 }
 
 /**
- * Find or create the account for a verified Apple/Google identity. Google sends the current name and
- * picture on every sign-in; Apple sends the name only the first time, so it's never overwritten.
+ * Find or create the account for a verified Apple/Google identity. Google sends the current name on
+ * every sign-in (its profile picture isn't used: players upload their own); Apple sends the name only the first time, so it's never overwritten.
  * Banned accounts can't sign in.
  */
 export async function signInUser(ctx: Ctx, id: Identity): Promise<{ user: UserRow; isNewUser: boolean }> {
@@ -25,15 +25,12 @@ export async function signInUser(ctx: Ctx, id: Identity): Promise<{ user: UserRo
   if (!user) {
     [user] = await ctx.db
       .insert(users)
-      .values({ provider: id.provider, providerSub: id.sub, displayName: id.displayName, avatarUrl: id.avatarUrl })
+      .values({ provider: id.provider, providerSub: id.sub, displayName: id.displayName })
       .returning();
   } else if (id.provider === 'google' || (id.displayName && !user.displayName)) {
     [user] = await ctx.db
       .update(users)
-      .set({
-        displayName: id.displayName ?? user.displayName,
-        avatarUrl: id.provider === 'google' ? id.avatarUrl : user.avatarUrl,
-      })
+      .set({ displayName: id.displayName ?? user.displayName })
       .where(eq(users.id, user.id))
       .returning();
   }

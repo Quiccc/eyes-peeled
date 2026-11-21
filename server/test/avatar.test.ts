@@ -1,12 +1,10 @@
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
-import { eq } from 'drizzle-orm';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { User, UserProfile } from '@shared/types';
 
-import { users } from '../src/db/schema';
 import { MAX_AVATAR_BYTES } from '../src/routes/me';
 import { jpeg, startTestServer, type TestServer } from './helpers';
 
@@ -53,10 +51,9 @@ describe('profile pictures', () => {
     expect(search[0]!.user.avatarUrl).toBe(url);
   });
 
-  it('replaces the old file, and removing falls back to the provider picture', async () => {
+  it('replaces the old file, and removing goes back to no picture', async () => {
     t = await startTestServer();
     const a = await t.signIn('alex');
-    await t.ctx.db.update(users).set({ avatarUrl: 'https://google.example/pic.jpg' }).where(eq(users.id, a.id));
 
     const first = ((await upload(a)).body as User).avatarUrl!;
     const second = ((await upload(a)).body as User).avatarUrl!;
@@ -66,7 +63,7 @@ describe('profile pictures', () => {
 
     const res = await t.http().delete('/me/avatar').set(a.auth);
     expect(res.status).toBe(200);
-    expect((res.body as User).avatarUrl).toBe('https://google.example/pic.jpg');
+    expect((res.body as User).avatarUrl).toBeNull();
     expect(stored(second)).toBe(false);
     // Removing again is fine.
     expect((await t.http().delete('/me/avatar').set(a.auth)).status).toBe(200);

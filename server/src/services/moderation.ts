@@ -90,7 +90,7 @@ export async function removeSubmission(ctx: Ctx, id: string): Promise<void> {
   if (row.imageKey) await ctx.storage.delete(row.imageKey);
 }
 
-/** Take down a profile picture the player uploaded. They fall back to their Google picture or initial. */
+/** Take down a profile picture the player uploaded. The app shows their initial instead. */
 export async function removeAvatar(ctx: Ctx, id: string): Promise<void> {
   await clearAvatar(ctx, id);
 }
