@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 
 import { api } from '@/api/endpoints';
 import { invalidateSocial } from '@/api/queries';
-import type { FriendStatus, UserProfile } from '@/api/types';
+import type { UserProfile } from '@/api/types';
 import { errorMessage } from '@/lib/format';
 
 /** Accept or decline an incoming friend request. */
@@ -35,15 +35,6 @@ export function useUnblockUser() {
     onError: (e) => Alert.alert('Could not unblock', errorMessage(e)),
   });
 }
-
-/** Label of the main button on a profile, per relationship. Blocked users get an Unblock button instead. */
-export const FRIEND_ACTION_TITLE: Record<FriendStatus, string> = {
-  none: 'Add friend',
-  incoming: 'Accept request',
-  outgoing: 'Cancel request',
-  friends: 'Remove friend',
-  blocked: '',
-};
 
 /** The profile's main button: add, accept, cancel or remove, depending on the relationship. */
 export function useFriendAction() {

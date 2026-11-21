@@ -1,23 +1,26 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { Link } from 'expo-router';
+import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View, type TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { invalidateSocial, MIN_SEARCH_LENGTH, useFeedToday, useFriendRequests, useUserSearch } from '@/api/queries';
-import type { FriendStatus } from '@/api/types';
+import type { FriendStatus, UserSearchResult } from '@/api/types';
+import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
 import { EmptyState, SkeletonRows } from '@/components/empty-state';
 import { FeedCard } from '@/components/feed-card';
+import { CrashedPlaneArt, PeekingPhotoArt, SquintSearchArt } from '@/components/illustrations/friends-art';
 import { SectionLabel } from '@/components/section-label';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { UserRow } from '@/components/user-row';
-import { BottomTabInset, Spacing } from '@/constants/theme';
-import { FriendRequestRow } from '@/features/social/friend-request-row';
+import { BottomTabInset, Edge, Radius, Spacing } from '@/constants/theme';
+import { FriendRequestsCard } from '@/features/social/friend-request-row';
 import { useRespondFriendRequest, useSendFriendRequest } from '@/features/social/use-friend-mutations';
 import { useDebounced } from '@/hooks/use-debounced';
-import { errorMessage } from '@/lib/format';
+import { useTheme } from '@/hooks/use-theme';
+import { displayName, errorMessage, plural } from '@/lib/format';
 
 const STATUS_LABEL: Partial<Record<FriendStatus, string>> = {
   friends: 'Friends',
@@ -27,6 +30,8 @@ const STATUS_LABEL: Partial<Record<FriendStatus, string>> = {
 
 export default function FriendsScreen() {
   const queryClient = useQueryClient();
+  const theme = useTheme();
+  const searchRef = useRef<ComponentRef<typeof TextInput>>(null);
   const [search, setSearch] = useState('');
   const q = useDebounced(search.trim(), 300);
   const searching = q.length >= MIN_SEARCH_LENGTH;
@@ -56,15 +61,18 @@ export default function FriendsScreen() {
     );
   };
 
+  const finds = feed.data?.length ?? 0;
   const header = (
     <View style={styles.headerBlock}>
       <ThemedText type="title" accessibilityRole="header">
         Friends
       </ThemedText>
       <TextField
+        ref={searchRef}
         icon="search"
         value={search}
         onChangeText={setSearch}
+        accent={search.length > 0}
         placeholder="Find hunters by username"
         accessibilityLabel="Find hunters by username"
         autoCapitalize="none"
@@ -73,36 +81,41 @@ export default function FriendsScreen() {
       />
 
       {searching ? (
-        <View style={styles.section}>
-          {results.isPending ? (
-            <ActivityIndicator style={styles.inlineLoader} />
-          ) : results.data?.length ? (
-            results.data.map((r) => (
-              <UserRow key={r.user.id} user={r.user} right={statusAction(r.user.id, r.friendStatus)} />
-            ))
-          ) : (
-            <EmptyState icon="search" title="No hunters found" hint={`Nobody goes by "${q}" yet.`} />
-          )}
-        </View>
+        results.isPending ? (
+          <ActivityIndicator style={styles.inlineLoader} />
+        ) : results.data?.length ? (
+          <View style={[styles.group, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+            {results.data.map((r, i) => (
+              <SearchRow key={r.user.id} result={r} first={i === 0} right={statusAction(r.user.id, r.friendStatus)} />
+            ))}
+          </View>
+        ) : (
+          <EmptyState
+            art={<SquintSearchArt />}
+            title="No hunters found"
+            hint={`Nobody goes by "${q}" yet. Check the spelling and try again.`}
+          />
+        )
       ) : (
         <>
           {!!requests.data?.length && (
-            <View style={styles.section}>
-              <SectionLabel>REQUESTS · {requests.data.length}</SectionLabel>
-              {requests.data.map((r) => (
-                <FriendRequestRow
-                  key={r.id}
-                  request={r}
-                  pendingAction={respond.isPending && respond.variables?.id === r.id ? respond.variables.action : null}
-                  disabled={respond.isPending}
-                  onRespond={(action) => respond.mutate({ id: r.id, action })}
-                />
-              ))}
+            <FriendRequestsCard
+              requests={requests.data}
+              pending={respond.isPending && respond.variables ? respond.variables : null}
+              disabled={respond.isPending}
+              onRespond={(id, action) => respond.mutate({ id, action })}
+            />
+          )}
+          {(feed.isPending || finds > 0) && (
+            <View style={styles.feedLabel}>
+              <SectionLabel>FRIENDS&apos; FINDS TODAY</SectionLabel>
+              {finds > 0 && (
+                <ThemedText type="smallBold" themeColor="textSecondary">
+                  {plural(finds, 'find')}
+                </ThemedText>
+              )}
             </View>
           )}
-          <View style={styles.feedLabel}>
-            <SectionLabel>FRIENDS&apos; FINDS TODAY</SectionLabel>
-          </View>
         </>
       )}
     </View>
@@ -128,19 +141,20 @@ export default function FriendsScreen() {
           }
           ListEmptyComponent={
             searching ? undefined : feed.isPending ? (
-              <SkeletonRows count={2} height={280} />
+              <SkeletonRows count={2} height={340} />
             ) : feed.error ? (
               <EmptyState
-                icon="retry"
+                art={<CrashedPlaneArt />}
                 title="Couldn't load finds"
                 hint={errorMessage(feed.error)}
                 action={<Button title="Try again" variant="secondary" onPress={() => feed.refetch()} />}
               />
             ) : (
               <EmptyState
-                icon="camera"
+                art={<PeekingPhotoArt />}
                 title="No finds yet today"
-                hint="When friends snap today's words, their photos show up here. Search above to add friends."
+                hint="When friends snap today's words, their photos land here."
+                action={<Button title="Find hunters" icon="person-add" onPress={() => searchRef.current?.focus()} />}
               />
             )
           }
@@ -151,25 +165,76 @@ export default function FriendsScreen() {
   );
 }
 
+/** A search result as a slice of one grouped card: avatar, name, and the friend status or action. */
+function SearchRow({ result, first, right }: { result: UserSearchResult; first: boolean; right: ReactNode }) {
+  const theme = useTheme();
+  return (
+    <View style={styles.searchRow}>
+      {!first && <View style={[styles.divider, { backgroundColor: theme.border }]} />}
+      <Link href={{ pathname: '/user/[userId]', params: { userId: result.user.id } }} asChild>
+        <Pressable accessibilityRole="link" style={styles.searchUser}>
+          <Avatar user={result.user} size={40} />
+          <ThemedText style={styles.searchName} numberOfLines={1}>
+            {displayName(result.user)}
+          </ThemedText>
+        </Pressable>
+      </Link>
+      {right}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   list: {
     paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.four,
-    gap: Spacing.two,
+    paddingTop: Spacing.two,
+    gap: Spacing.three,
     paddingBottom: BottomTabInset + Spacing.four,
   },
   headerBlock: {
     gap: Spacing.three,
   },
   feedLabel: {
-    marginTop: Spacing.one,
-  },
-  section: {
-    gap: Spacing.two,
-    marginTop: Spacing.one,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: -Spacing.one,
   },
   inlineLoader: {
     marginVertical: Spacing.four,
+  },
+  group: {
+    borderRadius: Radius.lg,
+    borderWidth: 2,
+    borderBottomWidth: Edge.card,
+    overflow: 'hidden',
+  },
+  searchRow: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 4,
+    paddingVertical: Spacing.two,
+    paddingLeft: 14,
+    paddingRight: 10,
+  },
+  searchUser: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 4,
+  },
+  searchName: {
+    flexShrink: 1,
+    fontWeight: 900,
+  },
+  divider: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
   },
 });

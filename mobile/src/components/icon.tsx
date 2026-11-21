@@ -29,6 +29,8 @@ const ICONS = {
   'chevron-left': { ios: 'chevron.left', android: 'chevron_left' },
   'person-add': { ios: 'person.badge.plus', android: 'person_add' },
   'person-remove': { ios: 'person.badge.minus', android: 'person_remove' },
+  flag: { ios: 'flag', android: 'flag' },
+  'arrow-up': { ios: 'arrow.up', android: 'arrow_upward' },
 } as const satisfies Record<string, Exclude<SymbolViewProps['name'], string>>;
 
 export type IconName = keyof typeof ICONS;

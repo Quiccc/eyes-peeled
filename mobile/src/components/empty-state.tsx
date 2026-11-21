@@ -7,7 +7,10 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
-  icon: IconName;
+  /** A small outline icon on a soft tile. Ignored when `art` is given. */
+  icon?: IconName;
+  /** A full illustration (from components/illustrations) in place of the icon tile. */
+  art?: ReactNode;
   title: string;
   hint?: string;
   /** Optional call to action, e.g. a <Button />. */
@@ -17,13 +20,17 @@ type Props = {
 };
 
 /** What a list shows when it has nothing yet: says what will appear here and how to get started. */
-export function EmptyState({ icon, title, hint, action, boxed }: Props) {
+export function EmptyState({ icon, art, title, hint, action, boxed }: Props) {
   const theme = useTheme();
   return (
     <View style={[styles.root, boxed && [styles.boxed, { borderColor: theme.border }]]}>
-      <View style={[styles.tile, boxed && styles.tileBoxed, { backgroundColor: theme.backgroundSelected }]}>
-        <Icon name={icon} size={boxed ? 26 : 30} color={boxed ? theme.textSecondary : theme.text} />
-      </View>
+      {art ? (
+        <View style={styles.art}>{art}</View>
+      ) : icon ? (
+        <View style={[styles.tile, boxed && styles.tileBoxed, { backgroundColor: theme.backgroundSelected }]}>
+          <Icon name={icon} size={boxed ? 26 : 30} color={boxed ? theme.textSecondary : theme.text} />
+        </View>
+      ) : null}
       <ThemedText type="subtitle" style={styles.center}>
         {title}
       </ThemedText>
@@ -68,6 +75,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: Spacing.two,
+  },
+  art: {
     marginBottom: Spacing.two,
   },
   boxed: {

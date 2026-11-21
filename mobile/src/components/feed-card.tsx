@@ -37,14 +37,12 @@ export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
           <Link href={{ pathname: '/user/[userId]', params: { userId: item.user.id } }} asChild>
             <Pressable style={styles.author} accessibilityRole="link">
               <Avatar user={item.user} size={36} />
-              <View style={styles.authorText}>
-                <ThemedText style={styles.name} numberOfLines={1}>
-                  {displayName(item.user)}
-                </ThemedText>
-                <ThemedText type="small" themeColor="textSecondary" style={styles.time}>
-                  {timeAgo(item.createdAt)}
-                </ThemedText>
-              </View>
+              <ThemedText style={styles.name} numberOfLines={1}>
+                {displayName(item.user)}
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary" style={styles.time}>
+                · {timeAgo(item.createdAt)}
+              </ThemedText>
             </Pressable>
           </Link>
           <Pressable
@@ -62,16 +60,33 @@ export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
         contentFit="cover"
         transition={200}
       />
-      <View style={[styles.footer, hideAuthor && styles.footerBare]}>
-        <DifficultyPill difficulty={item.difficulty} />
-        <ThemedText style={[styles.word, hideAuthor && styles.wordBare]} numberOfLines={1}>
-          {displayWord(item.word)}
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          <ThemedText type="smallBold">+{item.points} pts</ThemedText>
-          {item.rank ? ` · ${ordinal(item.rank)}` : ''}
-        </ThemedText>
-      </View>
+      {hideAuthor ? (
+        <View style={[styles.footer, styles.footerBare]}>
+          <DifficultyPill difficulty={item.difficulty} />
+          <ThemedText style={[styles.word, styles.wordBare]} numberOfLines={1}>
+            {displayWord(item.word)}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            <ThemedText type="smallBold">+{item.points} pts</ThemedText>
+            {item.rank ? ` · ${ordinal(item.rank)}` : ''}
+          </ThemedText>
+        </View>
+      ) : (
+        <View style={[styles.footer, styles.footerFeed]}>
+          <DifficultyPill difficulty={item.difficulty} />
+          <ThemedText style={[styles.word, styles.wordBare]} numberOfLines={1}>
+            {displayWord(item.word)}
+          </ThemedText>
+          <View style={styles.score}>
+            <ThemedText style={[styles.scorePoints, { color: theme.successText }]}>+{item.points} pts</ThemedText>
+            {item.rank ? (
+              <ThemedText type="small" themeColor="textSecondary" style={styles.time}>
+                {ordinal(item.rank)} finder
+              </ThemedText>
+            ) : null}
+          </View>
+        </View>
+      )}
       {onShare && (
         <View style={styles.share}>
           <Button size="small" variant="secondary" icon="share" title="Share" onPress={onShare} />
@@ -97,21 +112,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two + 2,
     paddingHorizontal: Spacing.two + 4,
-    paddingTop: Spacing.two + 4,
+    paddingTop: Spacing.two + 2,
     paddingBottom: Spacing.two + 2,
+    paddingRight: 6,
   },
   author: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two + 2,
   },
-  authorText: {
-    flex: 1,
-  },
   name: {
+    flexShrink: 1,
     fontWeight: 900,
-    lineHeight: 20,
   },
   time: {
     lineHeight: 16,
@@ -125,7 +139,7 @@ const styles = StyleSheet.create({
   },
   photo: {
     width: '100%',
-    height: 196,
+    aspectRatio: 4 / 3,
   },
   photoBare: {
     height: 180,
@@ -135,6 +149,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
     padding: Spacing.two + 4,
+  },
+  footerFeed: {
+    gap: Spacing.two + 2,
+    paddingHorizontal: 14,
+  },
+  score: {
+    alignItems: 'flex-end',
+  },
+  scorePoints: {
+    fontWeight: 900,
+    lineHeight: 20,
+    fontVariant: ['tabular-nums'],
   },
   footerBare: {
     gap: Spacing.two + 2,

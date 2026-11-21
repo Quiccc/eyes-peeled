@@ -9,7 +9,7 @@ import { useTheme } from '@/hooks/use-theme';
 const HUES: readonly Difficulty[] = ['easy', 'medium', 'hard', 'expert'];
 
 /** Stable per user, so the same person always gets the same color. */
-function hueFor(id: string) {
+export function hueFor(id: string) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
   return HUES[Math.abs(h) % HUES.length];
@@ -23,15 +23,21 @@ type Props = {
    * 'hue': the user's own color (another hunter's profile).
    */
   ring?: boolean | 'hue';
+  /** A 4px ring in this exact color, e.g. a medal on the podium. Wins over `ring`. */
+  ringColor?: string;
 };
 
-export function Avatar({ user, size = 40, ring }: Props) {
+export function Avatar({ user, size = 40, ring, ringColor }: Props) {
   const theme = useTheme();
   const initial = (user.username ?? user.displayName ?? '?').charAt(0).toUpperCase();
   const dims = { width: size, height: size, borderRadius: size / 2 };
   const c = difficultyColors(theme, hueFor(user.id));
   const own = ring === true;
-  const ringStyle = ring ? { borderWidth: 4, borderColor: own ? theme.tint : c.main } : null;
+  const ringStyle = ringColor
+    ? { borderWidth: 4, borderColor: ringColor }
+    : ring
+      ? { borderWidth: 4, borderColor: own ? theme.tint : c.main }
+      : null;
 
   if (user.avatarUrl) {
     return (

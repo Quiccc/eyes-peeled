@@ -1,33 +1,58 @@
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import type { User } from '@/api/types';
-import { Avatar } from '@/components/avatar';
+import { Avatar, hueFor } from '@/components/avatar';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { difficultyColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { displayName, joinedLabel } from '@/lib/format';
 
 const SIZE = 72;
+const CENTERED_SIZE = 96;
 
 /**
  * Big avatar, name and join month at the top of a profile.
  * `ring`: true for the signed-in user's own profile (orange), 'hue' for another hunter's (their color).
  * `onEditAvatar`: makes the avatar a button with a camera badge (the signed-in user's own profile);
  * `avatarBusy` shows a spinner over it while a new picture uploads.
+ * `centered`: a bigger avatar on a solid edge in their color, with the name centred below (another hunter's profile).
  */
 export function ProfileHeader({
   user,
   ring,
   onEditAvatar,
   avatarBusy,
+  centered,
 }: {
   user: User;
   ring?: boolean | 'hue';
   onEditAvatar?: () => void;
   avatarBusy?: boolean;
+  centered?: boolean;
 }) {
   const theme = useTheme();
+  if (centered) {
+    const edge = difficultyColors(theme, hueFor(user.id)).edge;
+    return (
+      <View style={styles.centered}>
+        <View style={[styles.avatarEdge, { boxShadow: `0 4px 0 ${edge}` }]}>
+          <Avatar user={user} size={CENTERED_SIZE} ring={ring} />
+        </View>
+        <ThemedText
+          type="title"
+          style={styles.centeredName}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          accessibilityRole="header">
+          {displayName(user)}
+        </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {joinedLabel(user.joinedAt)}
+        </ThemedText>
+      </View>
+    );
+  }
   const avatar = <Avatar user={user} size={SIZE} ring={ring} />;
   return (
     <View style={styles.identity}>
@@ -77,6 +102,16 @@ const styles = StyleSheet.create({
   },
   name: {
     lineHeight: 36,
+  },
+  centered: {
+    alignItems: 'center',
+  },
+  avatarEdge: {
+    borderRadius: CENTERED_SIZE / 2,
+  },
+  centeredName: {
+    marginTop: Spacing.two + 4,
+    textAlign: 'center',
   },
   pressed: {
     opacity: 0.7,

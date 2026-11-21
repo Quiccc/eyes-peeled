@@ -1,3 +1,4 @@
+import type { ComponentRef, Ref } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { Icon, type IconName } from '@/components/icon';
@@ -16,10 +17,12 @@ type Props = Omit<TextInputProps, 'style' | 'placeholderTextColor'> & {
   accent?: boolean;
   /** Red border, e.g. after the server rejected the value. Wins over `accent`. */
   invalid?: boolean;
+  /** The inner input, e.g. to focus it from a button elsewhere on the screen. */
+  ref?: Ref<ComponentRef<typeof TextInput>>;
 };
 
 /** The app's text input: a card-colored field with a 2px border. */
-export function TextField({ icon, prefix, size = 'regular', accent, invalid, ...input }: Props) {
+export function TextField({ icon, prefix, size = 'regular', accent, invalid, ref, ...input }: Props) {
   const theme = useTheme();
   const large = size === 'large';
   const borderColor = invalid ? theme.hard : accent ? theme.tint : theme.border;
@@ -42,6 +45,7 @@ export function TextField({ icon, prefix, size = 'regular', accent, invalid, ...
         </ThemedText>
       ) : null}
       <TextInput
+        ref={ref}
         placeholderTextColor={theme.textSecondary}
         style={[styles.input, large ? styles.inputLarge : styles.inputRegular, { color: theme.text }]}
         {...input}
