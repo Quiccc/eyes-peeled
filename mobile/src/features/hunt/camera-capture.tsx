@@ -1,14 +1,19 @@
 import { CameraView } from 'expo-camera';
-import type { RefObject } from 'react';
+import { useState, type RefObject } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { DailyWord } from '@/api/types';
+import { Chunky } from '@/components/chunky';
 import { CLOSE_BUTTON_SIZE, CloseButton } from '@/components/close-button';
+import { FlashIcon } from '@/components/hunt-icons';
+import { GOLD, INK } from '@/components/illustrations/art-kit';
+import { Spinner } from '@/components/spinner';
+import { HuntCameraIcon } from '@/components/tab-icons';
 import { ThemedText } from '@/components/themed-text';
-import { difficultyColors, Edge, Radius, Spacing } from '@/constants/theme';
+import { difficultyColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { displayWord } from '@/lib/format';
+import { DIFFICULTY_LABEL, displayWord, formatNumber } from '@/lib/format';
 
 type Props = {
   word: DailyWord;
@@ -21,11 +26,20 @@ type Props = {
   onClose: () => void;
 };
 
-/** Full-screen viewfinder: close button, the word to find, and the shutter. */
+const SHUTTER = 84;
+const SHUTTER_EDGE = 8;
+const CORNER = 44;
+
+/**
+ * Full-screen viewfinder: close, the word card and the flash toggle on top; the frame corners in between;
+ * the hint and the raised shutter in a tray at the bottom. Everything is laid out in a flex column, so the
+ * frame fills whatever space a screen has, and no element changes size between "starting" and "ready".
+ */
 export function CameraCapture({ word, cameraRef, ready, onReady, onError, onCapture, onClose }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const pill = difficultyColors(theme, word.difficulty);
+  const c = difficultyColors(theme, word.difficulty);
+  const [flash, setFlash] = useState(false);
 
   return (
     <View style={styles.root}>
@@ -34,41 +48,93 @@ export function CameraCapture({ word, cameraRef, ready, onReady, onError, onCapt
         style={StyleSheet.absoluteFill}
         facing="back"
         mode="picture"
+        flash={flash ? 'on' : 'off'}
         onCameraReady={onReady}
         onMountError={(e) => onError(e.message)}
       />
-      {/* Viewfinder corners. */}
-      <View style={styles.viewfinder} pointerEvents="none" importantForAccessibility="no-hide-descendants">
-        <View style={[styles.corner, styles.topLeft]} />
-        <View style={[styles.corner, styles.topRight]} />
-        <View style={[styles.corner, styles.bottomLeft]} />
-        <View style={[styles.corner, styles.bottomRight]} />
-      </View>
-      <SafeAreaView edges={['top']} style={styles.overlay} pointerEvents="box-none">
-        <View style={styles.top}>
-          <CloseButton variant="overlay" onPress={onClose} />
-          <View style={[styles.badge, { backgroundColor: pill.bg, borderColor: pill.main }]}>
-            <ThemedText type="smallBold" style={[styles.badgeLabel, { color: pill.text }]}>
-              FIND
-            </ThemedText>
-            <ThemedText style={[styles.badgeWord, { color: theme.text }]}>{displayWord(word.word)}</ThemedText>
+      <SafeAreaView edges={['top', 'left', 'right']} style={styles.overlay} pointerEvents="box-none">
+        <View style={styles.top} pointerEvents="box-none">
+          <View style={styles.side}>
+            <CloseButton variant="overlay" onPress={onClose} />
           </View>
-          {/* Balances the close button so the badge stays centered. */}
-          <View style={styles.spacer} />
+          <View
+            style={[styles.card, { backgroundColor: c.face, borderColor: c.main, borderBottomColor: c.edge }]}
+            accessible
+            accessibilityLabel={`Find: ${word.word}. ${DIFFICULTY_LABEL[word.difficulty]}, up to ${word.maxPoints} points, ${word.foundCount} found today`}>
+            <View style={[styles.cardPill, { backgroundColor: c.bg }]}>
+              <ThemedText style={[styles.cardPillText, { color: c.text }]} maxFontSizeMultiplier={1.2} numberOfLines={1}>
+                FIND · {DIFFICULTY_LABEL[word.difficulty].toUpperCase()}
+              </ThemedText>
+            </View>
+            <ThemedText
+              style={styles.cardWord}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+              maxFontSizeMultiplier={1.2}>
+              {displayWord(word.word)}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} maxFontSizeMultiplier={1.2}>
+              up to {formatNumber(word.maxPoints)} pts · {formatNumber(word.foundCount)} found today
+            </ThemedText>
+          </View>
+          <View style={styles.side}>
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityLabel="Flash"
+              accessibilityState={{ checked: flash }}
+              hitSlop={8}
+              onPress={() => setFlash((f) => !f)}
+              style={({ pressed }) => [styles.flash, flash ? styles.flashOn : styles.flashOff, { opacity: pressed ? 0.7 : 1 }]}>
+              <FlashIcon on={flash} size={20} />
+            </Pressable>
+          </View>
         </View>
-        <View style={[styles.bottom, { paddingBottom: Math.max(40, insets.bottom + Spacing.two) }]}>
-          <View style={styles.hintPill}>
-            <ThemedText type="small" style={styles.hint}>
-              Fill the frame with the real {word.word}
+
+        {/* The frame: corners at the edges of the space between the top row and the tray, a reticle in the middle. */}
+        <View style={styles.viewfinder} pointerEvents="none" importantForAccessibility="no-hide-descendants">
+          <View style={[styles.corner, styles.topLeft]} />
+          <View style={[styles.corner, styles.topRight]} />
+          <View style={[styles.corner, styles.bottomLeft]} />
+          <View style={[styles.corner, styles.bottomRight]} />
+          <View style={styles.reticleV} />
+          <View style={styles.reticleH} />
+        </View>
+
+        <View style={[styles.tray, { paddingBottom: Math.max(40, insets.bottom + Spacing.three) }]}>
+          {/* Two lines tall either way, so the shutter never moves when the hint changes. */}
+          <View style={styles.hintBox}>
+            <ThemedText style={styles.hint} numberOfLines={2} maxFontSizeMultiplier={1.1}>
+              {ready ? `Fill the frame with the real ${word.word}` : 'Camera starting…'}
             </ThemedText>
           </View>
-          <Pressable
-            accessibilityLabel="Take photo"
-            onPress={onCapture}
-            disabled={!ready}
-            style={({ pressed }) => [styles.shutter, { opacity: !ready ? 0.4 : pressed ? 0.7 : 1 }]}>
-            <View style={styles.shutterInner} />
-          </Pressable>
+          {ready ? (
+            <Chunky
+              color={theme.tint}
+              edgeColor={theme.shutterEdge}
+              radius={SHUTTER / 2}
+              edge={SHUTTER_EDGE}
+              onPress={onCapture}
+              accessibilityLabel="Take photo"
+              style={styles.shutter}
+              contentStyle={styles.shutterFace}>
+              <HuntCameraIcon size={40} />
+            </Chunky>
+          ) : (
+            <Chunky
+              color="#8C847A"
+              edgeColor="#45403A"
+              radius={SHUTTER / 2}
+              edge={SHUTTER_EDGE}
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel="Take photo"
+              accessibilityState={{ disabled: true, busy: true }}
+              style={styles.shutter}
+              contentStyle={styles.shutterFace}>
+              <Spinner color="#FFFFFF" size={36} accessibilityLabel="Camera starting" />
+            </Chunky>
+          )}
         </View>
       </SafeAreaView>
     </View>
@@ -82,82 +148,130 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    justifyContent: 'space-between',
   },
   top: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 10,
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.two,
   },
-  spacer: {
+  side: {
     width: CLOSE_BUTTON_SIZE,
-    height: CLOSE_BUTTON_SIZE,
+    marginTop: 10,
   },
-  badge: {
+  card: {
     flexShrink: 1,
+    maxWidth: 260,
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: Spacing.one + 2,
-    borderRadius: 18,
+    gap: 2,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 9,
+    borderRadius: 20,
     borderWidth: 2,
-    borderBottomWidth: Edge.button,
+    borderBottomWidth: 5,
   },
-  badgeLabel: {
-    letterSpacing: 1,
+  cardPill: {
+    paddingHorizontal: 9,
+    paddingVertical: 1,
+    borderRadius: 999,
   },
-  badgeWord: {
-    fontSize: 20,
-    lineHeight: 24,
+  cardPillText: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: 900,
+    letterSpacing: 0.8,
+  },
+  cardWord: {
+    fontSize: 22,
+    lineHeight: 28,
     fontWeight: 900,
     letterSpacing: 1,
   },
-  // The design's frame on a 390×844 screen: 40px from the sides, 200 from the top, 230 from the bottom.
-  viewfinder: {
-    position: 'absolute',
-    left: 40,
-    right: 40,
-    top: '23.7%',
-    bottom: '27.3%',
-  },
-  corner: {
-    position: 'absolute',
-    width: 40,
-    height: 40,
-    borderColor: '#fff',
-  },
-  topLeft: { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 24 },
-  topRight: { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 24 },
-  bottomLeft: { bottom: 0, left: 0, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: 24 },
-  bottomRight: { bottom: 0, right: 0, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: 24 },
-  bottom: {
-    alignItems: 'center',
-    gap: Spacing.three,
-  },
-  hintPill: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: Radius.pill,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-  },
-  hint: {
-    color: '#fff',
-  },
-  shutter: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    borderWidth: 5,
-    borderColor: '#fff',
+  flash: {
+    width: CLOSE_BUTTON_SIZE,
+    height: CLOSE_BUTTON_SIZE,
+    borderRadius: CLOSE_BUTTON_SIZE / 2,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  shutterInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#fff',
+  flashOff: {
+    backgroundColor: 'rgba(20,16,12,0.6)',
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  flashOn: {
+    backgroundColor: GOLD,
+    borderColor: INK,
+  },
+  viewfinder: {
+    flex: 1,
+    marginHorizontal: 36,
+    marginVertical: Spacing.four,
+    minHeight: 120,
+  },
+  corner: {
+    position: 'absolute',
+    width: CORNER,
+    height: CORNER,
+    borderColor: '#FFFFFF',
+  },
+  topLeft: { top: 0, left: 0, borderTopWidth: 5, borderLeftWidth: 5, borderTopLeftRadius: 26 },
+  topRight: { top: 0, right: 0, borderTopWidth: 5, borderRightWidth: 5, borderTopRightRadius: 26 },
+  bottomLeft: { bottom: 0, left: 0, borderBottomWidth: 5, borderLeftWidth: 5, borderBottomLeftRadius: 26 },
+  bottomRight: { bottom: 0, right: 0, borderBottomWidth: 5, borderRightWidth: 5, borderBottomRightRadius: 26 },
+  reticleV: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    width: 2.4,
+    height: 16,
+    marginLeft: -1.2,
+    marginTop: -8,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+  },
+  reticleH: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    width: 16,
+    height: 2.4,
+    marginLeft: -8,
+    marginTop: -1.2,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+  },
+  tray: {
+    alignItems: 'center',
+    gap: 18,
+    paddingTop: 18,
+    paddingHorizontal: Spacing.four,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    backgroundColor: 'rgba(20,16,12,0.72)',
+  },
+  // Room for two lines (22px line height, up to 1.1× text size), so the shutter below never moves.
+  hintBox: {
+    alignSelf: 'stretch',
+    minHeight: 50,
+    justifyContent: 'center',
+  },
+  hint: {
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  shutter: {
+    width: SHUTTER,
+    borderRadius: SHUTTER / 2,
+    boxShadow: '0 14px 18px rgba(0, 0, 0, 0.45)',
+  },
+  shutterFace: {
+    height: SHUTTER,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: 'inset 0 3px 0 rgba(255, 255, 255, 0.35)',
   },
 });

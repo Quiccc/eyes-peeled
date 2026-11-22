@@ -1,170 +1,196 @@
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
-import type { DailyWord, Submission } from '@/api/types';
+import type { Daily, DailyWord, Submission } from '@/api/types';
+import { useAuth } from '@/auth/auth-provider';
 import { Button } from '@/components/button';
-import { Confetti, CountUp } from '@/components/celebration';
+import { Countdown } from '@/components/countdown';
+import { FlameIcon, NextIcon, ShareIcon } from '@/components/hunt-icons';
 import { Icon } from '@/components/icon';
-import { Spinner } from '@/components/spinner';
+import { DizzyBadge, LookoutMascot, PuzzledBadge, ThumbsUpBadge } from '@/components/illustrations/hunt-art';
+import { HuntCameraIcon } from '@/components/tab-icons';
 import { ThemedText } from '@/components/themed-text';
-import { HuntActions, HuntScreenShell, HuntStatus, huntStyles, HuntTarget, PhotoFrame } from '@/features/hunt/hunt-layout';
+import {
+  HuntActions,
+  HuntScreenShell,
+  HuntStatus,
+  huntStyles,
+  HuntTopBar,
+  PhotoFrame,
+  ScanBand,
+} from '@/features/hunt/hunt-layout';
+import { ScoreCard } from '@/features/hunt/score-card';
 import type { HuntPhase } from '@/features/hunt/use-hunt-session';
 import { useTheme } from '@/hooks/use-theme';
-import { ordinal } from '@/lib/format';
+import { displayWord } from '@/lib/format';
 
 type Props = {
   word: DailyWord;
+  daily: Daily;
   phase: Exclude<HuntPhase, { kind: 'camera' }>;
   retrying: boolean;
   onRetry: () => void;
   onClose: () => void;
+  /** Hunt the next word still to find (after a valid find). */
+  onNext: (word: DailyWord) => void;
   /** Share a valid find; omitted when there's no photo to share. */
   onShare: (submission: Submission, previewUri: string) => void;
 };
 
-/** The photo with its verdict: checking, a valid find (points, confetti), a miss, or an upload failure. */
-export function HuntResult({ word, phase, retrying, onRetry, onClose, onShare }: Props) {
+/** The photo with its verdict: checking, a valid find (score card), a miss, or an upload failure. */
+export function HuntResult({ word, daily, phase, retrying, onRetry, onClose, onNext, onShare }: Props) {
   const theme = useTheme();
+  const { user } = useAuth();
   const previewUri = phase.previewUri;
   const submission = phase.kind === 'result' ? phase.submission : null;
   const valid = submission?.status === 'valid';
-  const failed = phase.kind === 'error' || (submission !== null && !valid);
-  const frameColor = valid ? theme.success : failed ? theme.hard : theme.border;
+  const rejected = submission !== null && !valid;
+  const failed = phase.kind === 'error';
+  const checking = phase.kind === 'analyzing';
+  const frameColor = valid ? theme.success : rejected || failed ? theme.hard : theme.border;
 
-  const badge = valid ? (
-    <View style={[styles.badge, { backgroundColor: theme.successEdge }]}>
-      <View style={[styles.badgeFace, { backgroundColor: theme.success }]}>
-        <Icon name="check" size={30} color="#FFFFFF" />
-      </View>
-    </View>
-  ) : null;
+  // This word was just found, so "next" is any other word still open; none left means today is done.
+  const next = daily.words.find((w) => w.id !== word.id && w.status !== 'found') ?? null;
+
+  const badge = valid ? <ThumbsUpBadge /> : rejected ? <PuzzledBadge /> : failed ? <DizzyBadge /> : null;
 
   return (
-    <HuntScreenShell after={valid && <Confetti />}>
-      <HuntTarget word={word} />
+    <HuntScreenShell>
+      <HuntTopBar word={word} />
 
-      <PhotoFrame borderColor={frameColor} badge={badge}>
+      <PhotoFrame borderColor={frameColor} badge={badge} overlay={checking ? <ScanBand /> : null}>
         {previewUri ? (
-          <Image source={previewUri} style={StyleSheet.absoluteFill} contentFit="cover" />
+          <Image source={previewUri} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel="Your photo" />
         ) : (
-          <Icon name="camera" size={72} color={theme.textSecondary} />
+          <Icon name="camera" size={64} color={theme.textSecondary} />
         )}
       </PhotoFrame>
 
-      {phase.kind === 'analyzing' && (
-        <HuntStatus style={styles.checking}>
-          <Spinner color={theme[word.difficulty]} accessibilityLabel="Checking your photo" />
-          <ThemedText themeColor="textSecondary">Checking your photo…</ThemedText>
-        </HuntStatus>
+      {checking && (
+        <>
+          <HuntStatus>
+            <LookoutMascot width={120} />
+            <ThemedText type="subtitle" style={huntStyles.centerText} accessibilityRole="text" accessibilityLiveRegion="polite">
+              Looking for the {word.word}…
+            </ThemedText>
+            <ThemedText themeColor="textSecondary" style={huntStyles.centerText}>
+              Hang tight, our eye is on it.
+            </ThemedText>
+          </HuntStatus>
+          <HuntActions>
+            <Button title="Check back later" variant="ghost" onPress={onClose} />
+            <ThemedText type="small" themeColor="textSecondary" style={huntStyles.caption}>
+              We keep checking and show the result on Today.
+            </ThemedText>
+          </HuntActions>
+        </>
       )}
 
       {submission && valid && (
-        <HuntStatus>
-          <CountUp value={submission.points} prefix="+" suffix=" pts" style={[styles.points, { color: theme.successText }]} />
-          {submission.comboPoints > 0 && (
-            <View
-              style={[styles.combo, { backgroundColor: theme.tint, borderColor: theme.tintEdge }]}
-              accessible
-              accessibilityLabel={`Combo! Plus ${submission.comboPoints} bonus points for linking neighbouring words`}>
-              <Icon name="link" size={18} color={theme.onTint} />
-              <ThemedText type="smallBold" style={{ color: theme.onTint }}>
-                Combo! +{submission.comboPoints} pts
-              </ThemedText>
-            </View>
-          )}
-          <ThemedText type="subtitle">Nice find!</ThemedText>
-          {submission.rank ? (
-            <ThemedText themeColor="textSecondary" style={huntStyles.centerText}>
-              You were the {ordinal(submission.rank)} hunter to find it today.
-            </ThemedText>
-          ) : null}
-        </HuntStatus>
-      )}
-
-      {submission && !valid && (
-        <Failure
-          title="Not quite"
-          message={submission.message ?? `We couldn't spot a ${word.word}. Get closer and make sure it's in focus.`}
-        />
-      )}
-
-      {phase.kind === 'error' && <Failure title="Upload failed" message={phase.message} />}
-
-      {phase.kind !== 'analyzing' && (
-        <HuntActions>
-          {valid && submission ? (
-            <>
-              {previewUri ? (
+        <>
+          <HuntStatus>
+            <ScoreCard
+              title={next ? 'Nice find!' : `That's all ${daily.words.length} today!`}
+              points={submission.points}
+              comboPoints={submission.comboPoints}
+              rank={submission.rank}
+              footer={
+                next ? null : (
+                  <View style={styles.footer}>
+                    <FlameIcon size={16} />
+                    <ThemedText type="small" themeColor="textSecondary">
+                      New words in{' '}
+                    </ThemedText>
+                    <Countdown target={daily.nextResetAt} type="small" themeColor="textSecondary" style={styles.tabular} />
+                  </View>
+                )
+              }
+            />
+          </HuntStatus>
+          <HuntActions>
+            {next ? (
+              <>
                 <Button
-                  title="Share your find"
-                  variant="secondary"
-                  icon="share"
-                  onPress={() => onShare(submission, previewUri)}
+                  title={`Next word: ${displayWord(next.word)}`}
+                  iconNode={<NextIcon />}
+                  iconAfter
+                  onPress={() => onNext(next)}
                 />
-              ) : null}
-              <Button title="Done" onPress={onClose} />
-            </>
-          ) : (
-            <>
-              <Button title="Try again" icon="camera" loading={retrying} onPress={onRetry} />
-              <Button title="Give up for now" variant="ghost" onPress={onClose} />
-            </>
-          )}
-        </HuntActions>
+                <View style={styles.row}>
+                  {previewUri ? (
+                    <Button
+                      title="Share"
+                      variant="secondary"
+                      iconNode={<ShareIcon />}
+                      style={styles.shareInRow}
+                      onPress={() => onShare(submission, previewUri)}
+                    />
+                  ) : null}
+                  <Button title="Done" variant="ghost" style={styles.doneInRow} onPress={onClose} />
+                </View>
+              </>
+            ) : (
+              <>
+                {previewUri ? (
+                  <Button
+                    title="Share your find"
+                    variant="secondary"
+                    iconNode={<ShareIcon />}
+                    onPress={() => onShare(submission, previewUri)}
+                  />
+                ) : null}
+                <Button title="Done" onPress={onClose} />
+              </>
+            )}
+          </HuntActions>
+        </>
+      )}
+
+      {(rejected || failed) && (
+        <>
+          <HuntStatus>
+            <ThemedText type="title" style={[huntStyles.centerText, { color: theme.dangerText }]}>
+              {failed ? 'Upload failed' : 'Not quite'}
+            </ThemedText>
+            <ThemedText themeColor="textSecondary" style={huntStyles.centerText}>
+              {phase.kind === 'error'
+                ? phase.message
+                : (submission?.message ??
+                  `We couldn't spot a ${word.word} in this photo. Get closer and make sure it's in focus.`)}
+            </ThemedText>
+          </HuntStatus>
+          <HuntActions>
+            <Button title="Try again" iconNode={<HuntCameraIcon size={20} />} loading={retrying} onPress={onRetry} />
+            {user?.isPremium ? null : (
+              <ThemedText type="small" themeColor="textSecondary" style={huntStyles.caption}>
+                A short ad plays first
+              </ThemedText>
+            )}
+            <Button title="Give up for now" variant="ghost" onPress={onClose} />
+          </HuntActions>
+        </>
       )}
     </HuntScreenShell>
   );
 }
 
-function Failure({ title, message }: { title: string; message: string }) {
-  const theme = useTheme();
-  return (
-    <HuntStatus>
-      <ThemedText type="title" style={{ color: theme.dangerText }}>
-        {title}
-      </ThemedText>
-      <ThemedText themeColor="textSecondary" style={huntStyles.centerText}>
-        {message}
-      </ThemedText>
-    </HuntStatus>
-  );
-}
-
 const styles = StyleSheet.create({
-  badge: {
-    position: 'absolute',
-    right: -10,
-    top: -14,
-    width: 56,
-    height: 60,
-    borderRadius: 28,
-    transform: [{ rotate: '8deg' }],
+  row: {
+    flexDirection: 'row',
+    gap: 12,
   },
-  /** 56px circle; the darker 4px under it is the badge's own background. */
-  badgeFace: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
+  shareInRow: {
+    flex: 1.4,
   },
-  checking: {
-    gap: 14,
+  doneInRow: {
+    flex: 1,
   },
-  combo: {
+  footer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderBottomWidth: 4,
   },
-  points: {
-    fontSize: 56,
-    lineHeight: 60,
-    fontWeight: 900,
+  tabular: {
     fontVariant: ['tabular-nums'],
   },
 });

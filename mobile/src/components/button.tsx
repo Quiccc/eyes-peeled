@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Chunky } from '@/components/chunky';
@@ -20,6 +21,10 @@ type Props = Omit<PressableProps, 'style' | 'children'> & {
   /** Face height override, e.g. 56 for hero calls to action. */
   height?: number;
   icon?: IconName;
+  /** A custom icon (e.g. components/hunt-icons.tsx) in place of `icon`. */
+  iconNode?: ReactNode;
+  /** Put the icon after the label ("Next word →"). */
+  iconAfter?: boolean;
   loading?: boolean;
   /** Caps the label's Dynamic Type growth, for buttons inside fixed-height layouts. */
   maxFontSizeMultiplier?: number;
@@ -32,6 +37,8 @@ export function Button({
   size = 'regular',
   height,
   icon,
+  iconNode,
+  iconAfter,
   loading,
   maxFontSizeMultiplier,
   disabled,
@@ -52,17 +59,18 @@ export function Button({
   const sizeStyle = [
     small ? styles.small : styles.regular,
     // Small buttons with an icon are a touch tighter (the "Share" chip on a found word).
-    small && icon ? styles.smallWithIcon : null,
+    small && (icon || iconNode) ? styles.smallWithIcon : null,
     variant === 'ghost' && !small ? styles.ghost : null,
     height ? { minHeight: height } : null,
   ];
   const tall = (height ?? 0) >= 56;
+  const glyph = iconNode ?? (icon ? <Icon name={icon} size={small ? 16 : 20} color={fg} /> : null);
 
   const content = loading ? (
     <ActivityIndicator color={fg} />
   ) : (
     <>
-      {icon && <Icon name={icon} size={small ? 16 : 20} color={fg} />}
+      {!iconAfter && glyph}
       <ThemedText
         type={small ? 'smallBold' : tall && variant === 'primary' ? 'subtitle' : 'default'}
         style={[styles.label, { color: fg }]}
@@ -70,6 +78,7 @@ export function Button({
         numberOfLines={1}>
         {title}
       </ThemedText>
+      {iconAfter && glyph}
     </>
   );
 

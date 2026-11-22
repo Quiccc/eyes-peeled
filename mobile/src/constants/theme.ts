@@ -42,6 +42,8 @@ export const Colors = {
     streakEdge: '#FF8A00',
     /** Label and icon of the selected tab */
     tabSelected: '#A84F00',
+    /** The camera shutter's bottom edge: darker than tintEdge so the big button reads as raised. */
+    shutterEdge: '#A84F00',
 
     easy: '#2FB344',
     easyBg: '#DDF5E1',
@@ -108,6 +110,7 @@ export const Colors = {
     scoreNumber: '#FF9A1F',
     streakEdge: '#C46A00',
     tabSelected: '#FF9A1F',
+    shutterEdge: '#9A4E00',
 
     easy: '#3CCB55',
     easyBg: '#173D1E',

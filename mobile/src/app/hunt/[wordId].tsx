@@ -1,16 +1,17 @@
 import { useCameraPermissions } from 'expo-camera';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { useDaily } from '@/api/queries';
+import type { Daily, DailyWord } from '@/api/types';
 import { Button } from '@/components/button';
+import { SleepyClockArt } from '@/components/illustrations/hunt-art';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
 import { CameraCapture } from '@/features/hunt/camera-capture';
 import { CameraPermissionPrompt } from '@/features/hunt/camera-permission-prompt';
-import { HuntCentered, huntStyles } from '@/features/hunt/hunt-layout';
+import { HuntActions, HuntLoading, HuntScreenShell, HuntStatus, huntStyles, HuntTopBar } from '@/features/hunt/hunt-layout';
 import { HuntResult } from '@/features/hunt/hunt-result';
 import { useHuntSession } from '@/features/hunt/use-hunt-session';
+import { useStartHunt } from '@/features/hunt/use-start-hunt';
 import { useShareFind } from '@/features/share/share-find-sheet';
 import { fromSubmission } from '@/features/share/types';
 
@@ -19,43 +20,46 @@ export default function HuntScreen() {
   const router = useRouter();
   const { data: daily } = useDaily();
   const word = daily?.words.find((w) => w.id === wordId);
-  const [permission, requestPermission] = useCameraPermissions();
-  const session = useHuntSession(word);
-  const { share, sheet: shareSheet } = useShareFind();
   const close = () => router.back();
+
+  if (!daily) return <HuntLoading />;
 
   if (!word) {
     return (
-      <HuntCentered>
-        {daily ? (
-          <View style={styles.stretch}>
-            <ThemedText type="subtitle" style={huntStyles.centerText}>
-              This word isn&apos;t active anymore
-            </ThemedText>
-            <ThemedText themeColor="textSecondary" style={huntStyles.centerText}>
-              New words arrive every day. Head back to see today&apos;s hunt.
-            </ThemedText>
-            <Button title="Back to today" onPress={close} style={styles.stretchButton} />
-          </View>
-        ) : (
-          <ActivityIndicator />
-        )}
-      </HuntCentered>
+      <HuntScreenShell>
+        <HuntTopBar />
+        <HuntStatus>
+          <SleepyClockArt />
+          <ThemedText type="subtitle" style={huntStyles.centerText}>
+            This word has expired
+          </ThemedText>
+          <ThemedText themeColor="textSecondary" style={huntStyles.centerText}>
+            New words arrive every day. Head back to see today&apos;s hunt.
+          </ThemedText>
+        </HuntStatus>
+        <HuntActions>
+          <Button title="Back to today" onPress={close} />
+        </HuntActions>
+      </HuntScreenShell>
     );
   }
 
+  // Keyed by word: "Next word" swaps in a fresh session even if the router reuses this screen.
+  return <Hunt key={word.id} word={word} daily={daily} onClose={close} />;
+}
+
+function Hunt({ word, daily, onClose }: { word: DailyWord; daily: Daily; onClose: () => void }) {
+  const [permission, requestPermission] = useCameraPermissions();
+  const session = useHuntSession(word);
+  const { share, sheet: shareSheet } = useShareFind();
+  const { startHunt } = useStartHunt();
+
   const { phase } = session;
   if (phase.kind === 'camera') {
-    if (!permission) {
-      return (
-        <HuntCentered>
-          <ActivityIndicator />
-        </HuntCentered>
-      );
-    }
+    if (!permission) return <HuntLoading />;
     if (!permission.granted) {
       return (
-        <CameraPermissionPrompt word={word} permission={permission} requestPermission={requestPermission} onClose={close} />
+        <CameraPermissionPrompt word={word} permission={permission} requestPermission={requestPermission} onClose={onClose} />
       );
     }
     return (
@@ -66,7 +70,7 @@ export default function HuntScreen() {
         onReady={session.onCameraReady}
         onError={session.onCameraError}
         onCapture={session.capture}
-        onClose={close}
+        onClose={onClose}
       />
     );
   }
@@ -75,23 +79,15 @@ export default function HuntScreen() {
     <>
       <HuntResult
         word={word}
+        daily={daily}
         phase={phase}
         retrying={session.retrying}
         onRetry={session.retry}
-        onClose={close}
+        onClose={onClose}
+        onNext={(next) => startHunt(next, { replace: true })}
         onShare={(submission, previewUri) => share(fromSubmission(word, submission, previewUri))}
       />
       {shareSheet}
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  stretch: {
-    alignSelf: 'stretch',
-    gap: Spacing.two,
-  },
-  stretchButton: {
-    marginTop: Spacing.three,
-  },
-});

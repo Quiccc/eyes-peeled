@@ -12,7 +12,8 @@ export function useStartHunt() {
   const router = useRouter();
   const [openingId, setOpeningId] = useState<string | null>(null);
 
-  const startHunt = async (word: DailyWord) => {
+  /** `replace`: swap the current hunt screen for this word's (the "Next word" button), instead of stacking it. */
+  const startHunt = async (word: DailyWord, { replace = false }: { replace?: boolean } = {}) => {
     if (openingId) return;
     // A pending word reopens its in-flight result, so it isn't a new attempt and gets no ad.
     if (word.status !== 'pending') {
@@ -23,7 +24,9 @@ export function useStartHunt() {
         setOpeningId(null);
       }
     }
-    router.push({ pathname: '/hunt/[wordId]', params: { wordId: word.id } });
+    const route = { pathname: '/hunt/[wordId]', params: { wordId: word.id } } as const;
+    if (replace) router.replace(route);
+    else router.push(route);
   };
 
   return { openingId, startHunt };
