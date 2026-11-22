@@ -107,7 +107,7 @@ export function Button({
       edge={face.outlined ? OUTLINED_EDGE : small ? Edge.small : tall && variant !== 'ink' ? Edge.card : Edge.button}
       disabled={isDisabled}
       style={style}
-      contentStyle={[styles.row, sizeStyle]}
+      contentStyle={[styles.row, styles.fit, sizeStyle]}
       {...rest}>
       {content}
     </Chunky>
@@ -138,5 +138,10 @@ const styles = StyleSheet.create({
   },
   label: {
     fontWeight: 900,
+  },
+  // A button's face is sized by its content. Chunky's default flexGrow lets it balloon inside
+  // scroll content (e.g. a list's empty state), so turn it off here.
+  fit: {
+    flexGrow: 0,
   },
 });

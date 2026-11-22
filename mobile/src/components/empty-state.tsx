@@ -39,7 +39,7 @@ export function EmptyState({ icon, art, title, hint, action, boxed }: Props) {
           {hint}
         </ThemedText>
       ) : null}
-      {action}
+      {action ? <View style={styles.action}>{action}</View> : null}
     </View>
   );
 }
@@ -93,6 +93,11 @@ const styles = StyleSheet.create({
   },
   center: {
     textAlign: 'center',
+  },
+  // Sized by its content so a button here never soaks up spare height (e.g. inside a list's empty slot).
+  action: {
+    alignSelf: 'center',
+    marginTop: Spacing.two,
   },
   skeletons: {
     gap: Spacing.two,
