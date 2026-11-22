@@ -15,7 +15,7 @@ import {
 import { clearTokens, loadSignInProvider, loadTokens, saveSignInProvider, saveTokens } from './token-store';
 
 /** Dev only: sign in to a local server as this test user, skipping Apple/Google. Never set it in release builds. */
-const DEV_LOGIN = __DEV__ ? process.env.EXPO_PUBLIC_DEV_LOGIN?.trim() || null : null;
+export const DEV_LOGIN = __DEV__ ? process.env.EXPO_PUBLIC_DEV_LOGIN?.trim() || null : null;
 
 type AuthState =
   | { status: 'loading'; user: null }

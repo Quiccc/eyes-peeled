@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { USE_MOCK_API } from '@/api/endpoints';
 import type { AuthProvider, Difficulty } from '@/api/types';
-import { useAuth } from '@/auth/auth-provider';
+import { DEV_LOGIN, useAuth } from '@/auth/auth-provider';
 import { GOOGLE_SIGN_IN_AVAILABLE, isAppleSignInAvailable, SignInCancelled } from '@/auth/social-sign-in';
 import { Button } from '@/components/button';
 import { EyesPeeledLogo } from '@/components/eyes-peeled-logo';
@@ -85,7 +85,8 @@ export default function SignInScreen() {
               onPress={() => handle('apple')}
             />
           ) : null}
-          {(GOOGLE_SIGN_IN_AVAILABLE || USE_MOCK_API) && (
+          {/* Dev login skips the Google SDK, so the button works without a client ID. */}
+          {(GOOGLE_SIGN_IN_AVAILABLE || USE_MOCK_API || !!DEV_LOGIN) && (
             <Button
               title="Continue with Google"
               variant="secondary"
@@ -109,6 +110,11 @@ export default function SignInScreen() {
           {USE_MOCK_API && (
             <ThemedText type="small" themeColor="textSecondary" style={styles.center}>
               Mock API mode: sign-in is simulated.
+            </ThemedText>
+          )}
+          {!USE_MOCK_API && !!DEV_LOGIN && (
+            <ThemedText type="small" themeColor="textSecondary" style={styles.center}>
+              Dev login: signs in as {DEV_LOGIN}.
             </ThemedText>
           )}
         </View>
