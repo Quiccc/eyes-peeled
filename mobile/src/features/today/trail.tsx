@@ -610,8 +610,8 @@ function ComboChip({
             ? [styles.chipLit, { backgroundColor: theme.tint, borderColor: theme.tintEdge }]
             : { backgroundColor: theme.backgroundElement, borderColor: theme.border },
         ]}>
-        {/* Fixed size: the chip has to stay inside the 52px rail. */}
-        <ThemedText maxFontSizeMultiplier={1} style={[styles.chipText, { color: lit ? theme.onTint : theme.text }]}>
+        {/* Fixed text size so the chip stays small; it may overhang the 52px rail (see chipSlot). */}
+        <ThemedText maxFontSizeMultiplier={1} numberOfLines={1} style={[styles.chipText, { color: lit ? theme.onTint : theme.text }]}>
           +{value}
         </ThemedText>
       </View>
@@ -669,10 +669,11 @@ const styles = StyleSheet.create({
     flex: 1,
     width: SEGMENT,
   },
+  // Wider than the 52px rail: "+100" and "+200" need ~56px, and the rail has free space on both sides.
   chipSlot: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    left: -16,
+    right: -16,
     bottom: -CHIP_H / 2,
     height: CHIP_H,
     alignItems: 'center',
@@ -691,11 +692,11 @@ const styles = StyleSheet.create({
   chipLit: {
     borderBottomWidth: 3,
   },
+  // No tabular-nums here: on Android it makes the bold label measure narrower than it draws, clipping "+100" to "+10".
   chipText: {
     fontSize: 14,
     lineHeight: 18,
     fontWeight: 900,
-    fontVariant: ['tabular-nums'],
   },
   node: {
     width: NODE,
