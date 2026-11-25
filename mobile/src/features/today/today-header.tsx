@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { useMyProfile } from '@/api/queries';
 import { EyesPeeledLogo } from '@/components/eyes-peeled-logo';
-import { Icon } from '@/components/icon';
+import { FlameIcon } from '@/components/hunt-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { MAX_FONT_SCALE } from '@/features/today/layout';
@@ -32,7 +32,7 @@ export function TodayHeader() {
         accessible
         accessibilityLabel={streak === undefined ? 'Streak' : `${streak} day streak`}
         style={[styles.streak, { backgroundColor: theme.backgroundElement, borderColor: theme.streakEdge }]}>
-        <Icon name="flame" size={18} color={theme.tintEdge} />
+        <FlameIcon size={18} />
         <ThemedText style={styles.streakText} numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE}>
           {streak ?? '–'}
         </ThemedText>

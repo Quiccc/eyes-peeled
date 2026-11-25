@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View, type PressableProps, type StyleProp, type 
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 
 import { Edge, Radius } from '@/constants/theme';
+import { usePressGuard } from '@/hooks/use-press-guard';
 import { tap } from '@/lib/haptics';
 
 const OUTLINE = 2;
@@ -49,6 +50,7 @@ export function Chunky({
   /** How far the face sits above the edge layer (and sinks when pressed). */
   const drop = outlined ? Math.max(0, edge - OUTLINE) : edge;
   const pressed = useSharedValue(0);
+  const guard = usePressGuard();
   const faceMotion = useAnimatedStyle(() => ({ transform: [{ translateY: pressed.value * drop }] }));
 
   const edgeLayer = (
@@ -77,7 +79,7 @@ export function Chunky({
     <Pressable
       accessibilityRole="button"
       disabled={disabled}
-      onPress={onPress}
+      onPress={guard(onPress)}
       onPressIn={(e) => {
         pressed.value = withTiming(1, { duration: 70 });
         tap();

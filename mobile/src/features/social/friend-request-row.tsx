@@ -8,6 +8,7 @@ import { Button } from '@/components/button';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Spacing } from '@/constants/theme';
+import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { displayName } from '@/lib/format';
 
@@ -85,6 +86,7 @@ function RequestRow({
   onRespond,
 }: { request: FriendRequest; subtitle?: string } & Respond) {
   const theme = useTheme();
+  const guard = usePressGuard();
   const from = request.from;
   const name = from.username ?? displayName(from);
   const waiting = pending?.id === request.id ? pending.action : null;
@@ -110,7 +112,7 @@ function RequestRow({
         accessibilityLabel={`Decline ${displayName(from)}`}
         accessibilityState={{ busy: waiting === 'decline', disabled }}
         disabled={disabled}
-        onPress={() => onRespond(request.id, 'decline')}
+        onPress={guard(() => onRespond(request.id, 'decline'))}
         style={({ pressed }) => [styles.decline, { opacity: disabled ? 0.5 : pressed ? 0.6 : 1 }]}>
         <Icon name="close" size={20} color={theme.textSecondary} />
       </Pressable>

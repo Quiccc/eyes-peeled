@@ -20,6 +20,7 @@ import { Avatar } from '@/components/avatar';
 import { CountUp } from '@/components/celebration';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { displayName, formatNumber } from '@/lib/format';
 
@@ -107,6 +108,7 @@ function PodiumColumn({
 }) {
   const theme = useTheme();
   const router = useRouter();
+  const guard = usePressGuard();
   const medal = [theme.gold, theme.silver, theme.bronze][place];
   const barDelay = (2 - place) * BAR_STAGGER;
 
@@ -140,7 +142,7 @@ function PodiumColumn({
         <Pressable
           accessibilityRole="link"
           hitSlop={8}
-          onPress={() => router.push({ pathname: '/user/[userId]', params: { userId: entry.user.id } })}>
+          onPress={guard(() => router.push({ pathname: '/user/[userId]', params: { userId: entry.user.id } }))}>
           {player}
         </Pressable>
       )}

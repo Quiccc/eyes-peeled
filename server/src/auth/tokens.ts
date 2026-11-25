@@ -11,7 +11,7 @@ const REFRESH_TTL_MS = 60 * 86_400_000;
 const key = (secret: string) => new TextEncoder().encode(secret);
 const hash = (token: string) => createHash('sha256').update(token).digest('hex');
 
-export async function signAccessToken(ctx: Ctx, userId: string): Promise<string> {
+async function signAccessToken(ctx: Ctx, userId: string): Promise<string> {
   const now = Math.floor(ctx.clock.now().getTime() / 1000);
   return new SignJWT({})
     .setProtectedHeader({ alg: 'HS256' })
@@ -35,7 +35,7 @@ export async function verifyAccessToken(ctx: Ctx, token: string): Promise<string
 }
 
 /** A new opaque refresh token. Only its hash is stored. */
-export async function issueRefreshToken(ctx: Ctx, userId: string): Promise<string> {
+async function issueRefreshToken(ctx: Ctx, userId: string): Promise<string> {
   const token = randomBytes(32).toString('base64url');
   await ctx.db.insert(refreshTokens).values({
     userId,

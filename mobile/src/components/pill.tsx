@@ -18,7 +18,7 @@ type PillProps = {
   textStyle?: StyleProp<TextStyle>;
 };
 
-export function Pill({ label, bg, color, style, maxFontSizeMultiplier, textStyle }: PillProps) {
+function Pill({ label, bg, color, style, maxFontSizeMultiplier, textStyle }: PillProps) {
   return (
     <View style={[styles.pill, { backgroundColor: bg }, style]}>
       <ThemedText

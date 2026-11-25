@@ -40,7 +40,7 @@ export const CIRCLE_AIR = 4;
 export const CIRCLE_LABEL_GAP = 8;
 
 /** Row heights without the cards' vertical padding: row gap + borders + content. Add 2 × padding for the real height. */
-export type TrailMetrics = {
+type TrailMetrics = {
   /** A collapsed word row: its pill and word. */
   collapsed: number;
   /**
@@ -60,7 +60,7 @@ export type TrailMetrics = {
 };
 
 /** Row heights for the Today trail, from the type scale and the (clamped) system text size. */
-export function trailMetrics(fontScale: number): TrailMetrics {
+function trailMetrics(fontScale: number): TrailMetrics {
   const fs = Math.min(fontScale, MAX_FONT_SCALE);
   const line = (h: number) => Math.ceil(h * fs);
   const pill = line(18) + 4;

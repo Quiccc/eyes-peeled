@@ -2,6 +2,7 @@ import { Pressable, StyleSheet } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { Edge } from '@/constants/theme';
+import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
@@ -16,12 +17,13 @@ export const CLOSE_BUTTON_SIZE = 44;
 export function CloseButton({ onPress, variant = 'surface' }: Props) {
   const theme = useTheme();
   const overlay = variant === 'overlay';
+  const guard = usePressGuard();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Close"
       hitSlop={overlay ? 8 : undefined}
-      onPress={onPress}
+      onPress={guard(onPress)}
       style={({ pressed }) => [
         styles.button,
         overlay

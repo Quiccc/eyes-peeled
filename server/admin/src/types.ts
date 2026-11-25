@@ -8,8 +8,6 @@ export type {
   AdminReport as Report,
   AdminWord,
   MonthSchedule,
-  ScheduleDay,
-  ScheduledWord,
   WordDayStats,
 } from '@server/dto/admin';
 

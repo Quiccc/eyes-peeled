@@ -30,6 +30,9 @@ export function useHuntSession(word: DailyWord | undefined) {
   const [cameraReady, setCameraReady] = useState(false);
   const [phase, setPhase] = useState<HuntPhase>({ kind: 'camera' });
   const [retrying, setRetrying] = useState(false);
+  // Set synchronously on the first tap, so a fast second tap can't take and upload another photo
+  // before the phase change re-renders the screen. Cleared when the camera comes back (retry).
+  const capturing = useRef(false);
 
   const showVerdict = (previewUri: string, submission: Submission) => {
     setPhase({ kind: 'result', previewUri, submission });
@@ -54,7 +57,8 @@ export function useHuntSession(word: DailyWord | undefined) {
   }, [pendingSubmission, queryClient]);
 
   const capture = async () => {
-    if (!cameraRef.current || !cameraReady || !word) return;
+    if (!cameraRef.current || !cameraReady || !word || capturing.current) return;
+    capturing.current = true;
     let previewUri: string | null = null;
     try {
       const raw = await cameraRef.current.takePictureAsync({ quality: 0.9 });
@@ -75,6 +79,7 @@ export function useHuntSession(word: DailyWord | undefined) {
       setRetrying(false);
     }
     setCameraReady(false);
+    capturing.current = false;
     setPhase({ kind: 'camera' });
   };
 

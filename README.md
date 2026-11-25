@@ -4,7 +4,7 @@ A daily real-world scavenger hunt for iOS and Android. Every day at 00:00 UTC, t
 
 Built with Expo SDK 58, Expo Router (native tabs), TanStack Query, AdMob, RevenueCat, and Apple/Google sign-in.
 
-The repo has three parts, each with its own dependencies and checks:
+The repo has two parts, each with its own dependencies and checks:
 
 | Folder | What it is |
 |---|---|
@@ -59,7 +59,7 @@ Purchases need a development build and a sandbox / test-track account, or Revenu
 
 ## Before shipping
 
-- `mobile/app.json`: the bundle id / package is `com.eyespeeled.app` (register it with Apple and Google Play). Set the Google `iosUrlScheme`, and the AdMob `iosAppId`/`androidAppId`. Test IDs are filled in for now.
+- `mobile/app.json`: the bundle id / package is `com.eyespeeled.app` (register it with Apple and Google Play). The AdMob `androidAppId` is the real one; `iosAppId` is still Google's test ID. The Google sign-in `iosUrlScheme` is built in `mobile/app.config.ts` from `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`.
 - EAS `preview`/`production` profiles: set `EXPO_PUBLIC_API_URL` (production: `https://api.eyespeeled.app`; server `PUBLIC_BASE_URL` to match). A release build without it stops at launch rather than silently using the mock (set `EXPO_PUBLIC_USE_MOCK_API=true` to ship the mock on purpose).
 - `mobile/.env.local`: set the Google client IDs and the AdMob interstitial unit IDs. Development builds always use Google's test ad units.
 - App Store: privacy nutrition labels (camera, identifiers for ads), the content moderation process for reports, and a privacy policy URL (`https://eyespeeled.app/privacy`; terms at `/terms`, both linked from the sign-in screen).
@@ -67,21 +67,23 @@ Purchases need a development build and a sandbox / test-track account, or Revenu
 ## Layout
 
 ```
-mobile/src/app/            routes (thin): sign-in, choose-username, (tabs)/{index,leaderboard,friends,profile}, hunt/[wordId], user/[userId], premium
+mobile/src/app/            routes (thin): sign-in, choose-username, blocked, (tabs)/{index,leaderboard,friends,profile}, hunt/[wordId], user/[userId], premium
 mobile/src/api/            types, HTTP client (token refresh), endpoints, queries.ts (shared query hooks + cache invalidation), mock/ backend
 mobile/src/auth/           AuthProvider, Apple/Google sign-in, SecureStore tokens
 mobile/src/ads/            consent + ATT + interstitials (shown on word selection and on retry; off for Premium)
 mobile/src/purchases/      RevenueCat Premium purchase / restore
 mobile/src/features/       one folder per feature: hunt (camera, verdict state machine, upload + poll), today, social,
-                           premium, safety (report / block), share
+                           leaderboard, profile, premium, safety (report / block), share
 mobile/src/components/     UI building blocks shared by features
 mobile/src/hooks/          generic hooks (theme, debounce, async button actions)
+mobile/src/lib/            small pure helpers (formatting, combo, leaderboard, haptics, appearance); tests in lib/__tests__
+mobile/src/constants/      theme colors, spacing and font
 ```
 
 ## Checks
 
 ```bash
-cd mobile && npx tsc --noEmit && npx expo lint && npx expo-doctor
+cd mobile && npx tsc --noEmit && npx expo lint && npm test && npx expo-doctor
 cd server && npm run typecheck && npm test
 cd server/admin && npm run build
 ```

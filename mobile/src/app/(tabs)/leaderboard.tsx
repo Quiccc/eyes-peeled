@@ -13,6 +13,7 @@ import { Icon } from '@/components/icon';
 import { FreshMonthArt, RaceFriendsArt, UnpluggedTrophyArt } from '@/components/illustrations/ranks-art';
 import { QueryState } from '@/components/query-state';
 import { SegmentedControl } from '@/components/segmented-control';
+import { HuntCameraIcon } from '@/components/tab-icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Edge, Radius, Spacing } from '@/constants/theme';
@@ -128,7 +129,7 @@ export default function LeaderboardScreen() {
                   art={<FreshMonthArt />}
                   title="A fresh month!"
                   hint="Nobody has scored yet. Find a word and take the top spot."
-                  action={<Button title="Start hunting" icon="camera" onPress={() => router.navigate('/')} />}
+                  action={<Button title="Start hunting" iconNode={<HuntCameraIcon size={20} />} onPress={() => router.navigate('/')} />}
                 />
               )
             ) : (

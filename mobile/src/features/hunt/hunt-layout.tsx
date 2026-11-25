@@ -32,7 +32,7 @@ const TOP_BAR_HEIGHT = 48;
  * height (300 on a 390×844 phone, 340 at most); short phones give the photo less (30%, 170 at least) so
  * the score card and the main button still fit without scrolling.
  */
-export function usePhotoHeight() {
+function usePhotoHeight() {
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const usable = height - insets.top - insets.bottom;

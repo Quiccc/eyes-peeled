@@ -2,6 +2,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Spacing } from '@/constants/theme';
+import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
 
 export type SettingsRow = {
@@ -13,6 +14,7 @@ export type SettingsRow = {
 /** A card of tappable settings rows separated by hairlines. */
 export function SettingsGroup({ rows }: { rows: readonly SettingsRow[] }) {
   const theme = useTheme();
+  const guard = usePressGuard();
   return (
     <View style={[styles.group, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
       {rows.map((row, i) => (
@@ -20,7 +22,7 @@ export function SettingsGroup({ rows }: { rows: readonly SettingsRow[] }) {
           key={row.title}
           accessibilityRole="button"
           disabled={row.loading}
-          onPress={row.onPress}
+          onPress={guard(row.onPress)}
           style={({ pressed }) => [
             styles.row,
             i > 0 && { borderTopWidth: 2, borderTopColor: theme.border },
@@ -37,11 +39,12 @@ export function SettingsGroup({ rows }: { rows: readonly SettingsRow[] }) {
 /** A red text button for irreversible actions, e.g. "Delete account". */
 export function DangerLink({ title, loading, onPress }: SettingsRow) {
   const theme = useTheme();
+  const guard = usePressGuard();
   return (
     <Pressable
       accessibilityRole="button"
       disabled={loading}
-      onPress={onPress}
+      onPress={guard(onPress)}
       style={({ pressed }) => [styles.danger, { opacity: pressed ? 0.6 : 1 }]}>
       {loading ? (
         <ActivityIndicator color={theme.dangerText} />

@@ -7,7 +7,7 @@ const APPLE = 'https://appleid.apple.com';
 
 type AppleKeyEnv = Pick<Env, 'APPLE_BUNDLE_ID' | 'APPLE_TEAM_ID' | 'APPLE_KEY_ID' | 'APPLE_PRIVATE_KEY'>;
 
-export const appleRevocationConfigured = (env: AppleKeyEnv) =>
+const appleRevocationConfigured = (env: AppleKeyEnv) =>
   Boolean(env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY);
 
 /** The client_secret Apple's token endpoints want: an ES256 JWT signed with the Sign in with Apple key. */

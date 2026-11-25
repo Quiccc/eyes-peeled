@@ -21,6 +21,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Radius, Spacing } from '@/constants/theme';
 import { startBlock, startReport, startUnblock } from '@/features/safety/safety-menu';
 import { useFriendAction, useRespondFriendRequest } from '@/features/social/use-friend-mutations';
+import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { displayName, plural } from '@/lib/format';
 
@@ -223,11 +224,12 @@ function FindsGrid({ items }: { items: FeedItem[] }) {
 }
 
 function HeaderButton({ icon, label, size, onPress }: { icon: IconName; label: string; size: number; onPress: () => void }) {
+  const guard = usePressGuard();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      onPress={onPress}
+      onPress={guard(onPress)}
       style={({ pressed }) => [styles.headerButton, { opacity: pressed ? 0.6 : 1 }]}>
       <Icon name={icon} size={size} />
     </Pressable>

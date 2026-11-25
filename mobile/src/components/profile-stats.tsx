@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import type { UserProfile } from '@/api/types';
-import { Icon } from '@/components/icon';
+import { FlameIcon } from '@/components/hunt-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -29,7 +29,7 @@ export function ProfileStats({ profile, strip }: { profile: UserProfile; strip?:
             accessibilityLabel={`${s.value} ${s.label}`}
             style={[styles.cell, i > 0 && { borderLeftWidth: 2, borderLeftColor: theme.border }]}>
             <View style={styles.cellValue}>
-              {s.flame && <Icon name="flame" size={17} color={theme.tintEdge} />}
+              {s.flame && <FlameIcon size={17} />}
               <ThemedText type="subtitle" style={[styles.value, { color: s.color }]} numberOfLines={1} adjustsFontSizeToFit>
                 {s.value}
               </ThemedText>

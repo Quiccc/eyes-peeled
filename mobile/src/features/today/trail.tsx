@@ -11,8 +11,10 @@ import Animated, {
 
 import type { DailyWord } from '@/api/types';
 import { Chunky } from '@/components/chunky';
-import { Icon, type IconName } from '@/components/icon';
+import { ShareIcon } from '@/components/hunt-icons';
+import { Icon } from '@/components/icon';
 import { DifficultyPill } from '@/components/pill';
+import { HuntCameraIcon } from '@/components/tab-icons';
 import { ThemedText } from '@/components/themed-text';
 import { difficultyColors, Edge, Radius, Spacing } from '@/constants/theme';
 import {
@@ -28,6 +30,7 @@ import {
   PAD_MIN,
   useTrailMetrics,
 } from '@/features/today/layout';
+import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { tap } from '@/lib/haptics';
 import { trailLinks } from '@/lib/combo';
@@ -400,7 +403,7 @@ function ActionTile({
   onPress,
 }: {
   word: DailyWord;
-  icon: IconName;
+  icon: 'camera' | 'share';
   title: string;
   /**
    * A short sentence under the shutter's label. Keep it free of the word itself: labels are bare object names
@@ -430,8 +433,10 @@ function ActionTile({
         contentStyle={styles.shutterFace}>
         {busy ? (
           <ActivityIndicator color={c.on} size="large" />
+        ) : icon === 'camera' ? (
+          <HuntCameraIcon size={Math.round(circle * 0.5)} />
         ) : (
-          <Icon name={icon} size={Math.round(circle * 0.4)} color={c.on} />
+          <ShareIcon size={Math.round(circle * 0.5)} />
         )}
       </Chunky>
       <View style={styles.caption} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
@@ -525,6 +530,7 @@ function LockedStop({
   onPress: () => void;
 }) {
   const theme = useTheme();
+  const guard = usePressGuard();
 
   return (
     <View style={[styles.row, { height }]}>
@@ -541,7 +547,7 @@ function LockedStop({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`${DIFFICULTY_LABEL.expert} word, up to 1000 points, locked. Unlock with Premium.`}
-          onPress={onPress}
+          onPress={guard(onPress)}
           style={({ pressed }) => [
             styles.lockCard,
             { backgroundColor: theme.expertBg, borderColor: theme.expert, paddingVertical: pad, opacity: pressed ? 0.85 : 1 },

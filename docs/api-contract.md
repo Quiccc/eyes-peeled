@@ -113,8 +113,9 @@ The Today trail links adjacent words (easy–medium, medium–hard, hard–exper
 
 - The app only uploads photos from the live camera; there is no gallery picker. A modified client can still upload anything, so also:
   - rate-limit attempts per word,
-  - perceptual-hash images to catch re-uploads of the same photo or other users' photos,
-  - optionally run a "photo of a screen" or "photo of a photo" classifier.
+  - reject exact re-uploads of a photo already on file (same SHA-256, from any player); a perceptual hash would also catch slightly edited copies.
+
+Photos of screens or printed pictures are already rejected by the Claude check (step 4 above).
 
 ## Purchases (Premium)
 
@@ -207,15 +208,18 @@ Every response has an `x-request-id` header: the caller's own value if it was a 
 | 409 | `already_found` | Submitting to a word the user already found today |
 | 409 | `submission_pending` | Submitting while an earlier photo for that word is still being checked |
 | 413 | `photo_too_large` | Upload above the size limit: 3.75 MB for word photos on the reference server (the app sends ≤1280px JPEGs, usually < 500 KB), 1 MB for profile pictures |
-| 426 | `upgrade_required` | App version below the minimum (see [Planned](#planned)) |
+| 426 | `upgrade_required` | App version below the minimum (see [Minimum app version](#minimum-app-version)) |
 | 429 | `rate_limited` | Too many attempts or requests; `message` should say when to try again |
 | 5xx | `server_error` | Anything unexpected. Keep `message` generic. |
 
 The app shows `message` as-is, so write it for players, not developers.
 
+## Minimum app version
+
+The app sends `X-App-Version: <semver>` (`Constants.expoConfig.version`, i.e. `version` in `mobile/app.json`) and `X-Platform: ios|android` on every request. When `MIN_APP_VERSION` is set on the server and the app's version is below it, the server answers `426 upgrade_required` (`server/src/middleware/app-version.ts`). For now the app shows the error `message`; a dedicated "Please update" screen with a store link is planned. Bump `version` in `mobile/app.json` for each store release so this check means something.
+
 ## Planned
 
 Not used by the app yet. Reserved here so the first store build and the backend agree on them.
 
-- **Minimum app version.** The app already sends `X-App-Version: <semver>` (from `mobile/app.json` `version`) and `X-Platform: ios|android` on every request. When the version is below your minimum, return `426 upgrade_required`. For now the app shows the error `message`; a dedicated "Please update" screen with a store link is planned. Bump `version` in `mobile/app.json` for each store release so this check means something.
 - **Push notifications.** `PUT /me/push-token` `{ token, platform }` → 204, to store an Expo push token. Uses: daily reset ("New words are live"), incoming friend request, a friend passed you on the friends board. `DELETE /me/push-token` on sign-out.

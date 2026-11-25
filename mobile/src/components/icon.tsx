@@ -8,14 +8,11 @@ import { useTheme } from '@/hooks/use-theme';
  * Outline glyphs (no `.fill`) to match the design's stroke icons; Material Symbols are outlined by default.
  */
 const ICONS = {
-  camera: { ios: 'camera', android: 'photo_camera' },
   trophy: { ios: 'trophy', android: 'emoji_events' },
   users: { ios: 'person.2', android: 'group' },
   user: { ios: 'person', android: 'person' },
   lock: { ios: 'lock', android: 'lock' },
   check: { ios: 'checkmark', android: 'check' },
-  share: { ios: 'square.and.arrow.up', android: 'share' },
-  flame: { ios: 'flame', android: 'local_fire_department' },
   clock: { ios: 'clock', android: 'schedule' },
   search: { ios: 'magnifyingglass', android: 'search' },
   close: { ios: 'xmark', android: 'close' },
@@ -24,7 +21,6 @@ const ICONS = {
   'chevron-right': { ios: 'chevron.right', android: 'chevron_right' },
   'no-ads': { ios: 'nosign', android: 'block' },
   retry: { ios: 'arrow.counterclockwise', android: 'replay' },
-  link: { ios: 'link', android: 'link' },
   'camera-off': { ios: 'video.slash', android: 'no_photography' },
   'chevron-left': { ios: 'chevron.left', android: 'chevron_left' },
   'person-add': { ios: 'person.badge.plus', android: 'person_add' },

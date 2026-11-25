@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import type { FeedItem } from '@/api/types';
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
+import { ShareIcon } from '@/components/hunt-icons';
 import { Icon } from '@/components/icon';
 import { DifficultyPill } from '@/components/pill';
 import { ThemedText } from '@/components/themed-text';
@@ -89,7 +90,7 @@ export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
       )}
       {onShare && (
         <View style={styles.share}>
-          <Button size="small" variant="secondary" icon="share" title="Share" onPress={onShare} />
+          <Button size="small" variant="secondary" iconNode={<ShareIcon size={16} />} title="Share" onPress={onShare} />
         </View>
       )}
     </View>

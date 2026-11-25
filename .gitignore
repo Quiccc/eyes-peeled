@@ -6,8 +6,6 @@ node_modules/
 # Expo
 .expo/
 dist/
-web-build/
-expo-env.d.ts
 
 # Native
 .kotlin/
@@ -22,6 +20,7 @@ credentials/
 *.p12
 *.key
 *.mobileprovision
+*.pem
 google-service-account*.json
 
 # Metro
@@ -29,12 +28,9 @@ google-service-account*.json
 
 # debug
 npm-debug.*
-yarn-debug.*
-yarn-error.*
 
 # macOS
 .DS_Store
-*.pem
 
 # local env files (examples are committed)
 .env
@@ -47,8 +43,6 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
-
-example
 
 # generated native folders (Continuous Native Generation)
 mobile/ios/
@@ -64,7 +58,6 @@ server/.env
 deploy/.env
 deploy/backups-test/
 *.dump
-coverage/
 *.log
 server/eval-photos/
 

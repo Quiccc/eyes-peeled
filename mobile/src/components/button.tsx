@@ -5,6 +5,7 @@ import { Chunky } from '@/components/chunky';
 import { Icon, type IconName } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Radius, Spacing } from '@/constants/theme';
+import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
 
 /** Card-colored buttons: a 2px outline plus a 4px drop, 6px of bottom band in all. */
@@ -43,9 +44,11 @@ export function Button({
   maxFontSizeMultiplier,
   disabled,
   style,
+  onPress,
   ...rest
 }: Props) {
   const theme = useTheme();
+  const guard = usePressGuard();
   const small = size === 'small';
   const isDisabled = disabled || loading;
   const fg = {
@@ -87,6 +90,7 @@ export function Button({
       <Pressable
         accessibilityRole="button"
         disabled={isDisabled}
+        onPress={guard(onPress)}
         style={({ pressed }) => [
           styles.row,
           sizeStyle,
@@ -117,6 +121,7 @@ export function Button({
       disabled={isDisabled}
       style={style}
       contentStyle={[styles.row, styles.fit, sizeStyle]}
+      onPress={onPress}
       {...rest}>
       {content}
     </Chunky>

@@ -5,6 +5,7 @@ import { Button } from '@/components/button';
 import { Icon, type IconName } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Radius, Spacing } from '@/constants/theme';
+import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { tap } from '@/lib/haptics';
 
@@ -31,6 +32,7 @@ type Props = {
 export function ActionSheet({ visible, title, items, onClose }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const guard = usePressGuard();
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
@@ -59,11 +61,11 @@ export function ActionSheet({ visible, title, items, onClose }: Props) {
               <Pressable
                 key={item.label}
                 accessibilityRole="menuitem"
-                onPress={() => {
+                onPress={guard(() => {
                   tap();
                   onClose();
                   item.onPress();
-                }}
+                })}
                 style={({ pressed }) => [styles.item, pressed && { backgroundColor: theme.backgroundSelected }]}>
                 <Icon name={item.icon} size={22} color={color} />
                 <ThemedText style={[styles.label, { color }]}>{item.label}</ThemedText>

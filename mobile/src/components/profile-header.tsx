@@ -2,9 +2,10 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import type { User } from '@/api/types';
 import { Avatar, hueFor } from '@/components/avatar';
-import { Icon } from '@/components/icon';
+import { HuntCameraIcon } from '@/components/tab-icons';
 import { ThemedText } from '@/components/themed-text';
 import { difficultyColors, Spacing } from '@/constants/theme';
+import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { displayName, joinedLabel } from '@/lib/format';
 
@@ -32,6 +33,7 @@ export function ProfileHeader({
   centered?: boolean;
 }) {
   const theme = useTheme();
+  const guard = usePressGuard();
   if (centered) {
     const edge = difficultyColors(theme, hueFor(user.id)).edge;
     return (
@@ -58,7 +60,7 @@ export function ProfileHeader({
     <View style={styles.identity}>
       {onEditAvatar ? (
         <Pressable
-          onPress={onEditAvatar}
+          onPress={guard(onEditAvatar)}
           disabled={avatarBusy}
           accessibilityRole="button"
           accessibilityLabel={user.avatarUrl ? 'Change profile picture' : 'Add a profile picture'}
@@ -72,7 +74,7 @@ export function ProfileHeader({
             </View>
           )}
           <View style={[styles.badge, { backgroundColor: theme.tint, borderColor: theme.background }]}>
-            <Icon name="camera" size={14} color="#fff" />
+            <HuntCameraIcon size={14} />
           </View>
         </Pressable>
       ) : (

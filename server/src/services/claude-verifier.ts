@@ -28,7 +28,7 @@ const answer = z.object({
 /** The part of the SDK client this verifier uses, so tests can pass a fake. */
 export type ClaudeClient = Pick<Anthropic, 'messages'>;
 
-export type ClaudeVerifierOptions = {
+type ClaudeVerifierOptions = {
   model: string;
   apiKey?: string;
   client?: ClaudeClient;

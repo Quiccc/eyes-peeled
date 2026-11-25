@@ -5,6 +5,7 @@ import type { LeaderboardEntry } from '@/api/types';
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
 import { Icon } from '@/components/icon';
+import { HuntCameraIcon } from '@/components/tab-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -122,7 +123,7 @@ export function UnrankedBar({ onHunt }: { onHunt: () => void }) {
           Find one word to get ranked
         </ThemedText>
       </View>
-      <Button size="small" icon="camera" title="Hunt" onPress={onHunt} />
+      <Button size="small" iconNode={<HuntCameraIcon size={16} />} title="Hunt" onPress={onHunt} />
     </View>
   );
 }

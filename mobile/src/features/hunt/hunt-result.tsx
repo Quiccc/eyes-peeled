@@ -6,7 +6,6 @@ import { useAuth } from '@/auth/auth-provider';
 import { Button } from '@/components/button';
 import { Countdown } from '@/components/countdown';
 import { FlameIcon, NextIcon, ShareIcon } from '@/components/hunt-icons';
-import { Icon } from '@/components/icon';
 import { DizzyBadge, LookoutMascot, PuzzledBadge, ThumbsUpBadge } from '@/components/illustrations/hunt-art';
 import { HuntCameraIcon } from '@/components/tab-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -62,7 +61,7 @@ export function HuntResult({ word, daily, phase, retrying, onRetry, onClose, onN
         {previewUri ? (
           <Image source={previewUri} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel="Your photo" />
         ) : (
-          <Icon name="camera" size={64} color={theme.textSecondary} />
+          <HuntCameraIcon size={64} />
         )}
       </PhotoFrame>
 

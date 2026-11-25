@@ -5,7 +5,7 @@ import { clearTokens, getTokens, saveTokens } from '@/auth/token-store';
 
 import type { ApiErrorBody, AuthTokens } from './types';
 
-export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/$/, '');
+const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/$/, '');
 
 export class ApiError extends Error {
   constructor(

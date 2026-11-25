@@ -21,7 +21,7 @@ const listeners = new Set<() => void>();
  * Animates a theme switch: must call applyChange() exactly once (e.g. under a snapshot overlay).
  * Registered by <ThemeTransitionOverlay /> at the app root.
  */
-export type ThemeTransition = (applyChange: () => void) => Promise<void>;
+type ThemeTransition = (applyChange: () => void) => Promise<void>;
 let transition: ThemeTransition | null = null;
 
 export function setThemeTransition(handler: ThemeTransition | null) {

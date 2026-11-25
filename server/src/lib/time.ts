@@ -1,6 +1,6 @@
 import type { Clock } from './clock';
 
-export const DAY_MS = 86_400_000;
+const DAY_MS = 86_400_000;
 
 /** YYYY-MM-DD of the UTC day containing `at`. */
 export const utcDate = (at: Date) => at.toISOString().slice(0, 10);

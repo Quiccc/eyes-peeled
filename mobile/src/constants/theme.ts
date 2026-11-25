@@ -145,7 +145,7 @@ export const Colors = {
   },
 } as const;
 
-export type Theme = { [K in keyof typeof Colors.light]: string };
+type Theme = { [K in keyof typeof Colors.light]: string };
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 /**
@@ -164,7 +164,7 @@ export function difficultyColors(theme: Theme, difficulty: Difficulty) {
   };
 }
 
-/** Nunito is embedded at build time by the expo-font config plugin (see app.json). */
+/** Nunito (400, 700, 800, 900) is embedded at build time by the expo-font config plugin in app.json. */
 export const FontFamily = 'Nunito';
 
 export const Spacing = {

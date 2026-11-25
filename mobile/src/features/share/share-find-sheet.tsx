@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { captureRef, releaseCapture } from 'react-native-view-shot';
 
 import { Button } from '@/components/button';
+import { ShareIcon } from '@/components/hunt-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -19,7 +20,7 @@ type Props = {
 };
 
 /** Preview of the branded card + "Share" → system share sheet (Instagram, WhatsApp, Save image, …). */
-export function ShareFindSheet({ find, onClose }: Props) {
+function ShareFindSheet({ find, onClose }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
@@ -88,7 +89,7 @@ export function ShareFindSheet({ find, onClose }: Props) {
               {!ready && <ActivityIndicator style={StyleSheet.absoluteFill} color={theme.textSecondary} />}
             </View>
             <View style={styles.actions}>
-              <Button title="Share" icon="share" loading={sharing} disabled={!ready} onPress={share} />
+              <Button title="Share" iconNode={<ShareIcon size={20} />} loading={sharing} disabled={!ready} onPress={share} />
               <Button title="Cancel" variant="ghost" disabled={sharing} onPress={onClose} />
             </View>
           </View>

@@ -14,7 +14,7 @@ import * as schema from './schema';
 
 export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
-export type Database = {
+type Database = {
   db: Db;
   close(): Promise<void>;
 };

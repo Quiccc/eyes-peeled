@@ -13,7 +13,7 @@ import type { Difficulty, FeedItem, FriendStatus, LeaderboardEntry, User, UserPr
 
 /** Builds API responses from the fake backend's state. */
 
-export type MockWord = { id: string; difficulty: Difficulty; word: string };
+type MockWord = { id: string; difficulty: Difficulty; word: string };
 
 /** Every word of the day. Pass includeExpert=false to get only the free three. */
 export function todaysWords(includeExpert = true): MockWord[] {
