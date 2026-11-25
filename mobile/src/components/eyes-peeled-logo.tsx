@@ -94,7 +94,7 @@ export function EyesPeeledLogo({ size = 128, edge = EDGE, animated = true, style
       accessibilityLabel="Eyes Peeled"
       style={[
         styles.badge,
-        // A darker tile peeking out below gives the chunky bottom edge, as in HeroBadge.
+        // A darker tile peeking out below gives the chunky bottom edge.
         { width: size, height: size + edge, borderRadius: radius, backgroundColor: theme.tintEdge },
         style,
       ]}>

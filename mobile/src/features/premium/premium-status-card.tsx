@@ -3,22 +3,36 @@ import { StyleSheet, View } from 'react-native';
 
 import { Chunky } from '@/components/chunky';
 import { Icon } from '@/components/icon';
+import { MemberBadge, UpsellMascot } from '@/components/illustrations/premium-art';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { Edge, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-/** On the profile: a green "Premium active" note, or the orange upsell that opens the Premium screen. */
+/** The mascot's size on the upsell card, and how far it hangs below the card's bottom edge (clipped). */
+const MASCOT = 96;
+const MASCOT_DROP = 22;
+
+/**
+ * On the profile: the orange upsell that opens the Premium screen, with the crowned mascot peeking up from
+ * its corner, or, once bought, a purple "Premium member" card.
+ */
 export function PremiumStatusCard({ isPremium }: { isPremium: boolean }) {
   const theme = useTheme();
   const router = useRouter();
 
   if (isPremium) {
     return (
-      <View style={[styles.active, { backgroundColor: theme.easyBg }]}>
-        <Icon name="check" size={18} color={theme.easyText} />
-        <ThemedText type="smallBold" style={{ color: theme.easyText }}>
-          Premium active: no ads, Premium word unlocked
-        </ThemedText>
+      <View
+        accessible
+        accessibilityLabel="Premium member. No ads, Premium word unlocked."
+        style={[styles.member, { backgroundColor: theme.expertFace, borderColor: theme.expert, borderBottomColor: theme.expertEdge }]}>
+        <MemberBadge />
+        <View style={styles.text}>
+          <ThemedText style={styles.title}>Premium member</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            No ads · Premium word unlocked
+          </ThemedText>
+        </View>
       </View>
     );
   }
@@ -32,37 +46,65 @@ export function PremiumStatusCard({ isPremium }: { isPremium: boolean }) {
       accessibilityLabel="Remove ads and unlock the Premium word. One purchase, yours forever."
       onPress={() => router.push('/premium')}
       contentStyle={styles.upsell}>
-      <Icon name="star" size={28} color={theme.onTint} />
       <View style={styles.upsellText}>
-        <ThemedText style={[styles.upsellTitle, { color: theme.onTint }]}>Remove ads &amp; unlock the Premium word</ThemedText>
+        <View style={styles.titleRow}>
+          <ThemedText style={[styles.title, styles.shrink, { color: theme.onTint }]}>
+            Remove ads &amp; unlock the Premium word
+          </ThemedText>
+          <Icon name="chevron-right" size={18} color={theme.onTint} />
+        </View>
         <ThemedText type="small" style={{ color: theme.onTint }}>
           One purchase, yours forever
         </ThemedText>
       </View>
-      <Icon name="chevron-right" size={20} color={theme.onTint} />
+      <View style={styles.mascot} pointerEvents="none">
+        <UpsellMascot size={MASCOT} />
+      </View>
     </Chunky>
   );
 }
 
 const styles = StyleSheet.create({
-  active: {
+  member: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
-    padding: Spacing.three - 2,
-    borderRadius: Radius.md,
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: Spacing.three,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderBottomWidth: Edge.button,
   },
   upsell: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two + 4,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 14,
+    minHeight: 100,
+    justifyContent: 'center',
+    // Room on the right for the mascot; the text wraps beside it at large font sizes.
+    paddingLeft: Spacing.three,
+    paddingRight: MASCOT + 8,
+    paddingVertical: Spacing.three,
+    overflow: 'hidden',
+  },
+  text: {
+    flex: 1,
+    gap: 2,
   },
   upsellText: {
-    flex: 1,
+    gap: 2,
   },
-  upsellTitle: {
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  shrink: {
+    flexShrink: 1,
+  },
+  title: {
     fontWeight: 900,
+  },
+  mascot: {
+    position: 'absolute',
+    right: 4,
+    bottom: -MASCOT_DROP,
   },
 });

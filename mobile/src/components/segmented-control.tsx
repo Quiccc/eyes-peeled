@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -5,7 +6,12 @@ import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { tap } from '@/lib/haptics';
 
-type Option<T extends string> = { value: T; label: string };
+type Option<T extends string> = {
+  value: T;
+  label: string;
+  /** A small glyph before the label, drawn for the selected (orange) or resting state. */
+  icon?: (selected: boolean) => ReactNode;
+};
 
 type Props<T extends string> = {
   options: readonly Option<T>[];
@@ -43,7 +49,11 @@ export function SegmentedControl<T extends string>({ options, value, onChange, a
               selected && { backgroundColor: theme.tint, boxShadow: `0 3px 0 ${theme.tintEdge}` },
               { opacity: pressed && !selected ? 0.6 : 1 },
             ]}>
-            <ThemedText style={[styles.label, { color: selected ? theme.onTint : theme.textSecondary }]}>
+            {option.icon?.(selected)}
+            <ThemedText
+              style={[styles.label, { color: selected ? theme.onTint : theme.textSecondary }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit>
               {option.label}
             </ThemedText>
           </Pressable>
@@ -63,11 +73,15 @@ const styles = StyleSheet.create({
   },
   segment: {
     flex: 1,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radius.sm,
   },
   label: {
+    flexShrink: 1,
     fontWeight: 900,
   },
 });

@@ -4,7 +4,7 @@ import type { User } from '@/api/types';
 import { Avatar, hueFor } from '@/components/avatar';
 import { HuntCameraIcon } from '@/components/tab-icons';
 import { ThemedText } from '@/components/themed-text';
-import { difficultyColors, Spacing } from '@/constants/theme';
+import { difficultyColors, Radius, Spacing } from '@/constants/theme';
 import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { displayName, joinedLabel } from '@/lib/format';
@@ -18,6 +18,7 @@ const CENTERED_SIZE = 96;
  * `onEditAvatar`: makes the avatar a button with a camera badge (the signed-in user's own profile);
  * `avatarBusy` shows a spinner over it while a new picture uploads.
  * `centered`: a bigger avatar on a solid edge in their color, with the name centred below (another hunter's profile).
+ * `premium`: a purple PREMIUM chip beside the name.
  */
 export function ProfileHeader({
   user,
@@ -25,12 +26,14 @@ export function ProfileHeader({
   onEditAvatar,
   avatarBusy,
   centered,
+  premium,
 }: {
   user: User;
   ring?: boolean | 'hue';
   onEditAvatar?: () => void;
   avatarBusy?: boolean;
   centered?: boolean;
+  premium?: boolean;
 }) {
   const theme = useTheme();
   const guard = usePressGuard();
@@ -81,9 +84,18 @@ export function ProfileHeader({
         avatar
       )}
       <View style={styles.text}>
-        <ThemedText type="title" style={styles.name} numberOfLines={1} adjustsFontSizeToFit accessibilityRole="header">
-          {displayName(user)}
-        </ThemedText>
+        <View style={styles.nameRow}>
+          <ThemedText type="title" style={[styles.name, styles.shrink]} numberOfLines={1} adjustsFontSizeToFit accessibilityRole="header">
+            {displayName(user)}
+          </ThemedText>
+          {premium && (
+            <View style={[styles.chip, { backgroundColor: theme.expertBg }]} accessibilityLabel="Premium member">
+              <ThemedText type="smallBold" style={[styles.chipText, { color: theme.expertText }]} maxFontSizeMultiplier={1.3}>
+                PREMIUM
+              </ThemedText>
+            </View>
+          )}
+        </View>
         <ThemedText type="small" themeColor="textSecondary">
           {joinedLabel(user.joinedAt)}
         </ThemedText>
@@ -104,6 +116,23 @@ const styles = StyleSheet.create({
   },
   name: {
     lineHeight: 36,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  shrink: {
+    flexShrink: 1,
+  },
+  chip: {
+    flexShrink: 0,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: 2,
+    borderRadius: Radius.pill,
+  },
+  chipText: {
+    letterSpacing: 0.5,
   },
   centered: {
     alignItems: 'center',

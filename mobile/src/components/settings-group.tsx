@@ -1,7 +1,9 @@
+import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
-import { Edge, Spacing } from '@/constants/theme';
+import { Edge, Radius, Spacing } from '@/constants/theme';
 import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -9,9 +11,13 @@ export type SettingsRow = {
   title: string;
   onPress: () => void;
   loading?: boolean;
+  /** A 24px glyph (e.g. components/profile-icons.tsx) on a 36px tile at the start of the row. */
+  icon?: ReactNode;
+  /** The icon tile's colour. */
+  tileColor?: string;
 };
 
-/** A card of tappable settings rows separated by hairlines. */
+/** A card of tappable settings rows separated by hairlines, each ending in a chevron (or a spinner while busy). */
 export function SettingsGroup({ rows }: { rows: readonly SettingsRow[] }) {
   const theme = useTheme();
   const guard = usePressGuard();
@@ -28,8 +34,18 @@ export function SettingsGroup({ rows }: { rows: readonly SettingsRow[] }) {
             i > 0 && { borderTopWidth: 2, borderTopColor: theme.border },
             pressed && { backgroundColor: theme.backgroundSelected },
           ]}>
+          {row.icon ? (
+            <View style={[styles.tile, { backgroundColor: row.tileColor ?? theme.backgroundSelected }]}>{row.icon}</View>
+          ) : null}
           <ThemedText style={styles.label}>{row.title}</ThemedText>
-          {row.loading && <ActivityIndicator color={theme.textSecondary} />}
+          {/* The spinner and the chevron share one 20px slot, so the label never moves. */}
+          <View style={styles.trailing}>
+            {row.loading ? (
+              <ActivityIndicator color={theme.textSecondary} />
+            ) : (
+              <Icon name="chevron-right" size={18} color={theme.textSecondary} />
+            )}
+          </View>
         </Pressable>
       ))}
     </View>
@@ -65,14 +81,28 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   row: {
-    minHeight: 52,
-    paddingHorizontal: Spacing.three,
+    minHeight: 56,
+    paddingVertical: Spacing.two,
+    paddingLeft: 12,
+    paddingRight: Spacing.three,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
+  },
+  tile: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   label: {
+    flex: 1,
     fontWeight: 900,
+  },
+  trailing: {
+    width: 20,
+    alignItems: 'center',
   },
   danger: {
     minHeight: 44,

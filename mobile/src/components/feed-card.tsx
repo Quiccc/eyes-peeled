@@ -8,6 +8,7 @@ import { Button } from '@/components/button';
 import { ShareIcon } from '@/components/hunt-icons';
 import { Icon } from '@/components/icon';
 import { DifficultyPill } from '@/components/pill';
+import { Block, Bone } from '@/components/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Radius, Spacing } from '@/constants/theme';
 import { openSafetyMenu } from '@/features/safety/safety-menu';
@@ -97,6 +98,39 @@ export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
   );
 }
 
+/**
+ * The bare card with a Share button (your own finds on your profile) while it loads. It is built from the
+ * card's own parts with sample content hidden under pulsing bones, so it is exactly as tall as the real card.
+ */
+export function FeedCardSkeleton() {
+  const theme = useTheme();
+  return (
+    <View
+      accessible
+      accessibilityLabel="Loading your finds"
+      style={[styles.card, styles.cardBare, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+      <Block style={[styles.photo, styles.photoBare]} />
+      <View style={[styles.footer, styles.footerBare]}>
+        <Bone radius={Radius.pill}>
+          <DifficultyPill difficulty="easy" />
+        </Bone>
+        <View style={styles.wordSlot}>
+          <Bone style={styles.wordBone}>
+            <ThemedText style={[styles.word, styles.wordBare]} numberOfLines={1}>
+              WORD
+            </ThemedText>
+          </Bone>
+        </View>
+      </View>
+      <View style={styles.share}>
+        <Bone radius={14}>
+          <Button size="small" variant="secondary" iconNode={<ShareIcon size={16} />} title="Share" />
+        </Bone>
+      </View>
+    </View>
+  );
+}
+
 // Two sizes, as in the design: with the author (Friends feed), and bare on a profile.
 const styles = StyleSheet.create({
   card: {
@@ -180,5 +214,11 @@ const styles = StyleSheet.create({
   share: {
     paddingHorizontal: Spacing.two + 4,
     paddingBottom: Spacing.two + 4,
+  },
+  wordSlot: {
+    flex: 1,
+  },
+  wordBone: {
+    alignSelf: 'flex-start',
   },
 });

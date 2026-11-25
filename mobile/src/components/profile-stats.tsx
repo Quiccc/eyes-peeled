@@ -2,18 +2,22 @@ import { StyleSheet, View } from 'react-native';
 
 import type { UserProfile } from '@/api/types';
 import { FlameIcon } from '@/components/hunt-icons';
+import { MedalIcon, PointsIcon, StreakIcon } from '@/components/profile-icons';
+import { Bone } from '@/components/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatNumber, plural } from '@/lib/format';
 
 /**
- * Month points, global rank and streak as three chunky tiles.
+ * Month points, global rank and streak as three chunky tiles (the signed-in user's profile).
  * `strip`: one card of four cells, adding finds all time (another hunter's profile).
+ * `loading`: placeholder tiles while `profile` is still on its way.
  */
-export function ProfileStats({ profile, strip }: { profile: UserProfile; strip?: boolean }) {
+export function ProfileStats({ profile, strip, loading }: { profile?: UserProfile; strip?: boolean; loading?: boolean }) {
   const theme = useTheme();
   if (strip) {
+    if (!profile) return null;
     const cells = [
       { label: 'pts this month', value: formatNumber(profile.monthPoints), color: theme.scoreNumber, flame: false },
       { label: 'global rank', value: profile.monthRank ? `#${profile.monthRank}` : '—', color: theme.text, flame: false },
@@ -42,31 +46,69 @@ export function ProfileStats({ profile, strip }: { profile: UserProfile; strip?:
       </View>
     );
   }
+  return <StatTiles profile={profile} loading={loading} />;
+}
+
+/**
+ * The signed-in user's three tiles: points (in the score colours), rank and streak, each with a glyph.
+ * While loading (`profile` undefined, `loading`) the tiles keep their exact shape: the real labels show and
+ * each value is a pulsing bone the size of a sample value, so nothing moves when the numbers arrive.
+ * Without data and not loading (the request failed), the values read "—".
+ */
+function StatTiles({ profile, loading }: { profile?: UserProfile; loading?: boolean }) {
+  const theme = useTheme();
+  const streak = profile?.streak ?? 0;
   const stats = [
-    { label: 'pts this month', value: formatNumber(profile.monthPoints), color: theme.text },
-    { label: 'global rank', value: profile.monthRank ? `#${profile.monthRank}` : '—', color: theme.text },
+    {
+      label: 'pts this month',
+      value: profile ? formatNumber(profile.monthPoints) : '—',
+      sample: '000',
+      color: theme.scoreNumber,
+      glyph: <PointsIcon />,
+      tile: { backgroundColor: theme.scoreFace, borderColor: theme.scoreDivider, borderBottomColor: theme.scoreEdge },
+    },
+    {
+      label: 'global rank',
+      value: profile?.monthRank ? `#${profile.monthRank}` : '—',
+      sample: '#00',
+      color: theme.text,
+      glyph: <MedalIcon />,
+      tile: { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+    },
     {
       label: 'streak',
-      value: plural(profile.streak, 'day'),
-      color: profile.streak > 0 ? theme.successText : theme.text,
+      value: profile ? plural(streak, 'day') : '—',
+      sample: '0 days',
+      color: theme.text,
+      glyph: <StreakIcon lit={streak > 0} />,
+      tile: { backgroundColor: theme.backgroundElement, borderColor: theme.border },
     },
   ];
+  const waiting = !profile && loading;
   return (
-    <View style={styles.row}>
-      {stats.map((s) => (
-        <View
-          key={s.label}
-          accessible
-          accessibilityLabel={`${s.value} ${s.label}`}
-          style={[styles.tile, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-          <ThemedText type="subtitle" style={[styles.value, { color: s.color }]} numberOfLines={1} adjustsFontSizeToFit>
-            {s.value}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" style={styles.label}>
-            {s.label}
-          </ThemedText>
-        </View>
-      ))}
+    <View style={styles.row} accessible={waiting} accessibilityLabel={waiting ? 'Loading your stats' : undefined}>
+      {stats.map((s) => {
+        const value = (
+          <View style={styles.valueRow}>
+            {s.glyph}
+            <ThemedText type="subtitle" style={[styles.value, styles.shrink, { color: s.color }]} numberOfLines={1} adjustsFontSizeToFit>
+              {waiting ? s.sample : s.value}
+            </ThemedText>
+          </View>
+        );
+        return (
+          <View
+            key={s.label}
+            accessible={!waiting}
+            accessibilityLabel={`${s.value} ${s.label}`}
+            style={[styles.tile, s.tile]}>
+            {waiting ? <Bone style={styles.bone}>{value}</Bone> : value}
+            <ThemedText type="small" themeColor="textSecondary" style={styles.label}>
+              {s.label}
+            </ThemedText>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -111,6 +153,18 @@ const styles = StyleSheet.create({
   },
   value: {
     fontVariant: ['tabular-nums'],
+  },
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    maxWidth: '100%',
+  },
+  shrink: {
+    flexShrink: 1,
+  },
+  bone: {
+    maxWidth: '100%',
   },
   label: {
     textAlign: 'center',
