@@ -45,6 +45,7 @@
     },
     "android": {
       "package": "com.eyespeeled.app",
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundColor": "#FF8A00",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -63,6 +64,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/with-upload-signing",
       [
         "expo-splash-screen",
         {
