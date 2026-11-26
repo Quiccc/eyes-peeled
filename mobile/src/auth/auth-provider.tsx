@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { createContext, use, useEffect, useState, type PropsWithChildren } from 'react';
+import { createContext, use, useCallback, useEffect, useState, type PropsWithChildren } from 'react';
+import { AppState } from 'react-native';
 
 import { setAuthFailureListener } from '@/api/client';
 import { api, USE_MOCK_API } from '@/api/endpoints';
@@ -17,6 +18,9 @@ import { clearTokens, loadSignInProvider, loadTokens, saveSignInProvider, saveTo
 /** Dev only: sign in to a local server as this test user, skipping Apple/Google. Never set it in release builds. */
 export const DEV_LOGIN = __DEV__ ? process.env.EXPO_PUBLIC_DEV_LOGIN?.trim() || null : null;
 
+/** Minimum time between foreground refreshes of the signed-in user (matches the queries' staleTime). */
+const FOREGROUND_REFRESH_MS = 30_000;
+
 type AuthState =
   | { status: 'loading'; user: null }
   | { status: 'signedOut'; user: null }
@@ -29,6 +33,8 @@ type AuthContextValue = AuthState & {
   setUsername(username: string): Promise<void>;
   /** Replace the signed-in user with a fresh copy from the server (e.g. after a purchase). */
   updateUser(user: User): void;
+  /** Reload the signed-in user from the server. Failures keep the current user. */
+  refreshUser(): Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -70,6 +76,29 @@ export function AuthProvider({ children }: PropsWithChildren) {
     })();
     return () => setAuthFailureListener(null);
   }, [queryClient]);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const user = await api.getMe();
+      setState((s) => (s.status === 'signedIn' && s.user.id === user.id ? { status: 'signedIn', user } : s));
+    } catch {
+      // Offline: keep the current user. A 401 signs out through the auth failure listener.
+    }
+  }, []);
+
+  // The user (and with it `isPremium`) is loaded once at launch. Refresh it when the app comes back to
+  // the foreground so a refund, a purchase on another device or a server-side change shows up
+  // without a cold start.
+  useEffect(() => {
+    if (!signedInUserId) return;
+    let lastFetch = Date.now();
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next !== 'active' || Date.now() - lastFetch < FOREGROUND_REFRESH_MS) return;
+      lastFetch = Date.now();
+      void refreshUser();
+    });
+    return () => sub.remove();
+  }, [signedInUserId, refreshUser]);
 
   const value: AuthContextValue = {
     ...state,
@@ -113,6 +142,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     updateUser(user) {
       setState({ status: 'signedIn', user });
     },
+    refreshUser,
   };
 
   return <AuthContext value={value}>{children}</AuthContext>;

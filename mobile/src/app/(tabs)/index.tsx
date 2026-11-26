@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,12 +22,21 @@ import { Trail, TrailSkeleton } from '@/features/today/trail';
  */
 export default function TodayScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const premium = !!user?.isPremium;
   const daily = useDaily();
   const { openingId, startHunt } = useStartHunt();
   const { share, sheet: shareSheet } = useShareFind();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // The server includes the expert word exactly when it considers the user Premium. If today's words
+  // disagree with our copy of the user (a refund or purchase landed since we loaded it), reload the user
+  // so ads, the Profile card and the trail all agree. Once per daily response.
+  const dailyHasExpert = daily.data?.words.some((w) => w.difficulty === 'expert');
+  const premiumMismatch = dailyHasExpert !== undefined && dailyHasExpert !== premium;
+  useEffect(() => {
+    if (premiumMismatch) void refreshUser();
+  }, [premiumMismatch, daily.dataUpdatedAt, refreshUser]);
 
   const shareFor = (word: DailyWord) => {
     const find = fromDailyWord(word);
