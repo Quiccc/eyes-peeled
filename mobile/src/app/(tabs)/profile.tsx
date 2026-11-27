@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { showAdPrivacyOptions } from '@/ads/ads';
+import { showAdPrivacyOptions, useAdPrivacyOptionsRequired } from '@/ads/ads';
 import { useMyProfile } from '@/api/queries';
 import { useAuth } from '@/auth/auth-provider';
 import { SignInCancelled } from '@/auth/social-sign-in';
@@ -67,6 +67,7 @@ export default function ProfileScreen() {
   const deletion = useAsyncAction<'delete'>();
   const avatar = useAvatarPicker();
   const [findsHeight, setFindsHeight] = useState(0);
+  const privacyOptionsRequired = useAdPrivacyOptionsRequired();
 
   const confirmDelete = () =>
     Alert.alert(
@@ -97,7 +98,7 @@ export default function ProfileScreen() {
       icon: <RestoreIcon />,
       tileColor: SETTINGS_TILE.restore,
     },
-    ...(user.isPremium
+    ...(user.isPremium || !privacyOptionsRequired
       ? []
       : [{ title: 'Ad privacy options', onPress: showAdPrivacyOptions, icon: <PrivacyIcon />, tileColor: SETTINGS_TILE.privacy }]),
     { title: 'Blocked users', onPress: () => router.push('/blocked'), icon: <BlockedIcon />, tileColor: SETTINGS_TILE.blocked },

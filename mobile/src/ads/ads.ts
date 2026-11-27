@@ -1,6 +1,14 @@
 import { requestTrackingPermissionsAsync, getTrackingPermissionsAsync } from 'expo-tracking-transparency';
+import { useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
-import MobileAds, { AdEventType, AdsConsent, InterstitialAd, TestIds } from 'react-native-google-mobile-ads';
+import MobileAds, {
+  AdEventType,
+  AdsConsent,
+  AdsConsentPrivacyOptionsRequirementStatus,
+  InterstitialAd,
+  TestIds,
+  type AdsConsentInfo,
+} from 'react-native-google-mobile-ads';
 
 /**
  * Full-screen ads only — shown at two moments:
@@ -29,6 +37,20 @@ let interstitial: InterstitialAd | null = null;
 let lastLoadFailed = false;
 /** Turned off for Premium users — then no ad is ever requested or shown. */
 let adsEnabled = true;
+
+/**
+ * Whether Google requires a "privacy options" entry point for this user (EEA, UK, etc.). Outside those regions
+ * the UMP form never opens, so the Profile row is hidden. Known once consent info has been fetched.
+ */
+let privacyOptionsRequired = false;
+const privacyListeners = new Set<() => void>();
+
+function notePrivacyRequirement(info: AdsConsentInfo) {
+  const required = info.privacyOptionsRequirementStatus === AdsConsentPrivacyOptionsRequirementStatus.REQUIRED;
+  if (required === privacyOptionsRequired) return;
+  privacyOptionsRequired = required;
+  privacyListeners.forEach((listener) => listener());
+}
 
 /** Dev-only: say why an ad was (not) shown, so "no ads" reports can be diagnosed from the Metro log. */
 function debug(message: string, extra?: unknown) {
@@ -80,6 +102,7 @@ export function initAds(): Promise<boolean> {
         consent = await AdsConsent.getConsentInfo();
         step(`consent refresh failed (${e instanceof Error ? e.message : String(e)}); stored canRequestAds=${consent.canRequestAds}`);
       }
+      notePrivacyRequirement(consent);
       if (Platform.OS === 'ios') {
         const { status } = await getTrackingPermissionsAsync();
         step(`tracking status=${status}`);
@@ -155,10 +178,21 @@ export async function showInterstitial(): Promise<void> {
   if (adsEnabled) createAndLoad();
 }
 
-/** For the "Privacy options" row in Profile (required by Google UMP in regulated regions). */
+/** True when the "Ad privacy options" row should be shown (Google UMP requires it in regulated regions). */
+export function useAdPrivacyOptionsRequired() {
+  return useSyncExternalStore(
+    (listener) => {
+      privacyListeners.add(listener);
+      return () => privacyListeners.delete(listener);
+    },
+    () => privacyOptionsRequired,
+  );
+}
+
+/** For the "Ad privacy options" row in Profile. */
 export async function showAdPrivacyOptions() {
   try {
-    await AdsConsent.showPrivacyOptionsForm();
+    notePrivacyRequirement(await AdsConsent.showPrivacyOptionsForm());
   } catch (e) {
     console.warn('Privacy options unavailable', e);
   }
