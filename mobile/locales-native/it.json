@@ -1,0 +1,11 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "Eyes Peeled",
+    "NSCameraUsageDescription": "Eyes Peeled usa la fotocamera per fotografare le parole del giorno che trovi e per scattare la tua foto profilo.",
+    "NSPhotoLibraryUsageDescription": "Eyes Peeled usa le tue foto per permetterti di scegliere una foto profilo.",
+    "NSUserTrackingUsageDescription": "Questo identificatore serve a mostrarti pubblicità più pertinente, che mantiene Eyes Peeled gratuito."
+  },
+  "android": {
+    "app_name": "Eyes Peeled"
+  }
+}

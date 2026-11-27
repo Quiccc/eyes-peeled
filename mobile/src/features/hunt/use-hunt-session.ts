@@ -8,13 +8,14 @@ import { invalidateAfterVerdict } from '@/api/queries';
 import type { DailyWord, Submission } from '@/api/types';
 import { preparePhoto } from '@/features/hunt/prepare-photo';
 import { submitAndWait, waitForVerdict } from '@/features/hunt/submit';
+import { t } from '@/i18n';
 
 /** Where a hunt is: aiming the camera, waiting for the verdict, showing it, or showing a failure. */
 /** Shown when a photo never got a verdict; a specific server refusal (word closed, rate limit) keeps its own text. */
-const UPLOAD_FAILED = "Your photo didn't reach us. Check your connection and try again.";
+const uploadFailed = () => t('hunt.uploadFailed');
 
 function uploadErrorMessage(e: unknown) {
-  return e instanceof ApiError && e.code !== 'http_error' ? e.message : UPLOAD_FAILED;
+  return e instanceof ApiError && e.code !== 'http_error' ? e.message : uploadFailed();
 }
 
 export type HuntPhase =

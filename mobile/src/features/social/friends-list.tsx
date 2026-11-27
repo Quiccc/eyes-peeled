@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'expo-router';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { invalidateSocial, useFriendsList } from '@/api/queries';
@@ -17,7 +18,7 @@ import { startBlock } from '@/features/safety/safety-menu';
 import { RequestRow } from '@/features/social/friend-request-row';
 import { useRemoveFriend, useRespondFriendRequest } from '@/features/social/use-friend-mutations';
 import { useTheme } from '@/hooks/use-theme';
-import { displayName, errorMessage, friendsSinceLabel } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 type Props = {
   /** Incoming requests (undefined while loading); the screen loads them too, for the badge on the switch. */
@@ -28,6 +29,8 @@ type Props = {
 
 /** The Friends side of the Friends tab: incoming requests, requests you sent, and your friends. */
 export function FriendsList({ requests: incoming, onFindHunters }: Props) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const list = useFriendsList();
   const respond = useRespondFriendRequest();
@@ -40,9 +43,9 @@ export function FriendsList({ requests: incoming, onFindHunters }: Props) {
     return (
       <EmptyState
         icon="users"
-        title="Couldn't load your friends"
-        hint={errorMessage(list.error)}
-        action={<Button title="Try again" variant="secondary" onPress={() => list.refetch()} />}
+        title={t('friends.listError')}
+        hint={fmt.errorMessage(list.error)}
+        action={<Button title={t('common.tryAgain')} variant="secondary" onPress={() => list.refetch()} />}
       />
     );
   }
@@ -52,39 +55,39 @@ export function FriendsList({ requests: incoming, onFindHunters }: Props) {
     return (
       <EmptyState
         art={<RaceFriendsArt />}
-        title="No friends yet"
-        hint="Search for hunters by username to add them."
-        action={<Button title="Find hunters" icon="person-add" onPress={onFindHunters} />}
+        title={t('friends.noFriendsTitle')}
+        hint={t('friends.noFriendsHint')}
+        action={<Button title={t('friends.findHunters')} icon="person-add" onPress={onFindHunters} />}
       />
     );
   }
 
   const openMenu = (user: User) => {
-    const name = displayName(user);
+    const name = fmt.displayName(user);
     // Android alerts show at most 3 buttons.
     Alert.alert(name, undefined, [
       {
-        text: 'Remove friend',
+        text: t('user.removeFriend'),
         onPress: () =>
-          Alert.alert(`Remove ${name}?`, "You'll stop seeing each other's finds.", [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Remove', style: 'destructive', onPress: () => remove.mutate(user.id) },
+          Alert.alert(t('user.removeTitle', { name }), t('friends.removeBody'), [
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('user.remove'), style: 'destructive', onPress: () => remove.mutate(user.id) },
           ]),
       },
-      { text: `Block ${name}`, style: 'destructive', onPress: () => startBlock(user, () => invalidateSocial(queryClient)) },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('safety.blockName', { name }), style: 'destructive', onPress: () => startBlock(user, () => invalidateSocial(queryClient)) },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
   return (
     <View style={styles.root}>
       {requests.length > 0 && (
-        <Section label={`REQUESTS · ${requests.length}`} highlight>
+        <Section label={t('friends.requestsSection', { count: requests.length })} highlight>
           {requests.map((r, i) => (
             <Row key={r.id} first={i === 0} highlight>
               <RequestRow
                 request={r}
-                subtitle="wants to be friends"
+                subtitle={t('friends.wantsToBeFriends')}
                 pending={respond.isPending && respond.variables ? respond.variables : null}
                 disabled={respond.isPending}
                 onRespond={(id, action) => respond.mutate({ id, action })}
@@ -95,15 +98,15 @@ export function FriendsList({ requests: incoming, onFindHunters }: Props) {
       )}
 
       {sent.length > 0 && (
-        <Section label={`SENT · ${sent.length}`}>
+        <Section label={t('friends.sentSection', { count: sent.length })}>
           {sent.map((s, i) => (
             <Row key={s.id} first={i === 0}>
-              <UserLink user={s.to} subtitle="Request sent" />
+              <UserLink user={s.to} subtitle={t('friends.requestSent')} />
               <Button
                 size="small"
                 variant="secondary"
-                title="Cancel"
-                accessibilityLabel={`Cancel request to ${displayName(s.to)}`}
+                title={t('common.cancel')}
+                accessibilityLabel={t('friends.cancelRequestTo', { name: fmt.displayName(s.to) })}
                 loading={remove.isPending && remove.variables === s.to.id}
                 onPress={() => remove.mutate(s.to.id)}
               />
@@ -113,10 +116,10 @@ export function FriendsList({ requests: incoming, onFindHunters }: Props) {
       )}
 
       {friends.length > 0 && (
-        <Section label={`YOUR FRIENDS · ${friends.length}`}>
+        <Section label={t('friends.friendsSection', { count: friends.length })}>
           {friends.map((f, i) => (
             <Row key={f.user.id} first={i === 0}>
-              <UserLink user={f.user} subtitle={friendsSinceLabel(f.since)} />
+              <UserLink user={f.user} subtitle={fmt.friendsSinceLabel(f.since)} />
               <MoreButton user={f.user} onPress={() => openMenu(f.user)} />
             </Row>
           ))}
@@ -156,13 +159,15 @@ function Row({ first, highlight, children }: { first: boolean; highlight?: boole
 }
 
 function UserLink({ user, subtitle }: { user: User; subtitle: string }) {
+  const fmt = useFormat();
+  useTranslation();
   return (
     <Link href={{ pathname: '/user/[userId]', params: { userId: user.id } }} asChild>
       <Pressable accessibilityRole="link" style={styles.user}>
         <Avatar user={user} size={40} />
         <View style={styles.text}>
           <ThemedText style={styles.name} numberOfLines={1}>
-            {displayName(user)}
+            {fmt.displayName(user)}
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
             {subtitle}
@@ -174,11 +179,13 @@ function UserLink({ user, subtitle }: { user: User; subtitle: string }) {
 }
 
 function MoreButton({ user, onPress }: { user: User; onPress: () => void }) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Options for ${displayName(user)}`}
+      accessibilityLabel={t('safety.optionsFor', { name: fmt.displayName(user) })}
       onPress={onPress}
       style={({ pressed }) => [styles.more, { opacity: pressed ? 0.6 : 1 }]}>
       <Icon name="more" size={22} color={theme.textSecondary} />

@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -22,7 +23,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
-import { displayName, formatNumber } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 /**
  * Entrance timeline (ms), from the design canvas: the bars rise bronze → silver → gold, then all three
@@ -106,6 +107,9 @@ function PodiumColumn({
   t: SharedValue<number>;
   mine: boolean;
 }) {
+  const fmt = useFormat();
+  // `t` is the entrance clock here, so the translator gets another name.
+  const { t: tr } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
   const guard = usePressGuard();
@@ -123,7 +127,7 @@ function PodiumColumn({
   });
   const nameStyle = useAnimatedStyle(() => ({ opacity: easeOutCubic(progress(t.value, PLAYERS_IN, PLAYER_MS)) }));
 
-  const name = mine ? 'You' : displayName(entry.user);
+  const name = mine ? tr('common.you') : fmt.displayName(entry.user);
   const player = (
     <Animated.View style={playerStyle}>
       <Avatar user={entry.user} size={AVATAR[place]} ringColor={medal} />
@@ -134,7 +138,12 @@ function PodiumColumn({
     <View
       style={styles.column}
       accessible
-      accessibilityLabel={`${['First', 'Second', 'Third'][place]} place, ${name}, ${formatNumber(entry.points)} points`}>
+      accessibilityLabel={tr('leaderboard.podiumA11y', {
+        place: tr('format.rank', { count: place + 1, ordinal: true }),
+        name,
+        count: entry.points,
+        points: fmt.formatNumber(entry.points),
+      })}>
       {place === 0 && <Crown t={t} />}
       {mine ? (
         player
@@ -157,7 +166,7 @@ function PodiumColumn({
           value={entry.points}
           delay={PLAYERS_IN}
           duration={COUNT_MS}
-          format={formatNumber}
+          format={fmt.formatNumber}
           style={[styles.points, { color: theme.scoreNumber }]}
         />
       </Animated.View>

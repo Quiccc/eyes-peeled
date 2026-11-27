@@ -14,6 +14,10 @@ export const difficulties = ['easy', 'medium', 'hard', 'expert'] as const satisf
  */
 export const submissionStatuses = ['pending', 'valid', 'invalid', 'error', 'removed'] as const;
 
+/** Why a photo didn't count. English text in src/i18n/messages.ts (SUBMISSION_MESSAGES). */
+export const submissionMessages = ['not_spotted', 'check_failed', 'already_found', 'duplicate_photo'] as const;
+export type SubmissionMessage = (typeof submissionMessages)[number];
+
 export const reportReasons = ['inappropriate', 'spam', 'cheating', 'other'] as const;
 export type ReportReason = (typeof reportReasons)[number];
 

@@ -1,5 +1,6 @@
 import { useCameraPermissions } from 'expo-camera';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { useDaily } from '@/api/queries';
 import type { Daily, DailyWord } from '@/api/types';
@@ -16,6 +17,7 @@ import { useShareFind } from '@/features/share/share-find-sheet';
 import { fromSubmission } from '@/features/share/types';
 
 export default function HuntScreen() {
+  const { t } = useTranslation();
   const { wordId } = useLocalSearchParams<{ wordId: string }>();
   const router = useRouter();
   const { data: daily } = useDaily();
@@ -31,14 +33,14 @@ export default function HuntScreen() {
         <HuntStatus>
           <SleepyClockArt />
           <ThemedText type="subtitle" style={huntStyles.centerText}>
-            This word has expired
+            {t('hunt.expiredTitle')}
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={huntStyles.centerText}>
-            New words arrive every day. Head back to see today&apos;s hunt.
+            {t('hunt.expiredHint')}
           </ThemedText>
         </HuntStatus>
         <HuntActions>
-          <Button title="Back to today" onPress={close} />
+          <Button title={t('hunt.backToToday')} onPress={close} />
         </HuntActions>
       </HuntScreenShell>
     );

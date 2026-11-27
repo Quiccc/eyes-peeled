@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import Svg, { Circle, G, Path } from 'react-native-svg';
 
 import { useTheme } from '@/hooks/use-theme';
+import type en from '@/i18n/locales/en.json';
 
 /** The outline every illustration is drawn with, as on the logo. Fixed in both themes. */
 export const INK = '#2B2118';
@@ -21,10 +23,14 @@ const H = 112;
  * An empty-state illustration: a 140×112 drawing on a soft round plate, one picture for screen readers.
  * Children are drawn in the plate's 140×112 coordinate space (the design canvas's artwork grid).
  */
-export function ArtFrame({ label, children }: { label: string; children: ReactNode }) {
+/** Screen-reader descriptions of the illustrations: keys under `art` in the catalogs. */
+export type ArtLabel = keyof typeof en.art;
+
+export function ArtFrame({ label, children }: { label: ArtLabel; children: ReactNode }) {
+  const { t } = useTranslation();
   const theme = useTheme();
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={label}>
+    <View accessible accessibilityRole="image" accessibilityLabel={t(`art.${label}`)}>
       <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
         <Circle cx={70} cy={58} r={52} fill={theme.backgroundSelected} />
         <G stroke={INK} strokeLinecap="round" strokeLinejoin="round">

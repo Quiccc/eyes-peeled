@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { Icon, type IconName } from '@/components/icon';
@@ -46,9 +47,10 @@ export function EmptyState({ icon, art, title, hint, action, boxed }: Props) {
 
 /** Placeholder rows shown while a list loads for the first time. */
 export function SkeletonRows({ count = 5, height = 56 }: { count?: number; height?: number }) {
+  const { t } = useTranslation();
   const theme = useTheme();
   return (
-    <View style={styles.skeletons} accessibilityLabel="Loading">
+    <View style={styles.skeletons} accessibilityLabel={t('common.loading')}>
       {Array.from({ length: count }, (_, i) => (
         <View
           key={i}

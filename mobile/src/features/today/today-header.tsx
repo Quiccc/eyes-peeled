@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { useMyProfile } from '@/api/queries';
@@ -10,6 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 /** The app icon, "Today's hunt" and the streak pill. The pill is always drawn so nothing moves when the streak loads. */
 export function TodayHeader() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const streak = useMyProfile().data?.streak;
 
@@ -25,12 +27,12 @@ export function TodayHeader() {
           minimumFontScale={0.7}
           maxFontSizeMultiplier={MAX_FONT_SCALE}
           style={styles.shrink}>
-          Today&apos;s hunt
+          {t('today.title')}
         </ThemedText>
       </View>
       <View
         accessible
-        accessibilityLabel={streak === undefined ? 'Streak' : `${streak} day streak`}
+        accessibilityLabel={streak === undefined ? t('today.streak') : t('today.streakA11y', { count: streak })}
         style={[styles.streak, { backgroundColor: theme.backgroundElement, borderColor: theme.streakEdge }]}>
         <FlameIcon size={18} />
         <ThemedText style={styles.streakText} numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE}>

@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -16,7 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path } from 'react-native-svg';
 
-import { GOLD, INK, IRIS, LID, SHADOW } from '@/components/illustrations/art-kit';
+import { GOLD, INK, IRIS, LID, SHADOW, type ArtLabel } from '@/components/illustrations/art-kit';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
@@ -55,9 +56,10 @@ function Twinkle({ x, y, scale = 1, delay = 0 }: { x: number; y: number; scale?:
   );
 }
 
-function Picture({ label, width, height, children }: { label: string; width: number; height: number; children: ReactNode }) {
+function Picture({ label, width, height, children }: { label: ArtLabel; width: number; height: number; children: ReactNode }) {
+  const { t } = useTranslation();
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={label} style={{ width, height }}>
+    <View accessible accessibilityRole="image" accessibilityLabel={t(`art.${label}`)} style={{ width, height }}>
       {children}
     </View>
   );
@@ -120,7 +122,7 @@ export function MemberBadge({ size = 48 }: { size?: number }) {
 export function PremiumHeroArt() {
   const theme = useTheme();
   return (
-    <Picture label="The eyeball mascot wearing a gold crown" width={140} height={112}>
+    <Picture label="crownedMascot" width={140} height={112}>
       <Svg width={140} height={112} viewBox="0 0 140 112" fill="none" stroke={INK} strokeLinecap="round" strokeLinejoin="round">
         <Circle cx={70} cy={58} r={52} fill={theme.backgroundSelected} stroke="none" />
         <Circle cx={72} cy={72} r={28} fill={SHADOW} stroke="none" />
@@ -164,7 +166,7 @@ export function PremiumWelcomeArt({ width = 240 }: { width?: number }) {
 
   const box = { width, height };
   return (
-    <Picture label="The eyeball mascot, now wearing a gold crown, beaming" width={width} height={height}>
+    <Picture label="crownedBeaming" width={width} height={height}>
       <Svg {...box} viewBox={`0 0 ${WELCOME_W} ${WELCOME_H}`} fill="none" stroke={INK} strokeLinecap="round" style={StyleSheet.absoluteFill}>
         <Circle cx={110} cy={98} r={78} fill={theme.backgroundSelected} stroke="none" />
         <Path d="M110 6v12M42 34l8 8M178 34l-8 8M22 98h12M186 98h12" stroke="#FF8A00" strokeWidth={5} />
@@ -314,7 +316,7 @@ export function SleepyEyeArt({ size = 96 }: { size?: number }) {
   const height = (SLEEPY_BOX.h / SLEEPY_BOX.w) * size;
   const viewBox = `${SLEEPY_BOX.x} ${SLEEPY_BOX.y} ${SLEEPY_BOX.w} ${SLEEPY_BOX.h}`;
   return (
-    <Picture label="The eyeball mascot, sleepy, looking around for a find" width={size} height={height}>
+    <Picture label="sleepyMascot" width={size} height={height}>
       <Svg width={size} height={height} viewBox={viewBox} style={StyleSheet.absoluteFill}>
         <Ellipse cx={65} cy={92} rx={18} ry={3} fill="rgba(43,33,24,0.18)" />
       </Svg>

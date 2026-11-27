@@ -8,7 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 export function SnappedBadgeArt() {
   const theme = useTheme();
   return (
-    <ArtFrame label="A hunter ID badge whose lanyard has snapped, with a red offline dot">
+    <ArtFrame label="snappedBadge">
       <Path d="M50 6l6 14l-3 2l4 2" fill="none" stroke={theme.tint} strokeWidth={5} />
       <Path d="M60 30l3 8" fill="none" stroke={theme.tint} strokeWidth={5} />
       <Path d="M90 6l-12 32" fill="none" stroke={theme.tint} strokeWidth={5} />
@@ -33,7 +33,7 @@ export function SnappedBadgeArt() {
 export function LockedPhotosArt() {
   const theme = useTheme();
   return (
-    <ArtFrame label="Two photos held shut by a padlock with a heart-shaped keyhole">
+    <ArtFrame label="lockedPhotos">
       <G transform="rotate(-10 56 58)">
         <Rect x={30} y={24} width={52} height={62} rx={4} fill="#FFFFFF" strokeWidth={4} />
         <Rect x={36} y={30} width={40} height={38} fill={theme.medium} stroke="none" />
@@ -58,7 +58,7 @@ export function LockedPhotosArt() {
 export function SleepyBinocularsArt() {
   const theme = useTheme();
   return (
-    <ArtFrame label="Sleepy binoculars on a hill as the sun comes up">
+    <ArtFrame label="sleepyBinoculars">
       <Path d="M104 34v-6M120 46l5-4M88 42l-5-4" fill="none" stroke={GOLD} strokeWidth={3.5} />
       <Circle cx={104} cy={62} r={15} fill={GOLD} strokeWidth={3.5} />
       <Path d="M14 104q56-40 112 0z" fill={theme.easy} strokeWidth={4} />

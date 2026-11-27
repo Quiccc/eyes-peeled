@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,19 +21,18 @@ import { Edge, Radius, Spacing } from '@/constants/theme';
 import { Podium } from '@/features/leaderboard/podium';
 import { MyRankBar, RANK_ROW_HEIGHT, RankRow, UnrankedBar } from '@/features/leaderboard/rank-row';
 import { useTheme } from '@/hooks/use-theme';
-import { daysUntil, monthName } from '@/lib/format';
+import { daysUntil, useFormat } from '@/lib/format';
 import { isAlone, passGoal } from '@/lib/leaderboard';
 import { queryKeys } from '@/lib/query-client';
 
-const SCOPES = [
-  { value: 'global', label: 'Global' },
-  { value: 'friends', label: 'Friends' },
-] as const satisfies readonly { value: LeaderboardScope; label: string }[];
+const SCOPES = ['global', 'friends'] as const satisfies readonly LeaderboardScope[];
 
 const PODIUM_SIZE = 3;
 const VIEWABILITY = { itemVisiblePercentThreshold: 60 };
 
 export default function LeaderboardScreen() {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const router = useRouter();
   const theme = useTheme();
@@ -95,43 +95,49 @@ export default function LeaderboardScreen() {
         <View style={styles.header}>
           <View style={styles.titleRow}>
             <ThemedText type="title" accessibilityRole="header">
-              Leaderboard
+              {t('leaderboard.title')}
             </ThemedText>
             {first && (
               <View
                 accessible
-                accessibilityLabel={`${monthName(first.month)} leaderboard resets in ${daysUntil(first.resetsAt)} days`}
+                accessibilityLabel={t('leaderboard.resetsA11y', {
+                  month: fmt.monthName(first.month),
+                  count: daysUntil(first.resetsAt),
+                })}
                 style={[styles.resetChip, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
                 <Icon name="clock" size={15} color={theme.textSecondary} />
                 <ThemedText type="smallBold" themeColor="textSecondary">
-                  Resets in <ThemedText type="smallBold">{daysUntil(first.resetsAt)}d</ThemedText>
+                  {t('leaderboard.resetsIn')}{' '}
+                  <ThemedText type="smallBold">{t('leaderboard.days', { count: daysUntil(first.resetsAt) })}</ThemedText>
                 </ThemedText>
               </View>
             )}
           </View>
-          <SegmentedControl accessibilityLabel="Scope" options={SCOPES} value={scope} onChange={setScope} height={40} />
+          <SegmentedControl
+            accessibilityLabel={t('leaderboard.scopeA11y')}
+            options={SCOPES.map((value) => ({ value, label: t(`leaderboard.scope.${value}`) }))} value={scope} onChange={setScope} height={40} />
         </View>
 
         <QueryState
           query={query}
           loading={<LeaderboardSkeleton />}
-          errorTitle="Couldn't load the leaderboard"
+          errorTitle={t('leaderboard.loadError')}
           errorArt={<UnpluggedTrophyArt />}>
           {() =>
             empty ? (
               scope === 'friends' ? (
                 <EmptyState
                   art={<RaceFriendsArt />}
-                  title="Race your friends"
-                  hint="Add friends to see how you stack up against them each month."
-                  action={<Button title="Find friends" icon="person-add" onPress={() => router.navigate('/friends')} />}
+                  title={t('leaderboard.friendsEmptyTitle')}
+                  hint={t('leaderboard.friendsEmptyHint')}
+                  action={<Button title={t('leaderboard.findFriends')} icon="person-add" onPress={() => router.navigate('/friends')} />}
                 />
               ) : (
                 <EmptyState
                   art={<FreshMonthArt />}
-                  title="A fresh month!"
-                  hint="Nobody has scored yet. Find a word and take the top spot."
-                  action={<Button title="Start hunting" iconNode={<HuntCameraIcon size={20} />} onPress={() => router.navigate('/')} />}
+                  title={t('leaderboard.freshTitle')}
+                  hint={t('leaderboard.freshHint')}
+                  action={<Button title={t('leaderboard.startHunting')} iconNode={<HuntCameraIcon size={20} />} onPress={() => router.navigate('/')} />}
                 />
               )
             ) : (
@@ -174,7 +180,7 @@ export default function LeaderboardScreen() {
 
         {showPinned && (
           <View style={styles.pinned}>
-            {me ? <MyRankBar entry={me} goal={passGoal(entries, me)} onPress={() => void jumpToMe()} busy={jumping} /> : <UnrankedBar onHunt={() => router.navigate('/')} />}
+            {me ? <MyRankBar entry={me} goal={passGoal(entries, me, fmt)} onPress={() => void jumpToMe()} busy={jumping} /> : <UnrankedBar onHunt={() => router.navigate('/')} />}
           </View>
         )}
       </SafeAreaView>
@@ -184,10 +190,11 @@ export default function LeaderboardScreen() {
 
 /** First-load placeholder: three podium blocks and the list card. */
 function LeaderboardSkeleton() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const block = { backgroundColor: theme.backgroundElement, borderColor: theme.border };
   return (
-    <View style={styles.skeleton} accessibilityLabel="Loading">
+    <View style={styles.skeleton} accessibilityLabel={t('common.loading')}>
       <View style={styles.skeletonPodium}>
         {[132, 164, 120].map((h) => (
           <View key={h} style={[styles.skeletonBlock, block, { height: h }]} />

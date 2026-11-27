@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { clearTokens, getTokens, saveTokens } from '@/auth/token-store';
+import { currentLocale, t } from '@/i18n';
 
 import type { ApiErrorBody, AuthTokens } from './types';
 
@@ -39,11 +40,17 @@ type RequestOptions = {
   timeoutMs?: number;
 };
 
-/** Sent on every request so the server can reject outdated builds (426 upgrade_required). */
-const CLIENT_HEADERS = {
-  'X-App-Version': Constants.expoConfig?.version ?? '0.0.0',
-  'X-Platform': Platform.OS,
-};
+/**
+ * Sent on every request: the version lets the server reject outdated builds (426 upgrade_required),
+ * the language gets words, verdicts and error messages back in the app's language.
+ */
+function clientHeaders() {
+  return {
+    'X-App-Version': Constants.expoConfig?.version ?? '0.0.0',
+    'X-Platform': Platform.OS,
+    'Accept-Language': currentLocale(),
+  };
+}
 
 const JSON_TIMEOUT_MS = 15_000;
 const UPLOAD_TIMEOUT_MS = 60_000;
@@ -59,12 +66,12 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
     return await fetch(url, { ...init, signal: controller.signal });
   } catch (e) {
     if (controller.signal.aborted) {
-      throw new ApiError(0, 'timeout', 'The server is taking too long to respond. Please try again.');
+      throw new ApiError(0, 'timeout', t('errors.timeout'));
     }
     // The player sees "offline", but the real cause (e.g. a request that couldn't be built) belongs
     // in the Metro log.
     if (__DEV__) console.warn(`[api] ${init.method ?? 'GET'} ${url} failed:`, e);
-    throw new ApiError(0, 'network', "You seem to be offline. Check your connection and try again.");
+    throw new ApiError(0, 'network', t('errors.offline'));
   } finally {
     clearTimeout(timer);
   }
@@ -86,13 +93,13 @@ async function refreshTokens(): Promise<boolean> {
         `${API_BASE_URL}/auth/refresh`,
         {
           method: 'POST',
-          headers: { ...CLIENT_HEADERS, 'Content-Type': 'application/json', Accept: 'application/json' },
+          headers: { ...clientHeaders(), 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify({ refreshToken: tokens.refreshToken }),
         },
         JSON_TIMEOUT_MS,
       );
       if (res.status >= 400 && res.status < 500) return false;
-      if (!res.ok) throw new ApiError(res.status, 'http_error', 'Something went wrong on our side. Please try again.');
+      if (!res.ok) throw new ApiError(res.status, 'http_error', t('errors.server'));
       await saveTokens((await res.json()) as AuthTokens);
       return true;
     } finally {
@@ -112,7 +119,7 @@ function buildUrl(path: string, query?: RequestOptions['query']) {
 
 export async function request<T>(path: string, options: RequestOptions = {}, retried = false): Promise<T> {
   const { method = 'GET', body, form, query, anonymous, timeoutMs } = options;
-  const headers: Record<string, string> = { ...CLIENT_HEADERS, Accept: 'application/json' };
+  const headers: Record<string, string> = { ...clientHeaders(), Accept: 'application/json' };
   if (!form && body !== undefined) headers['Content-Type'] = 'application/json';
   const tokens = getTokens();
   if (!anonymous && tokens) headers.Authorization = `Bearer ${tokens.accessToken}`;
@@ -133,11 +140,11 @@ export async function request<T>(path: string, options: RequestOptions = {}, ret
     }
     await clearTokens();
     onAuthFailure?.();
-    throw new ApiError(401, 'unauthorized', 'Your session has expired. Please sign in again.');
+    throw new ApiError(401, 'unauthorized', t('errors.sessionExpired'));
   }
 
   if (!res.ok) {
-    let err: ApiErrorBody = { code: 'http_error', message: `Request failed (${res.status})` };
+    let err: ApiErrorBody = { code: 'http_error', message: t('errors.requestFailed', { status: res.status }) };
     try {
       err = (await res.json()) as ApiErrorBody;
     } catch {

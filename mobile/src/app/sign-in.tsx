@@ -1,6 +1,7 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -17,15 +18,16 @@ import { PRIVACY_URL, TERMS_URL } from '@/constants/links';
 import { Spacing } from '@/constants/theme';
 import { useAsyncAction } from '@/hooks/use-async-action';
 
-const SAMPLE_WORDS: readonly { word: string; hue: Difficulty; tilt: number }[] = [
-  { word: 'SEARCH', hue: 'easy', tilt: -3 },
-  { word: 'FIND', hue: 'medium', tilt: 2 },
-  { word: 'SNAP', hue: 'hard', tilt: -2 },
+const SAMPLE_WORDS = [
+  { key: 'search', hue: 'easy', tilt: -3 },
+  { key: 'find', hue: 'medium', tilt: 2 },
+  { key: 'snap', hue: 'hard', tilt: -2 },
   // The premium word stays a mystery until you buy Premium.
-  { word: '? ? ? ?', hue: 'expert', tilt: 3 },
-];
+  { key: null, hue: 'expert', tilt: 3 },
+] as const satisfies readonly { key: string | null; hue: Difficulty; tilt: number }[];
 
 export default function SignInScreen() {
+  const { t, i18n } = useTranslation();
   const { signIn } = useAuth();
   const scheme = useColorScheme();
   const [appleAvailable, setAppleAvailable] = useState(false);
@@ -37,7 +39,7 @@ export default function SignInScreen() {
 
   const handle = (provider: AuthProvider) =>
     run(provider, () => signIn(provider), {
-      errorTitle: 'Sign-in failed',
+      errorTitle: t('signIn.failed'),
       ignore: (e) => e instanceof SignInCancelled,
     });
 
@@ -51,13 +53,14 @@ export default function SignInScreen() {
               Eyes Peeled
             </ThemedText>
             <ThemedText themeColor="textSecondary" style={styles.center}>
-              Three words a day. Find them in the real world, snap a photo, climb the leaderboard.
+              {t('signIn.tagline')}
             </ThemedText>
           </View>
           <View style={styles.samples} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-            {SAMPLE_WORDS.map((s, i) => (
-              <SampleWordChip key={s.word} word={s.word} hue={s.hue} tilt={s.tilt} index={i} />
-            ))}
+            {SAMPLE_WORDS.map((s, i) => {
+              const word = s.key ? t(`signIn.sample.${s.key}`).toLocaleUpperCase(i18n.language) : '? ? ? ?';
+              return <SampleWordChip key={s.hue} word={word} hue={s.hue} tilt={s.tilt} index={i} />;
+            })}
           </View>
         </View>
 
@@ -77,7 +80,7 @@ export default function SignInScreen() {
             />
           ) : Platform.OS === 'ios' || USE_MOCK_API ? (
             <Button
-              title="Continue with Apple"
+              title={t('signIn.apple')}
               variant="ink"
               height={56}
               loading={pending === 'apple'}
@@ -88,7 +91,7 @@ export default function SignInScreen() {
           {/* Dev login skips the Google SDK, so the button works without a client ID. */}
           {(GOOGLE_SIGN_IN_AVAILABLE || USE_MOCK_API || !!DEV_LOGIN) && (
             <Button
-              title="Continue with Google"
+              title={t('signIn.google')}
               variant="secondary"
               height={56}
               loading={pending === 'google'}
@@ -97,15 +100,27 @@ export default function SignInScreen() {
             />
           )}
           <ThemedText type="small" themeColor="textSecondary" style={[styles.center, styles.legal]}>
-            By continuing you agree to the{' '}
-            <ThemedText type="small" style={styles.link} accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)}>
-              Terms
-            </ThemedText>{' '}
-            and{' '}
-            <ThemedText type="small" style={styles.link} accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)}>
-              Privacy Policy
-            </ThemedText>
-            .
+            <Trans
+              i18nKey="signIn.legal"
+              components={{
+                terms: (
+                  <ThemedText
+                    type="small"
+                    style={styles.link}
+                    accessibilityRole="link"
+                    onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)}
+                  />
+                ),
+                privacy: (
+                  <ThemedText
+                    type="small"
+                    style={styles.link}
+                    accessibilityRole="link"
+                    onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)}
+                  />
+                ),
+              }}
+            />
           </ThemedText>
           {USE_MOCK_API && (
             <ThemedText type="small" themeColor="textSecondary" style={styles.center}>

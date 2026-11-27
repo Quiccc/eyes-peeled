@@ -32,6 +32,8 @@ const schema = z.object({
   /** Photos are checked by Claude when set; without it a random stub judges them (dev only). */
   ANTHROPIC_API_KEY: optional,
   VERIFY_MODEL: z.string().default('claude-haiku-5-5'),
+  /** Fills in word translations in the admin panel (Words → Auto-translate). Needs ANTHROPIC_API_KEY. */
+  TRANSLATE_MODEL: z.string().default('claude-opus-5-5'),
   /** Default pass threshold for Claude's confidence; a word's own minConfidence wins. */
   VERIFY_MIN_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.7),
   /** How long POST /submissions waits for a verdict before answering 'pending'. */

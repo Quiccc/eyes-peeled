@@ -1,4 +1,5 @@
 import { useEffect, useState, type ComponentProps } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
@@ -34,7 +35,7 @@ import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { tap } from '@/lib/haptics';
 import { trailLinks } from '@/lib/combo';
-import { DIFFICULTY_LABEL, displayWord, formatNumber, ordinal } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 const DURATION = 350;
 const EASE = Easing.bezier(0.4, 0, 0.2, 1);
@@ -214,6 +215,8 @@ function TrailStop({
   onHunt,
   onShare,
 }: StopProps) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
   const c = difficultyColors(theme, word.difficulty);
   const found = word.status === 'found';
@@ -256,15 +259,18 @@ function TrailStop({
     : selected
       ? { backgroundColor: c.bg, borderColor: c.main }
       : { backgroundColor: theme.backgroundElement, borderColor: c.main };
-  const label = DIFFICULTY_LABEL[word.difficulty];
+  const label = fmt.difficultyLabel(word.difficulty);
   const earned = (word.submission?.points ?? 0) + (word.submission?.comboPoints ?? 0);
-  const meta = found && !selected ? `+${formatNumber(earned)} pts` : `up to ${formatNumber(word.maxPoints)} pts`;
-  const status = found ? 'found' : word.status === 'pending' ? 'being checked' : 'not found yet';
+  const meta =
+    found && !selected
+      ? t('trail.earned', { count: earned, points: fmt.formatNumber(earned) })
+      : t('trail.upTo', { count: word.maxPoints, points: fmt.formatNumber(word.maxPoints) });
+  const status = found ? t('trail.statusFound') : word.status === 'pending' ? t('trail.statusChecking') : t('trail.statusOpen');
   const comboLabel =
     linkBelow?.paid != null
-      ? `, combo with the next word, plus ${linkBelow.paid} points`
+      ? `, ${t('trail.comboPaidA11y', { count: linkBelow.paid })}`
       : linkBelow?.next != null
-        ? `, find the next word too for a plus ${linkBelow.next} combo`
+        ? `, ${t('trail.comboNextA11y', { count: linkBelow.next })}`
         : '';
 
   return (
@@ -274,8 +280,8 @@ function TrailStop({
       accessible={!selected}
       accessibilityRole="button"
       accessibilityState={{ expanded: selected }}
-      accessibilityLabel={`${displayWord(word.word)}, ${label}, ${meta}, ${status}${comboLabel}`}
-      accessibilityHint={selected ? undefined : 'Shows this word'}
+      accessibilityLabel={`${fmt.displayWord(word.word)}, ${label}, ${meta}, ${status}${comboLabel}`}
+      accessibilityHint={selected ? undefined : t('trail.showsWord')}
       onPress={selected ? undefined : onSelect}
       style={[styles.row, { zIndex }, rowMotion]}>
       <View style={styles.rail}>
@@ -320,7 +326,7 @@ function TrailStop({
                 minimumFontScale={0.6}
                 maxFontSizeMultiplier={MAX_FONT_SCALE}
                 style={[styles.word, wordText]}>
-                {displayWord(word.word)}
+                {fmt.displayWord(word.word)}
               </ThemedText>
             </View>
             <Animated.View style={chevronMotion}>
@@ -347,7 +353,7 @@ function TrailStop({
                       numberOfLines={1}
                       maxFontSizeMultiplier={MAX_FONT_SCALE}
                       style={[styles.shrink, smallText]}>
-                      {word.firstFoundAt ? `First found at ${clockTime(word.firstFoundAt)}` : 'Be the first to find it'}
+                      {word.firstFoundAt ? t('trail.firstFoundAt', { time: fmt.clockTime(word.firstFoundAt) }) : t('trail.beFirst')}
                     </ThemedText>
                   </View>
                 )}
@@ -357,9 +363,9 @@ function TrailStop({
                   <ActionTile
                     word={word}
                     icon="share"
-                    title="Share your find"
-                    subtitle="Show your friends what you found"
-                    accessibilityLabel={`Share your ${word.word} find`}
+                    title={t('share.shareYourFind')}
+                    subtitle={t('trail.shareSubtitle')}
+                    accessibilityLabel={t('trail.shareA11y', { word: word.word })}
                     circle={circle}
                     onPress={onShare}
                   />
@@ -368,13 +374,15 @@ function TrailStop({
                 <ActionTile
                   word={word}
                   icon="camera"
-                  title={word.status === 'pending' ? 'See your result' : 'Hunt this word'}
+                  title={word.status === 'pending' ? t('trail.seeResult') : t('trail.huntThis')}
                   subtitle={
                     word.status === 'pending'
-                      ? "We're still checking your photo"
-                      : `Snap a photo to score up to ${formatNumber(word.maxPoints)} pts`
+                      ? t('trail.stillChecking')
+                      : t('trail.snapToScore', { count: word.maxPoints, points: fmt.formatNumber(word.maxPoints) })
                   }
-                  accessibilityLabel={word.status === 'pending' ? `See the result for ${word.word}` : `Hunt for ${word.word}`}
+                  accessibilityLabel={
+                    word.status === 'pending' ? t('trail.seeResultA11y', { word: word.word }) : t('trail.huntA11y', { word: word.word })
+                  }
                   circle={circle}
                   busy={busy}
                   onPress={onHunt}
@@ -458,11 +466,6 @@ function ActionTile({
   );
 }
 
-/** "09:42" (or "9:42 AM"), in the player's local time and clock style. */
-function clockTime(iso: string) {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-}
-
 /** What the player knows about the word: their find, a photo being checked, or how many have found it. */
 function StatusLine({
   word,
@@ -473,6 +476,8 @@ function StatusLine({
   textStyle: { fontSize: number; lineHeight: number };
   iconSize: number;
 }) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
   const sub = word.submission;
 
@@ -488,8 +493,12 @@ function StatusLine({
           maxFontSizeMultiplier={MAX_FONT_SCALE}
           style={[styles.shrink, textStyle, { color: theme.successText }]}>
           {/* One line: a combo takes the rank's place (the hunt result still shows the rank). */}
-          Found · +{sub.points} pts
-          {sub.comboPoints > 0 ? ` · +${sub.comboPoints} combo` : sub.rank ? ` · ${ordinal(sub.rank)} finder` : ''}
+          {t('trail.foundPoints', { count: sub.points })}
+          {sub.comboPoints > 0
+            ? ` · ${t('trail.comboPoints', { points: sub.comboPoints })}`
+            : sub.rank
+              ? ` · ${t('format.nthFinder', { rank: fmt.ordinal(sub.rank) })}`
+              : ''}
         </ThemedText>
       </View>
     );
@@ -502,15 +511,15 @@ function StatusLine({
         numberOfLines={1}
         maxFontSizeMultiplier={MAX_FONT_SCALE}
         style={textStyle}>
-        Checking your photo…
+        {t('trail.checkingPhoto')}
       </ThemedText>
     );
   }
   return (
     <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE} style={textStyle}>
       {word.foundCount === 0
-        ? 'Nobody has found it yet'
-        : `${formatNumber(word.foundCount)} ${word.foundCount === 1 ? 'hunter has' : 'hunters have'} found it`}
+        ? t('trail.nobodyYet')
+        : t('trail.huntersFound', { count: word.foundCount, hunters: fmt.formatNumber(word.foundCount) })}
     </ThemedText>
   );
 }
@@ -529,6 +538,8 @@ function LockedStop({
   prevFound: boolean;
   onPress: () => void;
 }) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
   const guard = usePressGuard();
 
@@ -546,7 +557,7 @@ function LockedStop({
       <View style={styles.cardSlot}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${DIFFICULTY_LABEL.expert} word, up to 1000 points, locked. Unlock with Premium.`}
+          accessibilityLabel={t('trail.lockedA11y', { level: fmt.difficultyLabel('expert') })}
           onPress={guard(onPress)}
           style={({ pressed }) => [
             styles.lockCard,
@@ -554,14 +565,14 @@ function LockedStop({
           ]}>
           <View style={styles.lockText}>
             <ThemedText numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.lockTitle, { color: theme.expertText }]}>
-              {DIFFICULTY_LABEL.expert} word
+              {t('trail.lockedTitle', { level: fmt.difficultyLabel('expert') })}
             </ThemedText>
             <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE}>
-              Up to 1000 pts, plus no ads
+              {t('trail.lockedSubtitle')}
             </ThemedText>
           </View>
           <ThemedText type="smallBold" maxFontSizeMultiplier={MAX_FONT_SCALE} style={{ color: theme.expertText }}>
-            Unlock
+            {t('trail.unlock')}
           </ThemedText>
         </Pressable>
       </View>
@@ -627,13 +638,14 @@ function ComboChip({
 
 /** Placeholder rows in the trail's real sizes, so the loaded trail lands exactly where they were. */
 export function TrailSkeleton({ count, locked }: { count: number; locked: boolean }) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const metrics = useTrailMetrics();
   const rows = Array.from({ length: count }, (_, i) => (i === 0 ? metrics.expanded : metrics.collapsed) + 2 * PAD_MIN);
   if (locked) rows.push(metrics.locked + 2 * PAD_MIN);
 
   return (
-    <View style={styles.trail} accessibilityLabel="Loading">
+    <View style={styles.trail} accessibilityLabel={t('common.loading')}>
       {/* Like the trail: the first (open) row takes the spare height, the rest stay compact. */}
       {rows.map((h, i) => (
         <View key={i} style={[styles.row, { flexBasis: h, flexGrow: i === 0 ? 1 : 0 }]}>

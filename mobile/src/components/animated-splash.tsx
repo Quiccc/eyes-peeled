@@ -1,5 +1,6 @@
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -45,6 +46,7 @@ type Props = {
  * Under Reduce Motion the rays stay still and it disappears without a fade.
  */
 export function AnimatedSplash({ ready, onDone }: Props) {
+  const { t } = useTranslation();
   const { width, height } = useWindowDimensions();
   const reduced = useReducedMotion();
   const turn = useSharedValue(0);
@@ -83,7 +85,7 @@ export function AnimatedSplash({ ready, onDone }: Props) {
     <Animated.View
       style={[StyleSheet.absoluteFill, styles.root, fadeStyle]}
       pointerEvents={ready ? 'none' : 'auto'}
-      accessibilityLabel="Eyes Peeled is loading"
+      accessibilityLabel={t('common.appLoading')}
       onLayout={() => void SplashScreen.hideAsync()}>
       <Animated.View
         style={[{ width: side, height: side, left: (width - side) / 2, top: (height - side) / 2 }, styles.rays, raysStyle]}>

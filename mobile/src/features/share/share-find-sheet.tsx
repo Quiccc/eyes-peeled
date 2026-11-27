@@ -1,5 +1,6 @@
 import * as Sharing from 'expo-sharing';
 import { useRef, useState, type ComponentRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { captureRef, releaseCapture } from 'react-native-view-shot';
@@ -9,7 +10,7 @@ import { ShareIcon } from '@/components/hunt-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { errorMessage } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 import { SHARE_CAPTURE_WIDTH, SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH, ShareCard } from './share-card';
 import type { ShareFind } from './types';
@@ -21,6 +22,8 @@ type Props = {
 
 /** Preview of the branded card + "Share" → system share sheet (Instagram, WhatsApp, Save image, …). */
 function ShareFindSheet({ find, onClose }: Props) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
@@ -38,17 +41,17 @@ function ShareFindSheet({ find, onClose }: Props) {
     let uri: string | null = null;
     try {
       if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert('Sharing unavailable', "This device doesn't support sharing images.");
+        Alert.alert(t('share.unavailableTitle'), t('share.unavailableBody'));
         return;
       }
       // PNG keeps the card's rounded corners transparent.
       uri = await captureRef(cardRef, { format: 'png', width: SHARE_CAPTURE_WIDTH, result: 'tmpfile' });
       const fileUri = uri.startsWith('file://') ? uri : `file://${uri}`;
       // Resolves when the share sheet closes — whether the user shared or dismissed it.
-      await Sharing.shareAsync(fileUri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: 'Share your find' });
+      await Sharing.shareAsync(fileUri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: t('share.shareYourFind') });
       onClose();
     } catch (e) {
-      Alert.alert('Could not share', errorMessage(e));
+      Alert.alert(t('share.failed'), fmt.errorMessage(e));
     } finally {
       if (uri) releaseCapture(uri);
       setSharing(false);
@@ -73,14 +76,14 @@ function ShareFindSheet({ find, onClose }: Props) {
           style={StyleSheet.absoluteFill}
           onPress={sharing ? undefined : onClose}
           accessibilityRole="button"
-          accessibilityLabel="Close"
+          accessibilityLabel={t('common.close')}
         />
         {find && (
           // A fixed width stops the sheet from being sized to its content: in that pass the
           // Share button's face (flexGrow in Chunky) grew to the screen height.
           <View style={[styles.sheet, { backgroundColor: theme.backgroundElement, borderColor: theme.border, width: sheetWidth }]}>
             <ThemedText type="subtitle" accessibilityRole="header" style={styles.title}>
-              Share your find
+              {t('share.shareYourFind')}
             </ThemedText>
             <View style={{ width: SHARE_CARD_WIDTH * scale, height: SHARE_CARD_HEIGHT * scale }}>
               <View style={{ transform: [{ scale }], transformOrigin: 'top left' }}>
@@ -89,8 +92,8 @@ function ShareFindSheet({ find, onClose }: Props) {
               {!ready && <ActivityIndicator style={StyleSheet.absoluteFill} color={theme.textSecondary} />}
             </View>
             <View style={styles.actions}>
-              <Button title="Share" iconNode={<ShareIcon size={20} />} loading={sharing} disabled={!ready} onPress={share} />
-              <Button title="Cancel" variant="ghost" disabled={sharing} onPress={onClose} />
+              <Button title={t('share.share')} iconNode={<ShareIcon size={20} />} loading={sharing} disabled={!ready} onPress={share} />
+              <Button title={t('common.cancel')} variant="ghost" disabled={sharing} onPress={onClose} />
             </View>
           </View>
         )}

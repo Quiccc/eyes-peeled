@@ -3,6 +3,13 @@
  * keep both in sync when the backend changes.
  */
 
+/**
+ * Languages the app and API speak. The app sends one as `Accept-Language`; words, photo verdicts
+ * and error messages come back in it. Each side lists them in its own array checked against this type
+ * (mobile/src/i18n/languages.ts, server/src/i18n/locale.ts).
+ */
+export type Locale = 'en' | 'es' | 'pt-BR' | 'fr' | 'de' | 'ja' | 'ko' | 'zh-Hans' | 'ru' | 'it' | 'tr' | 'id' | 'hi';
+
 /** 'expert' is the premium-only 4th daily word. */
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
 
@@ -65,7 +72,7 @@ export type Submission = {
   rank: number | null;
   /** AI confidence 0–1 that the object is in the photo, informational */
   confidence: number | null;
-  /** Human-readable explanation, mainly for invalid results */
+  /** Human-readable explanation, mainly for invalid results, in the request's language */
   message: string | null;
   imageUrl: string | null;
   /** Server timestamp, ISO 8601 */

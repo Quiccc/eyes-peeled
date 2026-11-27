@@ -2,6 +2,8 @@ import { and, count, eq } from 'drizzle-orm';
 
 import type { Ctx } from '../context';
 import { dailyWords, submissions } from '../db/schema';
+import type { SubmissionMessage } from '../domain/enums';
+import { SUBMISSION_MESSAGES, translate } from '../i18n/messages';
 import { logger } from '../lib/logger';
 import { isUniqueViolation } from '../lib/sql';
 import { creditCombo } from './combos';
@@ -11,19 +13,32 @@ import type { Verdict } from './verifier';
 
 /** The verdict worker: runs the verifier on pending photos (through ctx.queue) and records the result. */
 
+/**
+ * The verdict message to store: its code (translated for each reader) plus the English text for the
+ * logs and the admin panel.
+ */
+function verdictMessage(code: SubmissionMessage, word: { label: string }) {
+  return { messageCode: code, message: translate(SUBMISSION_MESSAGES[code], { word: word.label }, 'en') };
+}
+
 /** Reject a still-pending submission with a message for the player. */
-async function markInvalid(ctx: Ctx, submissionId: string, message: string, confidence?: number | null) {
+async function markInvalid(ctx: Ctx, submissionId: string, word: { label: string }, confidence?: number | null) {
   await ctx.db
     .update(submissions)
-    .set({ status: 'invalid', message, ...(confidence !== undefined && { confidence }), decidedAt: ctx.clock.now() })
+    .set({
+      status: 'invalid',
+      ...verdictMessage('not_spotted', word),
+      ...(confidence !== undefined && { confidence }),
+      decidedAt: ctx.clock.now(),
+    })
     .where(and(eq(submissions.id, submissionId), eq(submissions.status, 'pending')));
 }
 
 /** The verifier failed (outage, timeout). The photo wasn't judged, so it doesn't cost the player a try. */
-async function markError(ctx: Ctx, submissionId: string) {
+async function markError(ctx: Ctx, submissionId: string, word: { label: string }) {
   await ctx.db
     .update(submissions)
-    .set({ status: 'error', message: "We couldn't check your photo right now. Please try again in a moment.", decidedAt: ctx.clock.now() })
+    .set({ status: 'error', ...verdictMessage('check_failed', word), decidedAt: ctx.clock.now() })
     .where(and(eq(submissions.id, submissionId), eq(submissions.status, 'pending')));
 }
 
@@ -49,7 +64,7 @@ export async function decide(ctx: Ctx, submissionId: string, photo?: Buffer): Pr
     verdict = await ctx.verifier.verify(image, word.label);
   } catch (e) {
     logger.error({ err: e, submissionId }, 'verifier failed');
-    await markError(ctx, submissionId);
+    await markError(ctx, submissionId, word);
     return;
   }
 
@@ -59,12 +74,7 @@ export async function decide(ctx: Ctx, submissionId: string, photo?: Buffer): Pr
   );
 
   if (!passes(verdict, word.minConfidence ?? ctx.env.VERIFY_MIN_CONFIDENCE)) {
-    await markInvalid(
-      ctx,
-      submissionId,
-      `We couldn't spot a ${word.label}. Get closer and make sure it's in focus.`,
-      verdict.confidence,
-    );
+    await markInvalid(ctx, submissionId, word, verdict.confidence);
     return;
   }
 
@@ -84,6 +94,7 @@ export async function decide(ctx: Ctx, submissionId: string, photo?: Buffer): Pr
           points: pointsFor(word.difficulty, sub.receivedAt),
           rank: (before?.n ?? 0) + 1,
           message: null,
+          messageCode: null,
           decidedAt: ctx.clock.now(),
         })
         .where(and(eq(submissions.id, submissionId), eq(submissions.status, 'pending')));
@@ -94,7 +105,7 @@ export async function decide(ctx: Ctx, submissionId: string, photo?: Buffer): Pr
     // Already has a valid find for this word (shouldn't happen: new uploads are blocked while pending).
     await ctx.db
       .update(submissions)
-      .set({ status: 'invalid', message: 'You already found this one today.', decidedAt: ctx.clock.now() })
+      .set({ status: 'invalid', ...verdictMessage('already_found', word), decidedAt: ctx.clock.now() })
       .where(eq(submissions.id, submissionId));
   }
 }

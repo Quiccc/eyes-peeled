@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useDaily } from '@/api/queries';
@@ -15,6 +16,7 @@ import { useTheme } from '@/hooks/use-theme';
  * camera for the next word still to find (the same as the tab bar's shutter), or Today if words haven't loaded.
  */
 export function NoFindsCard({ style }: { style?: StyleProp<ViewStyle> }) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
   const { data: daily } = useDaily();
@@ -30,13 +32,13 @@ export function NoFindsCard({ style }: { style?: StyleProp<ViewStyle> }) {
     <View style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }, style]}>
       <SleepyEyeArt size={84} />
       <View style={styles.copy}>
-        <ThemedText style={[styles.center, styles.title]}>No finds yet today</ThemedText>
+        <ThemedText style={[styles.center, styles.title]}>{t('friends.feedEmptyTitle')}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary" style={styles.center}>
-          Your words are waiting. Snap one to get on the board.
+          {t('profile.noFindsHint')}
         </ThemedText>
       </View>
       <Button
-        title="Start hunting"
+        title={t('leaderboard.startHunting')}
         variant="secondary"
         iconNode={<HuntCameraIcon size={22} />}
         loading={openingId !== null}

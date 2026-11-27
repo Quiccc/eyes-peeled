@@ -1,10 +1,11 @@
 import { Image } from 'expo-image';
 import type { ComponentRef, Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { Colors, FontFamily } from '@/constants/theme';
-import { DIFFICULTY_LABEL, displayWord, ordinal } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 import type { ShareFind } from './types';
 
@@ -24,6 +25,8 @@ type Props = {
 
 /** The image people share: a chunky white card edged in the word's difficulty color, with the photo inset. */
 export function ShareCard({ find, onImageLoad, ref }: Props) {
+  const fmt = useFormat();
+  const { t, i18n } = useTranslation();
   const d = find.difficulty;
 
   return (
@@ -34,16 +37,16 @@ export function ShareCard({ find, onImageLoad, ref }: Props) {
       <View style={styles.info}>
         <View style={styles.row}>
           <View style={[styles.pill, { backgroundColor: C[`${d}Bg`] }]}>
-            <Text style={[styles.text, styles.pillText, { color: C[`${d}Text`] }]}>{DIFFICULTY_LABEL[d].toUpperCase()}</Text>
+            <Text style={[styles.text, styles.pillText, { color: C[`${d}Text`] }]}>{fmt.difficultyLabel(d).toLocaleUpperCase(i18n.language)}</Text>
           </View>
-          <Text style={[styles.text, styles.points]}>+{find.points} pts</Text>
+          <Text style={[styles.text, styles.points]}>{t('format.plusPoints', { count: find.points })}</Text>
         </View>
         <Text style={[styles.text, styles.word]} numberOfLines={1} adjustsFontSizeToFit>
-          {displayWord(find.word)}
+          {fmt.displayWord(find.word)}
         </Text>
         <View style={styles.row}>
           <Text style={[styles.text, styles.muted]} numberOfLines={1}>
-            {find.rank ? `${ordinal(find.rank)} hunter to find it today` : 'Found it today'}
+            {find.rank ? t('share.nthHunter', { rank: fmt.ordinal(find.rank) }) : t('share.foundToday')}
           </Text>
           <View style={styles.brand}>
             <View style={styles.brandTile}>

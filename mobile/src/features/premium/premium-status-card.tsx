@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { Chunky } from '@/components/chunky';
@@ -17,6 +18,7 @@ const MASCOT_DROP = 22;
  * its corner, or, once bought, a purple "Premium member" card.
  */
 export function PremiumStatusCard({ isPremium }: { isPremium: boolean }) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
 
@@ -24,13 +26,13 @@ export function PremiumStatusCard({ isPremium }: { isPremium: boolean }) {
     return (
       <View
         accessible
-        accessibilityLabel="Premium member. No ads, Premium word unlocked."
+        accessibilityLabel={`${t('profile.premiumMember')}. ${t('premium.memberPerks')}`}
         style={[styles.member, { backgroundColor: theme.expertFace, borderColor: theme.expert, borderBottomColor: theme.expertEdge }]}>
         <MemberBadge />
         <View style={styles.text}>
-          <ThemedText style={styles.title}>Premium member</ThemedText>
+          <ThemedText style={styles.title}>{t('profile.premiumMember')}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            No ads · Premium word unlocked
+            {t('premium.memberPerks')}
           </ThemedText>
         </View>
       </View>
@@ -43,18 +45,18 @@ export function PremiumStatusCard({ isPremium }: { isPremium: boolean }) {
       edgeColor={theme.tintEdge}
       radius={20}
       accessibilityRole="link"
-      accessibilityLabel="Remove ads and unlock the Premium word. One purchase, yours forever."
+      accessibilityLabel={`${t('premium.upsellTitle')}. ${t('premium.upsellBody')}`}
       onPress={() => router.push('/premium')}
       contentStyle={styles.upsell}>
       <View style={styles.upsellText}>
         <View style={styles.titleRow}>
           <ThemedText style={[styles.title, styles.shrink, { color: theme.onTint }]}>
-            Remove ads &amp; unlock the Premium word
+            {t('premium.upsellTitle')}
           </ThemedText>
           <Icon name="chevron-right" size={18} color={theme.onTint} />
         </View>
         <ThemedText type="small" style={{ color: theme.onTint }}>
-          One purchase, yours forever
+          {t('premium.upsellBody')}
         </ThemedText>
       </View>
       <View style={styles.mascot} pointerEvents="none">

@@ -2,13 +2,14 @@ import { Alert } from 'react-native';
 
 import { api } from '@/api/endpoints';
 import type { ReportReason, User } from '@/api/types';
+import { t } from '@/i18n';
 import { displayName, errorMessage } from '@/lib/format';
 
 /** Ask before unblocking; `onConfirm` does the unblock (e.g. a useUnblockUser() mutation). */
 export function confirmUnblock(user: User, onConfirm: () => void) {
-  Alert.alert(`Unblock ${displayName(user)}?`, 'You will see each other again. Your friendship does not come back.', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Unblock', onPress: onConfirm },
+  Alert.alert(t('safety.unblockTitle', { name: displayName(user) }), t('safety.unblockBody'), [
+    { text: t('common.cancel'), style: 'cancel' },
+    { text: t('blocked.unblock'), onPress: onConfirm },
   ]);
 }
 
@@ -17,29 +18,29 @@ export function startReport(user: User, submissionId?: string) {
   const report = (reason: ReportReason) =>
     api
       .report({ submissionId, userId: user.id, reason })
-      .then(() => Alert.alert('Thanks for letting us know', 'Our team will review this report.'))
-      .catch((e) => Alert.alert('Report failed', errorMessage(e)));
+      .then(() => Alert.alert(t('safety.reportThanksTitle'), t('safety.reportThanksBody')))
+      .catch((e) => Alert.alert(t('safety.reportFailed'), errorMessage(e)));
 
   // Android alerts show at most 3 buttons — keep each menu to 3.
-  Alert.alert('Why are you reporting this?', undefined, [
-    { text: 'Inappropriate content', onPress: () => report('inappropriate') },
-    { text: 'Not a real find / cheating', onPress: () => report('cheating') },
-    { text: 'Cancel', style: 'cancel' },
+  Alert.alert(t('safety.reportWhy'), undefined, [
+    { text: t('safety.reasonInappropriate'), onPress: () => report('inappropriate') },
+    { text: t('safety.reasonCheating'), onPress: () => report('cheating') },
+    { text: t('common.cancel'), style: 'cancel' },
   ]);
 }
 
 /** Ask before blocking, then block; `onBlocked` lets the caller refresh lists. */
 export function startBlock(user: User, onBlocked?: () => void) {
-  Alert.alert(`Block ${displayName(user)}?`, "They won't be able to see your photos and you won't see theirs.", [
-    { text: 'Cancel', style: 'cancel' },
+  Alert.alert(t('safety.blockTitle', { name: displayName(user) }), t('safety.blockBody'), [
+    { text: t('common.cancel'), style: 'cancel' },
     {
-      text: 'Block',
+      text: t('safety.block'),
       style: 'destructive',
       onPress: () =>
         api
           .blockUser(user.id)
           .then(() => onBlocked?.())
-          .catch((e) => Alert.alert('Block failed', errorMessage(e))),
+          .catch((e) => Alert.alert(t('safety.blockFailed'), errorMessage(e))),
     },
   ]);
 }
@@ -50,7 +51,7 @@ export function startUnblock(user: User, onUnblocked?: () => void) {
     api
       .unblockUser(user.id)
       .then(() => onUnblocked?.())
-      .catch((e) => Alert.alert('Could not unblock', errorMessage(e))),
+      .catch((e) => Alert.alert(t('safety.unblockFailed'), errorMessage(e))),
   );
 }
 
@@ -73,10 +74,10 @@ export function openSafetyMenu({
   onUnblocked?: () => void;
 }) {
   Alert.alert(displayName(user), undefined, [
-    { text: submissionId ? 'Report photo' : 'Report user', onPress: () => startReport(user, submissionId) },
+    { text: submissionId ? t('safety.reportPhoto') : t('safety.reportUser'), onPress: () => startReport(user, submissionId) },
     blocked
-      ? { text: 'Unblock user', onPress: () => startUnblock(user, onUnblocked) }
-      : { text: 'Block user', style: 'destructive', onPress: () => startBlock(user, onBlocked) },
-    { text: 'Cancel', style: 'cancel' },
+      ? { text: t('safety.unblockUser'), onPress: () => startUnblock(user, onUnblocked) }
+      : { text: t('safety.blockUser'), style: 'destructive', onPress: () => startBlock(user, onBlocked) },
+    { text: t('common.cancel'), style: 'cancel' },
   ]);
 }

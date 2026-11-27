@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet } from 'react-native';
 
 import { useBlockedUsers } from '@/api/queries';
@@ -12,12 +13,13 @@ import { useUnblockUser } from '@/features/social/use-friend-mutations';
 
 /** Players you blocked, each with an Unblock button. Reached from Profile → Account. */
 export default function BlockedUsersScreen() {
+  const { t } = useTranslation();
   const blocked = useBlockedUsers();
   const unblock = useUnblockUser();
 
   return (
     <ThemedView style={styles.flex}>
-      <QueryState query={blocked} loading={<SkeletonRows count={3} />} errorTitle="Couldn't load blocked players">
+      <QueryState query={blocked} loading={<SkeletonRows count={3} />} errorTitle={t('blocked.loadError')}>
         {(list) => (
           <FlatList
             data={list}
@@ -25,7 +27,7 @@ export default function BlockedUsersScreen() {
             contentContainerStyle={styles.content}
             refreshControl={<RefreshControl refreshing={blocked.isRefetching} onRefresh={() => void blocked.refetch()} />}
             ListEmptyComponent={
-              <EmptyState icon="users" title="No blocked players" hint="Players you block show up here." />
+              <EmptyState icon="users" title={t('blocked.emptyTitle')} hint={t('blocked.emptyHint')} />
             }
             renderItem={({ item }) => (
               <UserRow
@@ -34,7 +36,7 @@ export default function BlockedUsersScreen() {
                   <Button
                     size="small"
                     variant="secondary"
-                    title="Unblock"
+                    title={t('blocked.unblock')}
                     loading={unblock.isPending && unblock.variables === item.user.id}
                     onPress={() => confirmUnblock(item.user, () => unblock.mutate(item.user.id))}
                   />

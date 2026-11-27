@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,7 +23,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Edge, Radius, Spacing } from '@/constants/theme';
 import { usePremiumPurchase } from '@/features/premium/use-premium-purchase';
 import { useTheme } from '@/hooks/use-theme';
-import { errorMessage } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 /** Content column width cap, so tablets and landscape get a phone-width column instead of a stretched one. */
 const MAX_WIDTH = 480;
@@ -30,17 +31,13 @@ const MAX_WIDTH = 480;
 const HERO = { width: 140, height: 112 };
 const ERROR_BADGE_SCALE = 1.47;
 
-type Benefit = { glyph: ReactNode; tile: string; title: string; body: string };
+/** `id` names the title and body in the catalogs (premium.benefits.<id>). */
+type Benefit = { id: 'noAds' | 'premiumWord' | 'payOnce'; glyph: ReactNode; tile: string };
 
 const BENEFITS: readonly Benefit[] = [
-  { glyph: <NoAdsGlyph />, tile: BENEFIT_TILE.noAds, title: 'No ads', body: 'Hunt without interruptions, forever.' },
-  {
-    glyph: <PremiumWordGlyph />,
-    tile: BENEFIT_TILE.premiumWord,
-    title: 'Daily Premium word',
-    body: 'A tougher 4th word every day, worth up to 1000 points.',
-  },
-  { glyph: <PayOnceGlyph />, tile: BENEFIT_TILE.payOnce, title: 'Pay once', body: 'No subscription. Restores on any device.' },
+  { id: 'noAds', glyph: <NoAdsGlyph />, tile: BENEFIT_TILE.noAds },
+  { id: 'premiumWord', glyph: <PremiumWordGlyph />, tile: BENEFIT_TILE.premiumWord },
+  { id: 'payOnce', glyph: <PayOnceGlyph />, tile: BENEFIT_TILE.payOnce },
 ];
 
 /**
@@ -49,6 +46,8 @@ const BENEFITS: readonly Benefit[] = [
  * The hero box and the 56px main button keep their size in every state, so loading the price shifts nothing.
  */
 export default function PremiumScreen() {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const { user } = useAuth();
@@ -65,13 +64,13 @@ export default function PremiumScreen() {
             <View style={[styles.column, styles.welcome]}>
               <PremiumWelcomeArt />
               <ThemedText type="title" style={[styles.center, styles.title]} accessibilityRole="header">
-                Welcome to Premium
+                {t('premium.welcomeTitle')}
               </ThemedText>
               <ThemedText themeColor="textSecondary" style={styles.center}>
-                Ads are off. Your Premium word is waiting on Today.
+                {t('premium.welcomeBody')}
               </ThemedText>
               <View style={styles.perks}>
-                {['No ads', 'Premium word unlocked'].map((perk) => (
+                {[t('premium.perkNoAds'), t('premium.perkWordUnlocked')].map((perk) => (
                   <View key={perk} style={[styles.perk, { backgroundColor: theme.easyBg }]}>
                     <Icon name="check" size={16} color={theme.easyText} />
                     <ThemedText type="smallBold" style={{ color: theme.easyText }}>
@@ -84,7 +83,7 @@ export default function PremiumScreen() {
           </ScrollView>
           <View style={styles.actionsWrap}>
             <View style={styles.actions}>
-              <Button title="Go to Today" height={56} onPress={() => router.dismissTo('/')} />
+              <Button title={t('premium.goToToday')} height={56} onPress={() => router.dismissTo('/')} />
             </View>
           </View>
         </SafeAreaView>
@@ -109,16 +108,16 @@ export default function PremiumScreen() {
             <View style={styles.hero}>
               <View style={styles.heroArt}>{failed ? <ErrorBadge /> : <PremiumHeroArt />}</View>
               <ThemedText type="title" style={[styles.center, styles.title]} accessibilityRole="header">
-                Eyes Peeled Premium
+                {t('premium.title')}
               </ThemedText>
               <ThemedText themeColor="textSecondary" style={styles.center}>
-                No ads and a 4th daily word, in a single purchase.
+                {t('premium.subtitle')}
               </ThemedText>
             </View>
 
             <View style={styles.benefits}>
               {BENEFITS.map((b) => (
-                <BenefitRow key={b.title} benefit={b} />
+                <BenefitRow key={b.id} benefit={b} />
               ))}
             </View>
           </View>
@@ -130,32 +129,32 @@ export default function PremiumScreen() {
               <>
                 <View
                   accessible
-                  accessibilityLabel="You have Premium. No ads, and the Premium word is on Today."
+                  accessibilityLabel={`${t('premium.ownedTitle')}. ${t('premium.ownedBody')}`}
                   style={[styles.owned, { backgroundColor: theme.easyBg }]}>
                   <View style={[styles.ownedCheck, { backgroundColor: theme.success }]}>
                     <Icon name="check" size={18} color="#FFFFFF" />
                   </View>
                   <View style={styles.ownedText}>
-                    <ThemedText style={[styles.bold, { color: theme.easyText }]}>You have Premium</ThemedText>
+                    <ThemedText style={[styles.bold, { color: theme.easyText }]}>{t('premium.ownedTitle')}</ThemedText>
                     <ThemedText type="small" style={{ color: theme.easyText }}>
-                      No ads, and the Premium word is on Today.
+                      {t('premium.ownedBody')}
                     </ThemedText>
                   </View>
                 </View>
-                <Button title="Done" height={56} onPress={() => router.back()} />
+                <Button title={t('common.done')} height={56} onPress={() => router.back()} />
               </>
             ) : (
               <>
                 {failed ? (
                   <>
                     <ThemedText type="small" themeColor="textSecondary" style={styles.center} accessibilityRole="alert">
-                      {errorMessage(offer.error)}
+                      {fmt.errorMessage(offer.error)}
                     </ThemedText>
-                    <Button title="Try again" icon="retry" variant="secondary" height={56} onPress={() => offer.refetch()} />
+                    <Button title={t('common.tryAgain')} icon="retry" variant="secondary" height={56} onPress={() => offer.refetch()} />
                   </>
                 ) : (
                   <Button
-                    title={price ? `Get Premium · ${price}` : 'Get Premium'}
+                    title={price ? t('premium.buyWithPrice', { price }) : t('premium.buy')}
                     height={56}
                     loading={offer.isPending || busy === 'buy'}
                     disabled={busy !== null}
@@ -163,7 +162,7 @@ export default function PremiumScreen() {
                   />
                 )}
                 <Button
-                  title="Restore purchases"
+                  title={t('profile.restorePurchases')}
                   variant="ghost"
                   loading={busy === 'restore'}
                   disabled={busy !== null}
@@ -188,17 +187,20 @@ function ErrorBadge() {
 }
 
 function BenefitRow({ benefit }: { benefit: Benefit }) {
+  const { t } = useTranslation();
   const theme = useTheme();
+  const title = t(`premium.benefits.${benefit.id}.title`);
+  const body = t(`premium.benefits.${benefit.id}.body`);
   return (
     <View
       accessible
-      accessibilityLabel={`${benefit.title}. ${benefit.body}`}
+      accessibilityLabel={`${title}. ${body}`}
       style={[styles.benefit, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
       <View style={[styles.tile, { backgroundColor: benefit.tile }]}>{benefit.glyph}</View>
       <View style={styles.benefitText}>
-        <ThemedText style={styles.bold}>{benefit.title}</ThemedText>
+        <ThemedText style={styles.bold}>{title}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          {benefit.body}
+          {body}
         </ThemedText>
       </View>
     </View>

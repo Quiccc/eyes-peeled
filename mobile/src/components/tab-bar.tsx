@@ -1,5 +1,6 @@
 import type { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,11 +14,11 @@ import { useTheme } from '@/hooks/use-theme';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
-const TABS: Record<string, { label: string; icon: TabIconName }> = {
-  index: { label: 'Today', icon: 'today' },
-  leaderboard: { label: 'Ranks', icon: 'ranks' },
-  friends: { label: 'Friends', icon: 'friends' },
-  profile: { label: 'Profile', icon: 'profile' },
+const TABS: Record<string, { label: 'today' | 'ranks' | 'friends' | 'profile'; icon: TabIconName }> = {
+  index: { label: 'today', icon: 'today' },
+  leaderboard: { label: 'ranks', icon: 'ranks' },
+  friends: { label: 'friends', icon: 'friends' },
+  profile: { label: 'profile', icon: 'profile' },
 };
 
 /** Tabs either side of the Hunt shutter. */
@@ -36,6 +37,7 @@ const KEY_EDGE = 4;
  * is found the shutter goes flat and green, its eye asleep until tomorrow's words, and can't be pressed.
  */
 export function TabBar({ state, navigateToTab }: TabBarProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { data: requests } = useFriendRequests();
@@ -70,7 +72,7 @@ export function TabBar({ state, navigateToTab }: TabBarProps) {
         key={route.key}
         accessibilityRole="tab"
         accessibilityState={{ selected: focused }}
-        accessibilityLabel={badge ? `${tab.label}, ${badge} friend requests` : tab.label}
+        accessibilityLabel={badge ? t('tabs.withRequests', { tab: t(`tabs.${tab.label}`), count: badge }) : t(`tabs.${tab.label}`)}
         onPress={() => {
           if (!focused) navigateToTab(route.key);
         }}
@@ -89,7 +91,7 @@ export function TabBar({ state, navigateToTab }: TabBarProps) {
           )}
         </View>
         <ThemedText type="smallBold" style={{ color: focused ? theme.onTint : theme.textSecondary }}>
-          {tab.label}
+          {t(`tabs.${tab.label}`)}
         </ThemedText>
       </Chunky>
     );
@@ -101,7 +103,7 @@ export function TabBar({ state, navigateToTab }: TabBarProps) {
         {LEFT.map(renderTab)}
         <View style={styles.slot} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <ThemedText type="smallBold" style={{ color: allFound ? theme.successText : theme.tabSelected }}>
-            {allFound ? 'Done' : 'Hunt'}
+            {allFound ? t('common.done') : t('leaderboard.hunt')}
           </ThemedText>
         </View>
         {RIGHT.map(renderTab)}
@@ -112,13 +114,13 @@ export function TabBar({ state, navigateToTab }: TabBarProps) {
           <View
             accessible
             accessibilityRole="image"
-            accessibilityLabel="All words found. New words tomorrow"
+            accessibilityLabel={t('tabs.allFound')}
             style={[styles.done, { backgroundColor: theme.easyBg, borderColor: theme.backgroundElement }]}>
             <SleepyEyeIcon />
           </View>
         ) : (
           <Chunky
-            accessibilityLabel={next ? `Hunt ${next.word.toLowerCase()}` : "Hunt today's words"}
+            accessibilityLabel={next ? t('tabs.huntWord', { word: next.word }) : t('tabs.huntToday')}
             onPress={onHunt}
             disabled={!!openingId}
             color={theme.tint}

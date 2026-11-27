@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { FeedItem } from '@/api/types';
@@ -13,7 +14,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Edge, Radius, Spacing } from '@/constants/theme';
 import { openSafetyMenu } from '@/features/safety/safety-menu';
 import { useTheme } from '@/hooks/use-theme';
-import { displayName, displayWord, ordinal, timeAgo } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 type Props = {
   item: FeedItem;
@@ -25,6 +26,8 @@ type Props = {
 };
 
 export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
 
   return (
@@ -40,16 +43,16 @@ export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
             <Pressable style={styles.author} accessibilityRole="link">
               <Avatar user={item.user} size={36} />
               <ThemedText style={styles.name} numberOfLines={1}>
-                {displayName(item.user)}
+                {fmt.displayName(item.user)}
               </ThemedText>
               <ThemedText type="small" themeColor="textSecondary" style={styles.time}>
-                · {timeAgo(item.createdAt)}
+                · {fmt.timeAgo(item.createdAt)}
               </ThemedText>
             </Pressable>
           </Link>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="More options"
+            accessibilityLabel={t('user.moreOptions')}
             onPress={() => openSafetyMenu({ user: item.user, submissionId: item.submissionId, onBlocked })}
             style={({ pressed }) => [styles.more, { opacity: pressed ? 0.6 : 1 }]}>
             <Icon name="more" size={22} color={theme.textSecondary} />
@@ -64,26 +67,26 @@ export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
       />
       {hideAuthor ? (
         <View style={[styles.footer, styles.footerBare]}>
-          <DifficultyPill difficulty={item.difficulty} />
+          <DifficultyPill difficulty={item.difficulty} style={styles.pill} />
           <ThemedText style={[styles.word, styles.wordBare]} numberOfLines={1}>
-            {displayWord(item.word)}
+            {fmt.displayWord(item.word)}
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            <ThemedText type="smallBold">+{item.points} pts</ThemedText>
-            {item.rank ? ` · ${ordinal(item.rank)}` : ''}
+            <ThemedText type="smallBold">{t('format.plusPoints', { count: item.points })}</ThemedText>
+            {item.rank ? ` · ${fmt.ordinal(item.rank)}` : ''}
           </ThemedText>
         </View>
       ) : (
         <View style={[styles.footer, styles.footerFeed]}>
-          <DifficultyPill difficulty={item.difficulty} />
+          <DifficultyPill difficulty={item.difficulty} style={styles.pill} />
           <ThemedText style={[styles.word, styles.wordBare]} numberOfLines={1}>
-            {displayWord(item.word)}
+            {fmt.displayWord(item.word)}
           </ThemedText>
           <View style={styles.score}>
-            <ThemedText style={[styles.scorePoints, { color: theme.successText }]}>+{item.points} pts</ThemedText>
+            <ThemedText style={[styles.scorePoints, { color: theme.successText }]}>{t('format.plusPoints', { count: item.points })}</ThemedText>
             {item.rank ? (
               <ThemedText type="small" themeColor="textSecondary" style={styles.time}>
-                {ordinal(item.rank)} finder
+                {t('format.nthFinder', { rank: fmt.ordinal(item.rank) })}
               </ThemedText>
             ) : null}
           </View>
@@ -91,7 +94,7 @@ export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
       )}
       {onShare && (
         <View style={styles.share}>
-          <Button size="small" variant="secondary" iconNode={<ShareIcon size={16} />} title="Share" onPress={onShare} />
+          <Button size="small" variant="secondary" iconNode={<ShareIcon size={16} />} title={t('share.share')} onPress={onShare} />
         </View>
       )}
     </View>
@@ -103,11 +106,12 @@ export function FeedCard({ item, hideAuthor, onBlocked, onShare }: Props) {
  * card's own parts with sample content hidden under pulsing bones, so it is exactly as tall as the real card.
  */
 export function FeedCardSkeleton() {
+  const { t } = useTranslation();
   const theme = useTheme();
   return (
     <View
       accessible
-      accessibilityLabel="Loading your finds"
+      accessibilityLabel={t('profile.loadingFinds')}
       style={[styles.card, styles.cardBare, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
       <Block style={[styles.photo, styles.photoBare]} />
       <View style={[styles.footer, styles.footerBare]}>
@@ -124,7 +128,7 @@ export function FeedCardSkeleton() {
       </View>
       <View style={styles.share}>
         <Bone radius={14}>
-          <Button size="small" variant="secondary" iconNode={<ShareIcon size={16} />} title="Share" />
+          <Button size="small" variant="secondary" iconNode={<ShareIcon size={16} />} title={t('share.share')} />
         </Bone>
       </View>
     </View>
@@ -184,6 +188,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
     padding: Spacing.two + 4,
+  },
+  /** The pill hugs the top of its row by default; here it sits on the word's centre line. */
+  pill: {
+    alignSelf: 'center',
   },
   footerFeed: {
     gap: Spacing.two + 2,

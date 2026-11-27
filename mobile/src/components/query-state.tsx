@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/button';
 import { EmptyState } from '@/components/empty-state';
-import { errorMessage } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 type QueryLike<T> = {
   data: T | undefined;
@@ -27,6 +28,8 @@ type Props<T> = {
  * an error with a retry button, then the content. Data that loaded once stays up if a refetch fails.
  */
 export function QueryState<T>({ query, loading, errorTitle, errorArt, children }: Props<T>) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   if (query.data !== undefined) return children(query.data);
   if (query.isPending) return loading;
   return (
@@ -34,8 +37,8 @@ export function QueryState<T>({ query, loading, errorTitle, errorArt, children }
       icon="retry"
       art={errorArt}
       title={errorTitle}
-      hint={errorMessage(query.error)}
-      action={<Button title="Try again" variant="secondary" onPress={() => query.refetch()} />}
+      hint={fmt.errorMessage(query.error)}
+      action={<Button title={t('common.tryAgain')} variant="secondary" onPress={() => query.refetch()} />}
     />
   );
 }

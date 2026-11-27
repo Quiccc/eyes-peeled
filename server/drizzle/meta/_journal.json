@@ -50,6 +50,13 @@
       "when": 1795288208857,
       "tag": "0006_drop-provider-avatar",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795795233335,
+      "tag": "0007_translations",
+      "breakpoints": true
     }
   ]
 }

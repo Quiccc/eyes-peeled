@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,6 +16,7 @@ import { CrashedPlaneArt } from '@/components/illustrations/friends-art';
 import {
   AppearanceIcon,
   BlockedIcon,
+  LanguageIcon,
   PrivacyIcon,
   RestoreIcon,
   SETTINGS_TILE,
@@ -36,17 +38,15 @@ import { useShareFind } from '@/features/share/share-find-sheet';
 import { fromFeedItem } from '@/features/share/types';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useTheme } from '@/hooks/use-theme';
+import { LANGUAGES } from '@/i18n/languages';
+import { useLanguagePref } from '@/i18n/language';
 import { setAppearance, useAppearancePref, type AppearancePref } from '@/lib/appearance';
-import { errorMessage } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 /** Content column width cap, so tablets and landscape get a phone-width column instead of a stretched one. */
 const MAX_WIDTH = 480;
 
-const APPEARANCE_OPTIONS = (['system', 'light', 'dark'] as const).map((value) => ({
-  value,
-  label: { system: 'System', light: 'Light', dark: 'Dark' }[value],
-  icon: (selected: boolean) => <AppearanceIcon name={value} selected={selected} />,
-})) satisfies readonly { value: AppearancePref; label: string }[];
+const APPEARANCES = ['system', 'light', 'dark'] as const satisfies readonly AppearancePref[];
 
 /**
  * The signed-in hunter: who they are, how they're doing, Premium, today's finds, then settings.
@@ -55,14 +55,22 @@ const APPEARANCE_OPTIONS = (['system', 'light', 'dark'] as const).map((value) =>
  * card's height once it has measured it, so the appearance and account sections never jump.
  */
 export default function ProfileScreen() {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const { user, signOut, deleteAccount } = useAuth();
   const router = useRouter();
   const theme = useTheme();
   const profile = useMyProfile();
   const appearance = useAppearancePref();
+  const languagePref = useLanguagePref();
+  const appearanceOptions = APPEARANCES.map((value) => ({
+    value,
+    label: t(`profile.appearance.${value}`),
+    icon: (selected: boolean) => <AppearanceIcon name={value} selected={selected} />,
+  }));
   const { share, sheet: shareSheet } = useShareFind();
   const premium = usePremiumPurchase({
-    onPremium: () => Alert.alert('Premium restored', 'Ads are off and the Premium word is unlocked.'),
+    onPremium: () => Alert.alert(t('premium.restoredTitle'), t('premium.restoredBody')),
   });
   const deletion = useAsyncAction<'delete'>();
   const avatar = useAvatarPicker();
@@ -71,16 +79,16 @@ export default function ProfileScreen() {
 
   const confirmDelete = () =>
     Alert.alert(
-      'Delete account?',
-      'This permanently deletes your account, photos, points and friends. This cannot be undone.',
+      t('profile.deleteTitle'),
+      t('profile.deleteBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('profile.deleteConfirm'),
           style: 'destructive',
           onPress: () =>
             deletion.run('delete', deleteAccount, {
-              errorTitle: 'Could not delete account',
+              errorTitle: t('profile.deleteError'),
               // Dismissed the Apple confirmation sheet: keep the account, no error.
               ignore: (e) => e instanceof SignInCancelled,
             }),
@@ -92,7 +100,18 @@ export default function ProfileScreen() {
 
   const accountRows: SettingsRow[] = [
     {
-      title: 'Restore purchases',
+      title: t('language.rowTitle', {
+        language:
+          languagePref === 'system'
+            ? t('language.system')
+            : LANGUAGES.find((l) => l.locale === languagePref)?.name ?? languagePref,
+      }),
+      onPress: () => router.push('/language'),
+      icon: <LanguageIcon />,
+      tileColor: SETTINGS_TILE.language,
+    },
+    {
+      title: t('profile.restorePurchases'),
       onPress: premium.restore,
       loading: premium.busy === 'restore',
       icon: <RestoreIcon />,
@@ -100,9 +119,9 @@ export default function ProfileScreen() {
     },
     ...(user.isPremium || !privacyOptionsRequired
       ? []
-      : [{ title: 'Ad privacy options', onPress: showAdPrivacyOptions, icon: <PrivacyIcon />, tileColor: SETTINGS_TILE.privacy }]),
-    { title: 'Blocked users', onPress: () => router.push('/blocked'), icon: <BlockedIcon />, tileColor: SETTINGS_TILE.blocked },
-    { title: 'Sign out', onPress: signOut, icon: <SignOutIcon />, tileColor: SETTINGS_TILE.signOut },
+      : [{ title: t('profile.adPrivacy'), onPress: showAdPrivacyOptions, icon: <PrivacyIcon />, tileColor: SETTINGS_TILE.privacy }]),
+    { title: t('blocked.title'), onPress: () => router.push('/blocked'), icon: <BlockedIcon />, tileColor: SETTINGS_TILE.blocked },
+    { title: t('profile.signOut'), onPress: signOut, icon: <SignOutIcon />, tileColor: SETTINGS_TILE.signOut },
   ];
 
   const finds = profile.data?.today;
@@ -128,7 +147,7 @@ export default function ProfileScreen() {
             <PremiumStatusCard isPremium={user.isPremium} />
 
             <View style={styles.section}>
-              <SectionLabel>YOUR FINDS TODAY</SectionLabel>
+              <SectionLabel>{t('profile.findsToday')}</SectionLabel>
               {finds && finds.length > 0 ? (
                 <View style={[styles.finds, fill]}>
                   {finds.map((item) => (
@@ -145,32 +164,32 @@ export default function ProfileScreen() {
                 <View style={[styles.errorCard, fill, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
                   <EmptyState
                     art={<CrashedPlaneArt />}
-                    title="Couldn't load your finds"
-                    hint={errorMessage(profile.error)}
-                    action={<Button title="Try again" variant="secondary" onPress={() => profile.refetch()} />}
+                    title={t('profile.findsError')}
+                    hint={fmt.errorMessage(profile.error)}
+                    action={<Button title={t('common.tryAgain')} variant="secondary" onPress={() => profile.refetch()} />}
                   />
                 </View>
               )}
             </View>
 
             <View style={styles.section}>
-              <SectionLabel>APPEARANCE</SectionLabel>
+              <SectionLabel>{t('profile.appearance.label')}</SectionLabel>
               <SegmentedControl
-                accessibilityLabel="Appearance"
-                options={APPEARANCE_OPTIONS}
+                accessibilityLabel={t('profile.appearance.a11y')}
+                options={appearanceOptions}
                 value={appearance}
                 onChange={(pref) => void setAppearance(pref)}
               />
             </View>
 
             <View style={styles.section}>
-              <SectionLabel>ACCOUNT</SectionLabel>
+              <SectionLabel>{t('profile.account')}</SectionLabel>
               <SettingsGroup rows={accountRows} />
-              <DangerLink title="Delete account" loading={deletion.busy === 'delete'} onPress={confirmDelete} />
+              <DangerLink title={t('profile.deleteAccount')} loading={deletion.busy === 'delete'} onPress={confirmDelete} />
             </View>
 
             <ThemedText type="small" themeColor="textSecondary" style={styles.version}>
-              Eyes Peeled v{Constants.expoConfig?.version ?? '1.0.0'}
+              {t('profile.version', { version: Constants.expoConfig?.version ?? '1.0.0' })}
             </ThemedText>
           </View>
         </ScrollView>

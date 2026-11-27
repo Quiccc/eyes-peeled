@@ -1,0 +1,11 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "Eyes Peeled",
+    "NSCameraUsageDescription": "Eyes Peeled 使用你的相机来拍摄你找到的每日词语，以及拍摄头像。",
+    "NSPhotoLibraryUsageDescription": "Eyes Peeled 使用你的照片，以便你选择头像。",
+    "NSUserTrackingUsageDescription": "此标识符用于向你展示更相关的广告，这些广告让 Eyes Peeled 保持免费。"
+  },
+  "android": {
+    "app_name": "Eyes Peeled"
+  }
+}

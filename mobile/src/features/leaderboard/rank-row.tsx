@@ -1,4 +1,5 @@
 import { Link } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import type { LeaderboardEntry } from '@/api/types';
@@ -9,7 +10,7 @@ import { HuntCameraIcon } from '@/components/tab-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { displayName, formatNumber } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 type RowProps = {
   entry: LeaderboardEntry;
@@ -25,12 +26,15 @@ export const RANK_ROW_HEIGHT = 56;
 
 /** One leaderboard place below the podium, as a slice of one grouped card. */
 export function RankRow({ entry, mine, first, last }: RowProps) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
+  const name = mine ? t('common.you') : fmt.displayName(entry.user);
   const row = (
     <Pressable
       disabled={mine}
       accessibilityRole={mine ? undefined : 'link'}
-      accessibilityLabel={`${entry.rank}, ${mine ? 'You' : displayName(entry.user)}, ${formatNumber(entry.points)} points`}
+      accessibilityLabel={t('leaderboard.rowA11y', { rank: entry.rank, name, count: entry.points, points: fmt.formatNumber(entry.points) })}
       // A plain object, not a style function: <Link asChild> merges styles by spreading and drops functions.
       style={StyleSheet.flatten([
         styles.row,
@@ -47,9 +51,9 @@ export function RankRow({ entry, mine, first, last }: RowProps) {
       <ThemedText style={[styles.rank, { color: theme.textSecondary }]}>{entry.rank}</ThemedText>
       <Avatar user={entry.user} size={36} />
       <ThemedText style={styles.name} numberOfLines={1}>
-        {mine ? 'You' : displayName(entry.user)}
+        {name}
       </ThemedText>
-      <ThemedText style={styles.points}>{formatNumber(entry.points)}</ThemedText>
+      <ThemedText style={styles.points}>{fmt.formatNumber(entry.points)}</ThemedText>
     </Pressable>
   );
   if (mine) return row;
@@ -75,14 +79,16 @@ export function MyRankBar({
   onPress: () => void;
   busy?: boolean;
 }) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
   return (
     <Pressable
       onPress={onPress}
       disabled={busy}
       accessibilityRole="button"
-      accessibilityLabel={`You, rank ${entry.rank}, ${formatNumber(entry.points)} points. ${goal}`}
-      accessibilityHint="Scrolls the leaderboard to your place"
+      accessibilityLabel={t('leaderboard.myRankA11y', { rank: entry.rank, count: entry.points, points: fmt.formatNumber(entry.points), goal })}
+      accessibilityHint={t('leaderboard.myRankHint')}
       accessibilityState={{ busy }}
       style={({ pressed }) => [
         styles.me,
@@ -97,7 +103,7 @@ export function MyRankBar({
       </View>
       <Avatar user={entry.user} size={40} />
       <View style={styles.meText}>
-        <ThemedText style={styles.name}>You</ThemedText>
+        <ThemedText style={styles.name}>{t('common.you')}</ThemedText>
         <View style={styles.goal}>
           <Icon name="arrow-up" size={13} color={theme.tabSelected} />
           <ThemedText type="small" numberOfLines={1} style={[styles.goalText, { color: theme.tabSelected }]}>
@@ -106,7 +112,7 @@ export function MyRankBar({
         </View>
       </View>
       <ThemedText type="subtitle" style={[styles.mePoints, { color: theme.scoreNumber }]}>
-        {formatNumber(entry.points)}
+        {fmt.formatNumber(entry.points)}
       </ThemedText>
     </Pressable>
   );
@@ -114,16 +120,17 @@ export function MyRankBar({
 
 /** Shown in the pinned spot when the player has no points this month. */
 export function UnrankedBar({ onHunt }: { onHunt: () => void }) {
+  const { t } = useTranslation();
   const theme = useTheme();
   return (
     <View style={[styles.me, styles.unranked, { backgroundColor: theme.backgroundSelected, borderColor: theme.tint }]}>
       <View style={styles.meText}>
-        <ThemedText style={styles.name}>You&apos;re not on the board yet</ThemedText>
+        <ThemedText style={styles.name}>{t('leaderboard.unrankedTitle')}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          Find one word to get ranked
+          {t('leaderboard.unrankedHint')}
         </ThemedText>
       </View>
-      <Button size="small" iconNode={<HuntCameraIcon size={16} />} title="Hunt" onPress={onHunt} />
+      <Button size="small" iconNode={<HuntCameraIcon size={16} />} title={t('leaderboard.hunt')} onPress={onHunt} />
     </View>
   );
 }

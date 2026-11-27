@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet } from 'react-native';
 
 import { Icon } from '@/components/icon';
@@ -15,13 +16,14 @@ export const CLOSE_BUTTON_SIZE = 44;
 
 /** The 44×44 "close" square in the top corner of full-screen modals. */
 export function CloseButton({ onPress, variant = 'surface' }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const overlay = variant === 'overlay';
   const guard = usePressGuard();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Close"
+      accessibilityLabel={t('common.close')}
       hitSlop={overlay ? 8 : undefined}
       onPress={guard(onPress)}
       style={({ pressed }) => [

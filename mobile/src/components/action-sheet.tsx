@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -30,6 +31,7 @@ type Props = {
  * Used where a menu needs more than the three buttons an Android alert can show.
  */
 export function ActionSheet({ visible, title, items, onClose }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const guard = usePressGuard();
@@ -40,7 +42,7 @@ export function ActionSheet({ visible, title, items, onClose }: Props) {
         <Pressable
           style={StyleSheet.absoluteFill}
           accessibilityRole="button"
-          accessibilityLabel="Close menu"
+          accessibilityLabel={t('common.closeMenu')}
           onPress={onClose}
         />
         <View
@@ -72,7 +74,7 @@ export function ActionSheet({ visible, title, items, onClose }: Props) {
               </Pressable>
             );
           })}
-          <Button title="Cancel" variant="secondary" onPress={onClose} style={styles.cancel} />
+          <Button title={t('common.cancel')} variant="secondary" onPress={onClose} style={styles.cancel} />
         </View>
       </View>
     </Modal>

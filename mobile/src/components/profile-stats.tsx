@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import type { UserProfile } from '@/api/types';
@@ -7,7 +8,7 @@ import { Bone } from '@/components/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { formatNumber, plural } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 /**
  * Month points, global rank and streak as three chunky tiles (the signed-in user's profile).
@@ -15,14 +16,16 @@ import { formatNumber, plural } from '@/lib/format';
  * `loading`: placeholder tiles while `profile` is still on its way.
  */
 export function ProfileStats({ profile, strip, loading }: { profile?: UserProfile; strip?: boolean; loading?: boolean }) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
   if (strip) {
     if (!profile) return null;
     const cells = [
-      { label: 'pts this month', value: formatNumber(profile.monthPoints), color: theme.scoreNumber, flame: false },
-      { label: 'global rank', value: profile.monthRank ? `#${profile.monthRank}` : '—', color: theme.text, flame: false },
-      { label: 'day streak', value: String(profile.streak), color: theme.text, flame: true },
-      { label: 'finds all time', value: formatNumber(profile.totalFinds), color: theme.text, flame: false },
+      { label: t('stats.monthPoints'), value: fmt.formatNumber(profile.monthPoints), color: theme.scoreNumber, flame: false },
+      { label: t('stats.globalRank'), value: profile.monthRank ? `#${profile.monthRank}` : '—', color: theme.text, flame: false },
+      { label: t('stats.dayStreak'), value: String(profile.streak), color: theme.text, flame: true },
+      { label: t('stats.findsAllTime'), value: fmt.formatNumber(profile.totalFinds), color: theme.text, flame: false },
     ];
     return (
       <View style={[styles.strip, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
@@ -56,19 +59,21 @@ export function ProfileStats({ profile, strip, loading }: { profile?: UserProfil
  * Without data and not loading (the request failed), the values read "—".
  */
 function StatTiles({ profile, loading }: { profile?: UserProfile; loading?: boolean }) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
   const streak = profile?.streak ?? 0;
   const stats = [
     {
-      label: 'pts this month',
-      value: profile ? formatNumber(profile.monthPoints) : '—',
+      label: t('stats.monthPoints'),
+      value: profile ? fmt.formatNumber(profile.monthPoints) : '—',
       sample: '000',
       color: theme.scoreNumber,
       glyph: <PointsIcon />,
       tile: { backgroundColor: theme.scoreFace, borderColor: theme.scoreDivider, borderBottomColor: theme.scoreEdge },
     },
     {
-      label: 'global rank',
+      label: t('stats.globalRank'),
       value: profile?.monthRank ? `#${profile.monthRank}` : '—',
       sample: '#00',
       color: theme.text,
@@ -76,9 +81,9 @@ function StatTiles({ profile, loading }: { profile?: UserProfile; loading?: bool
       tile: { backgroundColor: theme.backgroundElement, borderColor: theme.border },
     },
     {
-      label: 'streak',
-      value: profile ? plural(streak, 'day') : '—',
-      sample: '0 days',
+      label: t('stats.streak'),
+      value: profile ? t('stats.days', { count: streak }) : '—',
+      sample: t('stats.days', { count: 0 }),
       color: theme.text,
       glyph: <StreakIcon lit={streak > 0} />,
       tile: { backgroundColor: theme.backgroundElement, borderColor: theme.border },
@@ -86,7 +91,7 @@ function StatTiles({ profile, loading }: { profile?: UserProfile; loading?: bool
   ];
   const waiting = !profile && loading;
   return (
-    <View style={styles.row} accessible={waiting} accessibilityLabel={waiting ? 'Loading your stats' : undefined}>
+    <View style={styles.row} accessible={waiting} accessibilityLabel={waiting ? t('stats.loading') : undefined}>
       {stats.map((s) => {
         const value = (
           <View style={styles.valueRow}>

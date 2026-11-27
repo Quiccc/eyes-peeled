@@ -5,6 +5,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   real,
@@ -14,7 +15,11 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { difficulties, reportReasons, reportStatuses, submissionStatuses } from '../domain/enums';
+import type { WordTranslations } from '../dto/admin';
+
+import { difficulties, reportReasons, reportStatuses, submissionMessages, submissionStatuses } from '../domain/enums';
+
+export type { WordTranslations };
 
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
 
@@ -58,8 +63,10 @@ export const words = pgTable(
   'words',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    /** The object to find: what players see and what Claude looks for in the photo */
+    /** The object to find, in English: what Claude looks for in the photo and what English players see */
     label: text('label').notNull(),
+    /** What players see in other languages; a missing language shows `label`. See lib/words.ts. */
+    translations: jsonb('translations').$type<WordTranslations>().notNull().default({}),
     difficulty: text('difficulty', { enum: difficulties }).notNull(),
     /** Retired words stay for history but are never scheduled again. */
     enabled: boolean('enabled').notNull().default(true),
@@ -99,7 +106,12 @@ export const submissions = pgTable(
     comboPoints: integer('combo_points').notNull().default(0),
     rank: integer('rank'),
     confidence: real('confidence'),
+    /**
+     * Why the photo didn't count, in English (logs, admin). Older rows have only this. Players get
+     * `messageCode` translated into their language when the submission is read.
+     */
     message: text('message'),
+    messageCode: text('message_code', { enum: submissionMessages }),
     /** Null for exact duplicates: their photo is never stored. */
     imageKey: text('image_key'),
     imageSha256: text('image_sha256').notNull(),

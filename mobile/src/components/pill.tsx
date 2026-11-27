@@ -1,10 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
 import type { Difficulty } from '@/api/types';
 import { ThemedText } from '@/components/themed-text';
 import { difficultyColors, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { DIFFICULTY_LABEL } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 type PillProps = {
   label: string;
@@ -19,6 +20,7 @@ type PillProps = {
 };
 
 function Pill({ label, bg, color, style, maxFontSizeMultiplier, textStyle }: PillProps) {
+  const { i18n } = useTranslation();
   return (
     <View style={[styles.pill, { backgroundColor: bg }, style]}>
       <ThemedText
@@ -26,7 +28,7 @@ function Pill({ label, bg, color, style, maxFontSizeMultiplier, textStyle }: Pil
         style={[styles.label, { color }, textStyle]}
         numberOfLines={1}
         maxFontSizeMultiplier={maxFontSizeMultiplier}>
-        {label.toUpperCase()}
+        {label.toLocaleUpperCase(i18n.language)}
       </ThemedText>
     </View>
   );
@@ -43,10 +45,12 @@ export function DifficultyPill({
   maxFontSizeMultiplier?: number;
   textStyle?: StyleProp<TextStyle>;
 }) {
+  const fmt = useFormat();
+  useTranslation();
   const c = difficultyColors(useTheme(), difficulty);
   return (
     <Pill
-      label={DIFFICULTY_LABEL[difficulty]}
+      label={fmt.difficultyLabel(difficulty)}
       bg={c.bg}
       color={c.text}
       style={style}

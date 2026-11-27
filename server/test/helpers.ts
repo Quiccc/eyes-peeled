@@ -14,6 +14,7 @@ import { seedWords } from '../src/seed/words';
 import { createQueue } from '../src/services/queue';
 import { localStorage } from '../src/services/storage';
 import { stubVerifier, type Verdict } from '../src/services/verifier';
+import type { WordTranslator } from '../src/services/word-translator';
 
 /** A tiny valid-looking JPEG (magic bytes + random payload so each one hashes differently). */
 export function jpeg(seed = Math.random().toString()): Buffer {
@@ -48,6 +49,8 @@ export async function startTestServer(envOverrides: Record<string, string> = {})
     storage: localStorage({ dir, baseUrl: env.PUBLIC_BASE_URL, secret: env.FILE_URL_SECRET, now: clock.now }),
     verifier: stubVerifier((label) => decide(label)),
     queue: createQueue(2),
+    // Tests switch it on with setTranslator.
+    translator: null as WordTranslator | null,
   };
   const app = createApp(ctx, { rateLimit: false });
 
@@ -59,6 +62,9 @@ export async function startTestServer(envOverrides: Record<string, string> = {})
     http: () => request(app),
     setNow(iso: string) {
       now = new Date(iso);
+    },
+    setTranslator(translator: WordTranslator | null) {
+      ctx.translator = translator;
     },
     setVerdict(v: Verdict | ((label: string) => Verdict | Promise<Verdict>)) {
       decide = typeof v === 'function' ? v : () => v;

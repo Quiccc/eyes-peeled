@@ -8,6 +8,8 @@ import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
 
 import type { Ctx } from './context';
+import { localeMiddleware, localeOf } from './i18n/locale';
+import { translate } from './i18n/messages';
 import { errorHandler, notFoundHandler } from './lib/errors';
 import { logger } from './lib/logger';
 import { requireAppVersion } from './middleware/app-version';
@@ -46,6 +48,8 @@ export function createApp(ctx: Ctx, opts: { rateLimit?: boolean; adminPanelDir?:
       customLogLevel: (_req, res, err) => (err || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'),
     }),
   );
+  // Accept-Language -> currentLocale() for the rest of the request (words, verdicts, errors).
+  app.use(localeMiddleware);
   // Photos are shown in the app's <Image> and the admin panel, so they may load cross-origin.
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
@@ -72,7 +76,8 @@ export function createApp(ctx: Ctx, opts: { rateLimit?: boolean; adminPanelDir?:
         standardHeaders: 'draft-8',
         legacyHeaders: false,
         handler: (_req, res) => {
-          res.status(429).json({ code: 'rate_limited', message: 'Slow down a little and try again in a minute.' });
+          const message = translate('Slow down a little and try again in a minute.', undefined, localeOf(res));
+          res.status(429).json({ code: 'rate_limited', message });
         },
       });
     // Photos get their own, larger budget: a feed or leaderboard loads many at once.

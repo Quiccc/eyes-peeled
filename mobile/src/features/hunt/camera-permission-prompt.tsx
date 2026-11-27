@@ -1,4 +1,5 @@
 import type { PermissionResponse } from 'expo-camera';
+import { useTranslation } from 'react-i18next';
 import { Linking } from 'react-native';
 
 import type { DailyWord } from '@/api/types';
@@ -18,6 +19,7 @@ type Props = {
 
 /** Camera access not granted yet: ask for it, or send the player to Settings if they can't be asked again. */
 export function CameraPermissionPrompt({ word, permission, requestPermission, onClose }: Props) {
+  const { t } = useTranslation();
   const canAsk = permission.canAskAgain;
   return (
     <HuntScreenShell>
@@ -25,21 +27,19 @@ export function CameraPermissionPrompt({ word, permission, requestPermission, on
       <HuntStatus>
         <CameraEyeArt closed={!canAsk} />
         <ThemedText type="subtitle" style={huntStyles.centerText}>
-          {canAsk ? 'Open your eyes' : 'Camera is off'}
+          {canAsk ? t('camera.permissionTitle') : t('camera.offTitle')}
         </ThemedText>
         <ThemedText themeColor="textSecondary" style={huntStyles.centerText}>
-          {canAsk
-            ? 'Eyes Peeled needs your camera to snap your find.'
-            : 'Turn on camera access for Eyes Peeled in Settings to snap your find.'}
+          {canAsk ? t('camera.permissionBody') : t('camera.offBody')}
         </ThemedText>
       </HuntStatus>
       <HuntActions>
         {canAsk ? (
-          <Button title="Allow camera" iconNode={<HuntCameraIcon size={20} />} onPress={() => requestPermission()} />
+          <Button title={t('camera.allow')} iconNode={<HuntCameraIcon size={20} />} onPress={() => requestPermission()} />
         ) : (
-          <Button title="Open settings" iconNode={<GearIcon />} onPress={() => Linking.openSettings()} />
+          <Button title={t('camera.openSettings')} iconNode={<GearIcon />} onPress={() => Linking.openSettings()} />
         )}
-        <Button title="Not now" variant="ghost" onPress={onClose} />
+        <Button title={t('common.notNow')} variant="ghost" onPress={onClose} />
       </HuntActions>
     </HuntScreenShell>
   );

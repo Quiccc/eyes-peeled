@@ -6,6 +6,7 @@ import { api } from '@/api/endpoints';
 import type { User } from '@/api/types';
 import { useAuth } from '@/auth/auth-provider';
 import { useAsyncAction } from '@/hooks/use-async-action';
+import { t } from '@/i18n';
 import { queryKeys } from '@/lib/query-client';
 
 import { prepareAvatar } from './prepare-avatar';
@@ -40,9 +41,9 @@ export function useAvatarPicker() {
         if (source === 'camera') {
           const permission = await ImagePicker.requestCameraPermissionsAsync();
           if (!permission.granted) {
-            Alert.alert('Camera access needed', 'Allow camera access in Settings to take a profile picture.', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Open Settings', onPress: () => void Linking.openSettings() },
+            Alert.alert(t('avatar.cameraNeededTitle'), t('avatar.cameraNeededBody'), [
+              { text: t('common.cancel'), style: 'cancel' },
+              { text: t('camera.openSettings'), onPress: () => void Linking.openSettings() },
             ]);
             return;
           }
@@ -55,26 +56,26 @@ export function useAvatarPicker() {
         if (!asset) return;
         saved(await api.setAvatar(await prepareAvatar(asset)));
       },
-      { errorTitle: 'Could not update your picture' },
+      { errorTitle: t('avatar.updateFailed') },
     );
 
   const remove = () =>
-    action.run('avatar', async () => saved(await api.removeAvatar()), { errorTitle: 'Could not remove your picture' });
+    action.run('avatar', async () => saved(await api.removeAvatar()), { errorTitle: t('avatar.removeFailed') });
 
   // Android alerts show at most 3 buttons, so "Remove" moves the source choice one step deeper.
   const chooseSource = (title: string) =>
     Alert.alert(title, undefined, [
-      { text: 'Take photo', onPress: () => void pick('camera') },
-      { text: 'Choose from library', onPress: () => void pick('library') },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('camera.takePhoto'), onPress: () => void pick('camera') },
+      { text: t('avatar.chooseFromLibrary'), onPress: () => void pick('library') },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
 
   const open = () => {
-    if (!user?.avatarUrl) return chooseSource('Add a profile picture');
-    Alert.alert('Profile picture', undefined, [
-      { text: 'Change picture', onPress: () => chooseSource('Change profile picture') },
-      { text: 'Remove picture', style: 'destructive', onPress: () => void remove() },
-      { text: 'Cancel', style: 'cancel' },
+    if (!user?.avatarUrl) return chooseSource(t('profile.addPicture'));
+    Alert.alert(t('avatar.title'), undefined, [
+      { text: t('avatar.change'), onPress: () => chooseSource(t('profile.changePicture')) },
+      { text: t('avatar.remove'), style: 'destructive', onPress: () => void remove() },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 

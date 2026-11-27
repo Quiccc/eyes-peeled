@@ -15,6 +15,8 @@ You don't need Docker or a Postgres install. With `DATABASE_URL` empty, the serv
 
 Photos are checked by a **stub** that accepts about 60% of them until you set `ANTHROPIC_API_KEY` in `.env`. Then each photo is sent to Claude (`VERIFY_MODEL`, default `claude-haiku-5-5`), which answers whether a real example of the word is in it and how sure it is.
 
+**Languages.** The API answers in the app's language (`Accept-Language`; the list is `Locale` in `mobile/src/api/types.ts`). Word names come from each word's translations, edited in the admin panel (Words → Languages); Claude always checks photos against the English label. With `ANTHROPIC_API_KEY` set, new words are translated by Claude when they're added (`TRANSLATE_MODEL`, default `claude-opus-5-5`), and **Auto-translate missing** fills the gaps for older ones. Player-facing error and verdict messages are translated in `src/i18n/messages.ts`.
+
 ### Point the app at it
 
 In the app's `mobile/.env.local`:

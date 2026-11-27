@@ -7,7 +7,7 @@ import { Avatar } from '@/components/avatar';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { displayName } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 type Props = {
   user: User;
@@ -24,6 +24,7 @@ type Props = {
 
 /** A user as a chunky card row: rank, avatar, name, and something on the right. */
 export function UserRow({ user, rank, right, highlight, noLink, label }: Props) {
+  const fmt = useFormat();
   const theme = useTheme();
   const medal = rank !== undefined && rank <= 3 ? [theme.gold, theme.silver, theme.bronze][rank - 1] : null;
 
@@ -60,7 +61,7 @@ export function UserRow({ user, rank, right, highlight, noLink, label }: Props) 
       {!label && <Avatar user={user} size={36} />}
       <View style={styles.text}>
         <ThemedText style={styles.name} numberOfLines={1}>
-          {label ?? displayName(user)}
+          {label ?? fmt.displayName(user)}
         </ThemedText>
       </View>
       {right}

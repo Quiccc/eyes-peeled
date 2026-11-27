@@ -21,6 +21,7 @@ export const SETTINGS_TILE = {
   privacy: '#DCEFFB',
   blocked: '#FDE1E0',
   signOut: '#FFF1DC',
+  language: '#E8E3FB',
 } as const;
 
 function Frame({ size = 24, children }: { size?: number; children: ReactNode }) {
@@ -50,6 +51,17 @@ export function RestoreIcon() {
       <Path d="M5 8h14l-1.2 12.5H6.2z" fill={WHITE} />
       <Path d="M9 8V6.5a3 3 0 0 1 6 0V8" />
       <Path d="M9 14.2l2.2 2.2 4-4.4" stroke={GREEN} strokeWidth={2.6} />
+    </Frame>
+  );
+}
+
+/** "Language": a white globe with blue meridians. */
+export function LanguageIcon() {
+  return (
+    <Frame>
+      <Circle cx={12} cy={12} r={9} fill={WHITE} />
+      <Path d="M3 12h18" />
+      <Path d="M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9c-2.6-2.6-3.8-5.6-3.8-9S9.4 5.6 12 3z" stroke={IRIS} />
     </Frame>
   );
 }

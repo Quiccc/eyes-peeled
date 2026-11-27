@@ -20,7 +20,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Edge, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { displayWord } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 /** Content column width cap, so tablets and landscape get a phone-width column instead of a stretched one. */
 const MAX_WIDTH = 480;
@@ -65,6 +65,7 @@ export function HuntScreenShell({ children, after }: { children: ReactNode; afte
  * button that leaves the screen ("Done", "Give up for now", "Not now"…), and back still works.
  */
 export function HuntTopBar({ word }: { word?: DailyWord }) {
+  const fmt = useFormat();
   return (
     <View style={styles.topBar}>
       {word ? (
@@ -82,7 +83,7 @@ export function HuntTopBar({ word }: { word?: DailyWord }) {
             minimumFontScale={0.7}
             maxFontSizeMultiplier={1.3}
             accessibilityRole="header">
-            {displayWord(word.word)}
+            {fmt.displayWord(word.word)}
           </ThemedText>
         </View>
       ) : null}

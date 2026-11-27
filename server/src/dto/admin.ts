@@ -1,4 +1,7 @@
-import type { Difficulty } from '@shared/types';
+import type { Difficulty, Locale } from '@shared/types';
+
+/** What players see for a word in each language other than English. Missing = the English label. */
+export type WordTranslations = Partial<Record<Exclude<Locale, 'en'>, string>>;
 
 /**
  * Response shapes of the /admin/* API. The admin panel (server/admin) imports these as types, so
@@ -15,6 +18,7 @@ export type AdminWord = {
   difficulty: Difficulty;
   enabled: boolean;
   minConfidence: number | null;
+  translations: WordTranslations;
   lastUsed: string | null;
   nextUse: string | null;
 };
@@ -32,6 +36,9 @@ export type AdminReport = {
   /** `avatarUrl`: the player's profile picture, if they uploaded one. */
   target: { id: string; username: string | null; bannedAt: string | null; avatarUrl: string | null } | null;
 };
+
+/** POST /admin/words/translate: how many words got translations, and which failed. */
+export type TranslateResult = { translated: number; failed: string[] };
 
 export type WordDayStats = {
   date: string;

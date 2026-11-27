@@ -8,7 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 export function PeekingPhotoArt() {
   const theme = useTheme();
   return (
-    <ArtFrame label="An eyeball peeking over the top of an empty photo frame">
+    <ArtFrame label="peekingPhoto">
       <Eyeball x={70} y={28} shadow={false} />
       <Rect x={36} y={40} width={68} height={66} rx={6} fill={SHADOW} stroke="none" />
       <Rect x={34} y={36} width={72} height={66} rx={6} fill="#FFFFFF" strokeWidth={4} />
@@ -31,7 +31,7 @@ export function PeekingPhotoArt() {
 export function SquintSearchArt() {
   const theme = useTheme();
   return (
-    <ArtFrame label="A magnifying glass with a squinting eye inside the lens and a question mark">
+    <ArtFrame label="squintSearch">
       <Line x1={82} y1={74} x2={104} y2={96} strokeWidth={13} />
       <Line x1={84} y1={76} x2={102} y2={94} stroke={theme.tint} strokeWidth={6} />
       <Circle cx={63} cy={56} r={29} fill={SHADOW} stroke="none" />
@@ -64,7 +64,7 @@ export function SquintSearchArt() {
 export function CrashedPlaneArt() {
   const theme = useTheme();
   return (
-    <ArtFrame label="A paper plane carrying a photo has crashed into a rain cloud">
+    <ArtFrame label="crashedPlane">
       <Path d="M18 34q12 4 22 12" fill="none" stroke={theme.textSecondary} strokeWidth={3} strokeDasharray="4 6" />
       <Line x1={40} y1={56} x2={30} y2={70} strokeWidth={2} />
       <G transform="rotate(-8 28 77)">

@@ -3,8 +3,8 @@ import {
   displayName,
   errorMessage,
   formatCountdown,
+  formatNumber,
   ordinal,
-  plural,
   timeAgo,
   USERNAME_RE,
 } from '../format';
@@ -43,10 +43,8 @@ describe('format', () => {
     ]);
   });
 
-  it('pluralizes', () => {
-    expect(plural(1, 'day')).toBe('1 day');
-    expect(plural(0, 'day')).toBe('0 days');
-    expect(plural(2, 'person', 'people')).toBe('2 people');
+  it('groups thousands in the app language', () => {
+    expect(formatNumber(7695)).toBe('7,695');
   });
 
   it('names players by username, then display name', () => {

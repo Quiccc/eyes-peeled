@@ -1,5 +1,6 @@
 import { api, type PhotoFile } from '@/api/endpoints';
 import type { Submission } from '@/api/types';
+import { t } from '@/i18n';
 
 const POLL_INTERVAL_MS = 1500;
 const POLL_TIMEOUT_MS = 45_000;
@@ -17,7 +18,7 @@ export async function waitForVerdict(submission: Submission): Promise<Submission
   const started = Date.now();
   while (submission.status === 'pending') {
     if (Date.now() - started > POLL_TIMEOUT_MS) {
-      throw new Error('Analysis is taking longer than usual. Check back on the Today tab in a minute.');
+      throw new Error(t('hunt.slowAnalysis'));
     }
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
     submission = await api.getSubmission(submission.id);

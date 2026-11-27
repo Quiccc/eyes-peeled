@@ -3,11 +3,11 @@ import { z } from 'zod';
 
 import type { Ctx } from '../../context';
 import { difficulties } from '../../domain/enums';
-import type { AdminWord, MonthSchedule, WordDayStats } from '../../dto/admin';
+import type { AdminWord, MonthSchedule, TranslateResult, WordDayStats } from '../../dto/admin';
 import { zIsoDate, zMonth } from '../../lib/validation';
 import { wordStats } from '../../services/admin-stats';
 import { fillMonth, getSchedule, setDay } from '../../services/schedule';
-import { addWord, listWords, updateWord } from '../../services/words';
+import { addWord, listWords, translateWords, updateWord } from '../../services/words';
 
 const monthQuery = z.object({ month: zMonth });
 const difficulty = z.enum(difficulties);
@@ -48,10 +48,21 @@ export function panelRoutes(ctx: Ctx, admin: RequestHandler) {
 
   r.patch('/admin/words/:id', admin, async (req, res) => {
     const patch = z
-      .object({ enabled: z.boolean().optional(), minConfidence: z.number().min(0).max(1).nullable().optional() })
+      .object({
+        enabled: z.boolean().optional(),
+        minConfidence: z.number().min(0).max(1).nullable().optional(),
+        /** The full set: languages left out are cleared. */
+        translations: z.record(z.string(), z.string().max(60)).optional(),
+      })
       .parse(req.body);
     await updateWord(ctx, z.uuid().parse(req.params.id), patch);
     res.status(204).end();
+  });
+
+  /** Fill in missing translations with Claude: the listed words, or every word. */
+  r.post('/admin/words/translate', admin, async (req, res) => {
+    const { ids } = z.object({ ids: z.array(z.uuid()).max(500).optional() }).parse(req.body ?? {});
+    res.json((await translateWords(ctx, ids)) satisfies TranslateResult);
   });
 
   r.get('/admin/stats', admin, async (req, res) => {

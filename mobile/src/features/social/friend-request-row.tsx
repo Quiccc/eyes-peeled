@@ -1,4 +1,5 @@
 import { Link } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { FriendRequest } from '@/api/types';
@@ -9,7 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
-import { displayName } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 export type Respond = {
   /** Which request is waiting for the server, and for which answer. */
@@ -27,10 +28,12 @@ export function RequestRow({
   disabled,
   onRespond,
 }: { request: FriendRequest; subtitle?: string } & Respond) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
   const guard = usePressGuard();
   const from = request.from;
-  const name = from.username ?? displayName(from);
+  const name = from.username ?? fmt.displayName(from);
   const waiting = pending?.id === request.id ? pending.action : null;
   return (
     <View style={styles.row}>
@@ -51,7 +54,7 @@ export function RequestRow({
       </Link>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Decline ${displayName(from)}`}
+        accessibilityLabel={t('friends.declineName', { name: fmt.displayName(from) })}
         accessibilityState={{ busy: waiting === 'decline', disabled }}
         disabled={disabled}
         onPress={guard(() => onRespond(request.id, 'decline'))}
@@ -60,8 +63,8 @@ export function RequestRow({
       </Pressable>
       <Button
         size="small"
-        title="Accept"
-        accessibilityLabel={`Accept ${displayName(from)}`}
+        title={t('friends.accept')}
+        accessibilityLabel={t('friends.acceptName', { name: fmt.displayName(from) })}
         loading={waiting === 'accept'}
         disabled={disabled}
         onPress={() => onRespond(request.id, 'accept')}

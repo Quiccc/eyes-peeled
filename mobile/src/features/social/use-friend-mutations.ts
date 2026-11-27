@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 import { api } from '@/api/endpoints';
 import { invalidateSocial } from '@/api/queries';
 import type { UserProfile } from '@/api/types';
+import { t } from '@/i18n';
 import { errorMessage } from '@/lib/format';
 
 /** Accept or decline an incoming friend request. */
@@ -12,7 +13,7 @@ export function useRespondFriendRequest() {
   return useMutation({
     mutationFn: ({ id, action }: { id: string; action: 'accept' | 'decline' }) => api.respondFriendRequest(id, action),
     onSuccess: () => invalidateSocial(queryClient),
-    onError: (e) => Alert.alert('Something went wrong', errorMessage(e)),
+    onError: (e) => Alert.alert(t('errors.somethingWrong'), errorMessage(e)),
   });
 }
 
@@ -22,7 +23,7 @@ export function useSendFriendRequest() {
   return useMutation({
     mutationFn: (userId: string) => api.sendFriendRequest(userId),
     onSuccess: () => invalidateSocial(queryClient),
-    onError: (e) => Alert.alert('Could not send request', errorMessage(e)),
+    onError: (e) => Alert.alert(t('friends.sendFailed'), errorMessage(e)),
   });
 }
 
@@ -32,7 +33,7 @@ export function useRemoveFriend() {
   return useMutation({
     mutationFn: (userId: string) => api.removeFriend(userId),
     onSuccess: () => invalidateSocial(queryClient),
-    onError: (e) => Alert.alert('Something went wrong', errorMessage(e)),
+    onError: (e) => Alert.alert(t('errors.somethingWrong'), errorMessage(e)),
   });
 }
 
@@ -42,7 +43,7 @@ export function useUnblockUser() {
   return useMutation({
     mutationFn: (userId: string) => api.unblockUser(userId),
     onSuccess: () => invalidateSocial(queryClient),
-    onError: (e) => Alert.alert('Could not unblock', errorMessage(e)),
+    onError: (e) => Alert.alert(t('safety.unblockFailed'), errorMessage(e)),
   });
 }
 
@@ -62,6 +63,6 @@ export function useFriendAction() {
       }
     },
     onSuccess: () => invalidateSocial(queryClient),
-    onError: (e) => Alert.alert('Something went wrong', errorMessage(e)),
+    onError: (e) => Alert.alert(t('errors.somethingWrong'), errorMessage(e)),
   });
 }

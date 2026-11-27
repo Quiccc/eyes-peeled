@@ -16,6 +16,7 @@ The mobile app talks to your backend only through the endpoints below. TypeScrip
 - The app gives up after **15 s** for JSON requests and **60 s** for the photo upload. Endpoints should answer well within that; use `status: 'pending'` for slow inference.
 - If `/auth/refresh` itself fails with a network error or a 5xx, the app keeps the session and shows an error. Only a **4xx** from `/auth/refresh` signs the user out, so return 4xx only when the refresh token is truly invalid or revoked.
 - Every error `code` is listed in [Error codes](#error-codes).
+- **Language.** The app sends `Accept-Language` with its current language on every request (one of `en`, `es`, `pt-BR`, `fr`, `de`, `it`, `tr`, `ru`, `id`, `hi`, `ja`, `ko`, `zh-Hans`; type `Locale` in `mobile/src/api/types.ts`). Word names (`DailyWord.word`, `FeedItem.word`), `Submission.message` and error `message`s come back in that language, falling back to English when a translation is missing. Matching is by language only (`pt-PT` gets `pt-BR`, `zh-Hant` gets `zh-Hans`); anything else gets English. The response carries `Content-Language` and `Vary: Accept-Language`. Error `code`s never change with the language.
 - The reference implementation is in [`server/`](../server/README.md).
 - **Dev login** (the server's `AUTH_DEV_LOGIN=true`, never in production): `POST /auth/signin` with `idToken: "dev:<name>"` signs in as a test user without Apple or Google.
 
@@ -62,6 +63,7 @@ Premium purchase (see [Purchases](#purchases-premium)). The app hides ads and sh
 - Players see these levels as **Rookie** (`easy`), **Scout** (`medium`), **Ranger** (`hard`) and **Premium** (`expert`). The names are display-only; the API keys stay as listed here.
 - The day rolls over at **00:00 UTC** for everyone. `nextResetAt` is the next 00:00 UTC, and the app's countdown uses it.
 - Each word is the name of a physical object. Photos are judged by an AI vision model (Claude), so any object works; words are planned a month ahead in the admin panel (`server/admin/`) from the enabled words.
+- `word` is in the request's language (see [Conventions](#conventions)). Each word has an English label, which is what Claude looks for, plus a translation per language edited in the admin panel; a missing translation shows the English label.
 - `foundCount` is the number of distinct users with a valid submission for that word today.
 - `firstFoundAt` is the receipt timestamp (ISO 8601) of the earliest valid submission for that word today, or `null` while nobody has found it. The app shows it as "First found at 09:42" in the player's local time.
 - `status` is for the calling user:
@@ -213,7 +215,7 @@ Every response has an `x-request-id` header: the caller's own value if it was a 
 | 429 | `rate_limited` | Too many attempts or requests; `message` should say when to try again |
 | 5xx | `server_error` | Anything unexpected. Keep `message` generic. |
 
-The app shows `message` as-is, so write it for players, not developers.
+The app shows `message` as-is, so write it for players, not developers. Player-facing messages are translated by the server (`server/src/i18n/messages.ts`); add a translation there when you add one.
 
 ## Minimum app version
 

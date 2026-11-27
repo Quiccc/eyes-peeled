@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -21,6 +22,7 @@ import { Trail, TrailSkeleton } from '@/features/today/trail';
  * frame (placeholders while loading); the trail fills the rest of the screen and scrolls only when it can't fit.
  */
 export default function TodayScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user, refreshUser } = useAuth();
   const premium = !!user?.isPremium;
@@ -57,7 +59,7 @@ export default function TodayScreen() {
             <QueryState
               query={daily}
               loading={<TrailSkeleton count={premium ? 4 : 3} locked={!premium} />}
-              errorTitle="Couldn't load today's words">
+              errorTitle={t('today.loadError')}>
               {(data) => (
                 <Trail
                   words={data.words}

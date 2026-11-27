@@ -9,7 +9,7 @@ import { createApp } from '../src/app';
 
 import type { Daily, FriendsList } from '@shared/types';
 
-import type { WordDayStats } from '../src/dto/admin';
+import type { AdminWord, WordDayStats } from '../src/dto/admin';
 import { jpeg, startTestServer, type TestServer } from './helpers';
 
 const ADMIN = { Authorization: 'Bearer test-admin-token' };
@@ -151,5 +151,48 @@ describe('moderation', () => {
 
     await t.http().post(`/admin/users/${b.id}/unban`).set(ADMIN);
     expect(await names()).toEqual({ friends: ['bob'], sent: [] });
+  });
+});
+
+describe('word translations', () => {
+  const words = async () => (await t.http().get('/admin/words').set(ADMIN)).body as AdminWord[];
+
+  it('saves hand-edited translations, dropping empty and unknown languages', async () => {
+    await start();
+    const chair = (await words()).find((w) => w.label === 'chair')!;
+    expect(chair.translations.es).toBe('silla');
+    const res = await t
+      .http()
+      .patch(`/admin/words/${chair.id}`)
+      .set(ADMIN)
+      .send({ translations: { es: ' silla de oficina ', fr: '', xx: 'nope' } });
+    expect(res.status).toBe(204);
+    expect((await words()).find((w) => w.id === chair.id)!.translations).toEqual({ es: 'silla de oficina' });
+  });
+
+  it('auto-translates new words and fills only missing languages', async () => {
+    await start();
+    expect((await t.http().post('/admin/words/translate').set(ADMIN).send({})).status).toBe(503);
+
+    const asked: string[] = [];
+    t.setTranslator({
+      async translate(label) {
+        asked.push(label);
+        if (label === 'broken') throw new Error('down');
+        return { es: `${label}-es`, de: `${label}-de` };
+      },
+    });
+    await t.http().post('/admin/words').set(ADMIN).send({ label: 'Lamp', difficulty: 'easy' });
+    expect((await words()).find((w) => w.label === 'lamp')!.translations).toEqual({ es: 'lamp-es', de: 'lamp-de' });
+
+    await t.http().post('/admin/words').set(ADMIN).send({ label: 'broken', difficulty: 'easy' });
+    const lamp = (await words()).find((w) => w.label === 'lamp')!;
+    await t.http().patch(`/admin/words/${lamp.id}`).set(ADMIN).send({ translations: { es: 'lámpara' } });
+    asked.length = 0;
+    const broken = (await words()).find((w) => w.label === 'broken')!;
+    const res = await t.http().post('/admin/words/translate').set(ADMIN).send({ ids: [lamp.id, broken.id] });
+    expect(res.body).toEqual({ translated: 1, failed: ['broken'] });
+    // Hand edits win over Claude's suggestions.
+    expect((await words()).find((w) => w.id === lamp.id)!.translations).toEqual({ es: 'lámpara', de: 'lamp-de' });
   });
 });

@@ -1,0 +1,11 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "Eyes Peeled",
+    "NSCameraUsageDescription": "Eyes Peeled, bulduğun günün kelimelerini fotoğraflamak ve profil fotoğrafını çekmek için kameranı kullanır.",
+    "NSPhotoLibraryUsageDescription": "Eyes Peeled, profil fotoğrafı seçebilmen için fotoğraflarını kullanır.",
+    "NSUserTrackingUsageDescription": "Bu tanımlayıcı, Eyes Peeled'ı ücretsiz tutan daha alakalı reklamlar göstermek için kullanılır."
+  },
+  "android": {
+    "app_name": "Eyes Peeled"
+  }
+}

@@ -1,7 +1,9 @@
 import type { Difficulty, FeedItem, Submission, User } from '@shared/types';
 
-import type { SubmissionRow, UserRow } from '../db/schema';
+import type { SubmissionRow, UserRow, WordTranslations } from '../db/schema';
+import { SUBMISSION_MESSAGES, translate } from '../i18n/messages';
 import type { Storage } from '../services/storage';
+import { wordName } from './words';
 
 /** DB rows -> the shapes in mobile/src/api/types.ts. */
 
@@ -14,7 +16,17 @@ export const toUser = (u: UserRow, storage: Storage): User => ({
   joinedAt: u.createdAt.toISOString(),
 });
 
-export function toSubmission(s: SubmissionRow, storage: Storage): Submission {
+/** The word a submission was for, needed to word some verdict messages. */
+type WordRef = { label: string; translations: WordTranslations };
+
+/** The verdict message in the request's language. Rows from before message codes have English text only. */
+function submissionMessage(s: SubmissionRow, word: WordRef): string | null {
+  if (s.status === 'removed') return translate('This photo was removed by a moderator.');
+  if (s.messageCode) return translate(SUBMISSION_MESSAGES[s.messageCode], { word: wordName(word) });
+  return s.message === null ? null : translate(s.message);
+}
+
+export function toSubmission(s: SubmissionRow, word: WordRef, storage: Storage): Submission {
   const valid = s.status === 'valid';
   return {
     id: s.id,
@@ -25,7 +37,7 @@ export function toSubmission(s: SubmissionRow, storage: Storage): Submission {
     comboPoints: valid ? s.comboPoints : 0,
     rank: valid ? s.rank : null,
     confidence: s.confidence,
-    message: s.status === 'removed' ? 'This photo was removed by a moderator.' : s.message,
+    message: submissionMessage(s, word),
     imageUrl: s.imageKey ? storage.signedUrl(s.imageKey) : null,
     createdAt: s.receivedAt.toISOString(),
   };
@@ -34,13 +46,13 @@ export function toSubmission(s: SubmissionRow, storage: Storage): Submission {
 export function toFeedItem(
   s: Pick<SubmissionRow, 'id' | 'points' | 'rank' | 'imageKey' | 'receivedAt'>,
   user: UserRow,
-  word: { label: string; difficulty: Difficulty },
+  word: WordRef & { difficulty: Difficulty },
   storage: Storage,
 ): FeedItem {
   return {
     submissionId: s.id,
     user: toUser(user, storage),
-    word: word.label,
+    word: wordName(word),
     difficulty: word.difficulty,
     points: s.points,
     rank: s.rank,

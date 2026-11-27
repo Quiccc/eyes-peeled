@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, useColorScheme, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
   Easing,
@@ -19,7 +20,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Edge, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { success } from '@/lib/haptics';
-import { ordinal } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 /*
  * The win moment, about 2.2s, played once. Every step animates opacity and transforms only, and every
@@ -137,6 +138,8 @@ type Props = {
 
 /** "Nice find!": points counting up, rank, combo bonus and total, choreographed as one short sequence. */
 export function ScoreCard({ title, points, comboPoints, rank, footer }: Props) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
   const reduced = useReducedMotion();
   const bump = useSharedValue(1);
@@ -182,17 +185,17 @@ export function ScoreCard({ title, points, comboPoints, rank, footer }: Props) {
                 />
               </Animated.View>
               <ThemedText type="subtitle" style={{ color: theme.successText }} maxFontSizeMultiplier={1.3}>
-                pts
+                {t('format.ptsUnit', { count: points })}
               </ThemedText>
             </View>
           </View>
           {rank ? (
             <Animated.View entering={fromRight} style={styles.rank}>
               <ThemedText type="subtitle" style={[styles.tabular, { color: theme.scoreNumber }]} maxFontSizeMultiplier={1.3}>
-                {ordinal(rank)}
+                {fmt.ordinal(rank)}
               </ThemedText>
               <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} maxFontSizeMultiplier={1.3}>
-                to find it today
+                {t('score.toFindToday')}
               </ThemedText>
             </Animated.View>
           ) : null}
@@ -205,17 +208,17 @@ export function ScoreCard({ title, points, comboPoints, rank, footer }: Props) {
               <Animated.View
                 entering={stamp}
                 accessible
-                accessibilityLabel={`Combo! Plus ${comboPoints} bonus points for linking neighbouring words`}
+                accessibilityLabel={t('score.comboA11y', { count: comboPoints })}
                 style={[styles.chip, { backgroundColor: theme.tint, borderColor: theme.tintEdge }]}>
                 <LinkIcon size={16} />
                 <ThemedText type="smallBold" style={{ color: theme.onTint }} maxFontSizeMultiplier={1.3}>
-                  Combo +{comboPoints}
+                  {t('score.combo', { points: comboPoints })}
                 </ThemedText>
                 <Shine delay={T.chipShine} duration={500} band={0.6} />
               </Animated.View>
               <Animated.View entering={up(T.total)} style={styles.totalWrap}>
                 <ThemedText style={[styles.total, styles.tabular]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
-                  Total +{points + comboPoints} pts
+                  {t('score.total', { count: points + comboPoints })}
                 </ThemedText>
               </Animated.View>
             </View>

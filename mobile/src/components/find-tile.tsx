@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import type { FeedItem } from '@/api/types';
@@ -6,16 +7,22 @@ import { DifficultyPill } from '@/components/pill';
 import { ThemedText } from '@/components/themed-text';
 import { Edge, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { displayWord, ordinal } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 /** One find as a compact tile for a two-column grid: photo, tier pill and points, then the word. */
 export function FindTile({ item }: { item: FeedItem }) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
-  const word = displayWord(item.word);
+  const word = fmt.displayWord(item.word);
   return (
     <View
       accessible
-      accessibilityLabel={`${word}, ${item.points} points${item.rank ? `, ${ordinal(item.rank)} finder` : ''}`}
+      accessibilityLabel={[
+        word,
+        t('format.points', { count: item.points }),
+        ...(item.rank ? [t('format.nthFinder', { rank: fmt.ordinal(item.rank) })] : []),
+      ].join(', ')}
       style={[styles.tile, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
       <Image
         source={item.imageUrl}

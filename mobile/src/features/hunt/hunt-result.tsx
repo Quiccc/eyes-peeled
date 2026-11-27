@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import type { Daily, DailyWord, Submission } from '@/api/types';
@@ -21,7 +22,7 @@ import {
 import { ScoreCard } from '@/features/hunt/score-card';
 import type { HuntPhase } from '@/features/hunt/use-hunt-session';
 import { useTheme } from '@/hooks/use-theme';
-import { displayWord } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 type Props = {
   word: DailyWord;
@@ -38,6 +39,8 @@ type Props = {
 
 /** The photo with its verdict: checking, a valid find (score card), a miss, or an upload failure. */
 export function HuntResult({ word, daily, phase, retrying, onRetry, onClose, onNext, onShare }: Props) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
   const { user } = useAuth();
   const previewUri = phase.previewUri;
@@ -59,7 +62,7 @@ export function HuntResult({ word, daily, phase, retrying, onRetry, onClose, onN
 
       <PhotoFrame borderColor={frameColor} badge={badge} overlay={checking ? <ScanBand /> : null}>
         {previewUri ? (
-          <Image source={previewUri} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel="Your photo" />
+          <Image source={previewUri} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel={t('hunt.yourPhoto')} />
         ) : (
           <HuntCameraIcon size={64} />
         )}
@@ -70,16 +73,16 @@ export function HuntResult({ word, daily, phase, retrying, onRetry, onClose, onN
           <HuntStatus>
             <LookoutMascot width={120} />
             <ThemedText type="subtitle" style={huntStyles.centerText} accessibilityRole="text" accessibilityLiveRegion="polite">
-              Looking for the {word.word}…
+              {t('hunt.looking', { word: word.word })}
             </ThemedText>
             <ThemedText themeColor="textSecondary" style={huntStyles.centerText}>
-              Hang tight, our eye is on it.
+              {t('hunt.hangTight')}
             </ThemedText>
           </HuntStatus>
           <HuntActions>
-            <Button title="Check back later" variant="ghost" onPress={onClose} />
+            <Button title={t('hunt.checkBackLater')} variant="ghost" onPress={onClose} />
             <ThemedText type="small" themeColor="textSecondary" style={huntStyles.caption}>
-              We keep checking and show the result on Today.
+              {t('hunt.keepChecking')}
             </ThemedText>
           </HuntActions>
         </>
@@ -89,7 +92,7 @@ export function HuntResult({ word, daily, phase, retrying, onRetry, onClose, onN
         <>
           <HuntStatus>
             <ScoreCard
-              title={next ? 'Nice find!' : `That's all ${daily.words.length} today!`}
+              title={next ? t('hunt.niceFind') : t('hunt.allDone', { count: daily.words.length })}
               points={submission.points}
               comboPoints={submission.comboPoints}
               rank={submission.rank}
@@ -98,7 +101,7 @@ export function HuntResult({ word, daily, phase, retrying, onRetry, onClose, onN
                   <View style={styles.footer}>
                     <FlameIcon size={16} />
                     <ThemedText type="small" themeColor="textSecondary">
-                      New words in{' '}
+                      {t('hunt.newWordsIn')}{' '}
                     </ThemedText>
                     <Countdown target={daily.nextResetAt} type="small" themeColor="textSecondary" style={styles.tabular} />
                   </View>
@@ -110,7 +113,7 @@ export function HuntResult({ word, daily, phase, retrying, onRetry, onClose, onN
             {next ? (
               <>
                 <Button
-                  title={`Next word: ${displayWord(next.word)}`}
+                  title={t('hunt.nextWord', { word: fmt.displayWord(next.word) })}
                   iconNode={<NextIcon />}
                   iconAfter
                   onPress={() => onNext(next)}
@@ -118,27 +121,27 @@ export function HuntResult({ word, daily, phase, retrying, onRetry, onClose, onN
                 <View style={styles.row}>
                   {previewUri ? (
                     <Button
-                      title="Share"
+                      title={t('share.share')}
                       variant="secondary"
                       iconNode={<ShareIcon />}
                       style={styles.shareInRow}
                       onPress={() => onShare(submission, previewUri)}
                     />
                   ) : null}
-                  <Button title="Done" variant="ghost" style={styles.doneInRow} onPress={onClose} />
+                  <Button title={t('common.done')} variant="ghost" style={styles.doneInRow} onPress={onClose} />
                 </View>
               </>
             ) : (
               <>
                 {previewUri ? (
                   <Button
-                    title="Share your find"
+                    title={t('share.shareYourFind')}
                     variant="secondary"
                     iconNode={<ShareIcon />}
                     onPress={() => onShare(submission, previewUri)}
                   />
                 ) : null}
-                <Button title="Done" onPress={onClose} />
+                <Button title={t('common.done')} onPress={onClose} />
               </>
             )}
           </HuntActions>
@@ -149,23 +152,22 @@ export function HuntResult({ word, daily, phase, retrying, onRetry, onClose, onN
         <>
           <HuntStatus>
             <ThemedText type="title" style={[huntStyles.centerText, { color: theme.dangerText }]}>
-              {failed ? 'Upload failed' : 'Not quite'}
+              {failed ? t('hunt.uploadFailedTitle') : t('hunt.notQuite')}
             </ThemedText>
             <ThemedText themeColor="textSecondary" style={huntStyles.centerText}>
               {phase.kind === 'error'
                 ? phase.message
-                : (submission?.message ??
-                  `We couldn't spot a ${word.word} in this photo. Get closer and make sure it's in focus.`)}
+                : (submission?.message ?? t('hunt.notSpotted', { word: word.word }))}
             </ThemedText>
           </HuntStatus>
           <HuntActions>
-            <Button title="Try again" iconNode={<HuntCameraIcon size={20} />} loading={retrying} onPress={onRetry} />
+            <Button title={t('common.tryAgain')} iconNode={<HuntCameraIcon size={20} />} loading={retrying} onPress={onRetry} />
             {user?.isPremium ? null : (
               <ThemedText type="small" themeColor="textSecondary" style={huntStyles.caption}>
-                A short ad plays first
+                {t('hunt.adFirst')}
               </ThemedText>
             )}
-            <Button title="Give up for now" variant="ghost" onPress={onClose} />
+            <Button title={t('hunt.giveUp')} variant="ghost" onPress={onClose} />
           </HuntActions>
         </>
       )}

@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 import type { User } from '@/api/types';
 import { useAuth } from '@/auth/auth-provider';
 import { useAsyncAction } from '@/hooks/use-async-action';
+import { t } from '@/i18n';
 import { queryKeys } from '@/lib/query-client';
 import { buyPremium, type PremiumOffer, restorePremium } from '@/purchases/purchases';
 
@@ -20,7 +21,7 @@ export function usePremiumPurchase({ onPremium }: { onPremium: () => void }) {
     updateUser(updated);
     await queryClient.invalidateQueries({ queryKey: queryKeys.daily });
     if (updated.isPremium) onPremium();
-    else Alert.alert('Nothing to restore', 'No Premium purchase was found for this store account.');
+    else Alert.alert(t('premium.nothingToRestoreTitle'), t('premium.nothingToRestoreBody'));
   };
 
   const buy = (offer: PremiumOffer) =>
@@ -30,11 +31,11 @@ export function usePremiumPurchase({ onPremium }: { onPremium: () => void }) {
         const result = await buyPremium(offer);
         if (result !== 'cancelled') await apply(result);
       },
-      { errorTitle: 'Purchase failed' },
+      { errorTitle: t('premium.purchaseFailed') },
     );
 
   const restore = () =>
-    run('restore', async () => apply(await restorePremium()), { errorTitle: 'Could not restore purchases' });
+    run('restore', async () => apply(await restorePremium()), { errorTitle: t('premium.restoreFailed') });
 
   return { busy, buy, restore };
 }

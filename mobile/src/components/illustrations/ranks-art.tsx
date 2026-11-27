@@ -11,7 +11,7 @@ export function RaceFriendsArt() {
     [26, 36], [39, 36], [32.5, 42], [45.5, 42], [26, 48], [39, 48],
   ];
   return (
-    <ArtFrame label="An eyeball ready to race at a start line, with an empty spot beside it for a friend">
+    <ArtFrame label="raceStart">
       <Line x1={20} y1={96} x2={122} y2={96} strokeWidth={4} />
       <Line x1={26} y1={96} x2={26} y2={36} strokeWidth={4} />
       <Rect x={26} y={36} width={26} height={18} fill="#FFFFFF" strokeWidth={3} />
@@ -36,7 +36,7 @@ export function RaceFriendsArt() {
 export function FreshMonthArt() {
   const theme = useTheme();
   return (
-    <ArtFrame label="An empty podium with a crown hovering over the top step, waiting for this month's winner">
+    <ArtFrame label="emptyPodium">
       <Rect x={18} y={24} width={26} height={26} rx={5} fill="#FFFFFF" strokeWidth={3} />
       <Path d="M18 31v-2a5 5 0 0 1 5-5h16a5 5 0 0 1 5 5v2z" fill="#F0524F" strokeWidth={3} />
       <SvgText
@@ -72,7 +72,7 @@ export function FreshMonthArt() {
 export function UnpluggedTrophyArt() {
   const theme = useTheme();
   return (
-    <ArtFrame label="A sad trophy whose plug has come out of the wall socket">
+    <ArtFrame label="sadTrophy">
       <Path d="M34 40h-6a8 8 0 0 0 8 14" fill="none" strokeWidth={4} />
       <Path d="M70 40h6a8 8 0 0 1-8 14" fill="none" strokeWidth={4} />
       <Path d="M34 32h36v18a18 18 0 0 1-36 0z" fill={GOLD} strokeWidth={4} />

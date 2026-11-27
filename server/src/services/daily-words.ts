@@ -3,7 +3,7 @@ import { and, eq, gte, inArray, lte } from 'drizzle-orm';
 import type { Difficulty } from '@shared/types';
 
 import type { Ctx } from '../context';
-import { dailyWords, words, type WordRow } from '../db/schema';
+import { dailyWords, words, type WordRow, type WordTranslations } from '../db/schema';
 import { byDifficulty, difficulties } from '../domain/enums';
 import { addDays, daysBetween, todayUtc } from '../lib/time';
 
@@ -11,6 +11,7 @@ type TodayWord = {
   dailyWordId: string;
   wordId: string;
   label: string;
+  translations: WordTranslations;
   difficulty: Difficulty;
 };
 
@@ -79,6 +80,7 @@ function loadDay(ctx: Ctx, date: string): Promise<TodayWord[]> {
       dailyWordId: dailyWords.id,
       wordId: words.id,
       label: words.label,
+      translations: words.translations,
       difficulty: dailyWords.difficulty,
     })
     .from(dailyWords)
@@ -86,11 +88,19 @@ function loadDay(ctx: Ctx, date: string): Promise<TodayWord[]> {
     .where(eq(dailyWords.date, date));
 }
 
-/** Label + difficulty for a set of daily word ids (for feeds and profiles). */
+type WordInfo = { label: string; translations: WordTranslations; difficulty: Difficulty; date: string };
+
+/** Label, translations + difficulty for a set of daily word ids (for feeds and profiles). */
 export async function dailyWordInfo(ctx: Ctx, dailyWordIds: string[]) {
-  if (!dailyWordIds.length) return new Map<string, { label: string; difficulty: Difficulty; date: string }>();
+  if (!dailyWordIds.length) return new Map<string, WordInfo>();
   const rows = await ctx.db
-    .select({ id: dailyWords.id, label: words.label, difficulty: dailyWords.difficulty, date: dailyWords.date })
+    .select({
+      id: dailyWords.id,
+      label: words.label,
+      translations: words.translations,
+      difficulty: dailyWords.difficulty,
+      date: dailyWords.date,
+    })
     .from(dailyWords)
     .innerJoin(words, eq(words.id, dailyWords.wordId))
     .where(inArray(dailyWords.id, dailyWordIds));
@@ -104,6 +114,7 @@ export async function dailyWordById(ctx: Ctx, dailyWordId: string) {
       date: dailyWords.date,
       difficulty: dailyWords.difficulty,
       label: words.label,
+      translations: words.translations,
       minConfidence: words.minConfidence,
     })
     .from(dailyWords)

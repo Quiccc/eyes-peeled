@@ -13,6 +13,7 @@ import { autoSchedule } from './services/schedule';
 import { localStorage } from './services/storage';
 import { requeuePending } from './services/verification';
 import { verifierFor } from './services/verifier';
+import { translatorFor } from './services/word-translator';
 
 const env = loadEnv();
 // Relative folders in .env are relative to server/, wherever the process was started from.
@@ -35,6 +36,7 @@ const ctx: Ctx = {
   }),
   verifier: verifierFor(env),
   queue: createQueue(2),
+  translator: translatorFor(env),
 };
 
 const requeued = await requeuePending(ctx);

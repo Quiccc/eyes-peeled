@@ -1,5 +1,6 @@
 import { CameraView } from 'expo-camera';
 import { useState, type RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,7 +14,7 @@ import { HuntCameraIcon } from '@/components/tab-icons';
 import { ThemedText } from '@/components/themed-text';
 import { difficultyColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { DIFFICULTY_LABEL, displayWord, formatNumber } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 type Props = {
   word: DailyWord;
@@ -36,6 +37,8 @@ const CORNER = 44;
  * frame fills whatever space a screen has, and no element changes size between "starting" and "ready".
  */
 export function CameraCapture({ word, cameraRef, ready, onReady, onError, onCapture, onClose }: Props) {
+  const fmt = useFormat();
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const c = difficultyColors(theme, word.difficulty);
@@ -60,10 +63,15 @@ export function CameraCapture({ word, cameraRef, ready, onReady, onError, onCapt
           <View
             style={[styles.card, { backgroundColor: c.face, borderColor: c.main, borderBottomColor: c.edge }]}
             accessible
-            accessibilityLabel={`Find: ${word.word}. ${DIFFICULTY_LABEL[word.difficulty]}, up to ${word.maxPoints} points, ${word.foundCount} found today`}>
+            accessibilityLabel={t('camera.cardA11y', {
+              word: word.word,
+              level: fmt.difficultyLabel(word.difficulty),
+              count: word.maxPoints,
+              found: word.foundCount,
+            })}>
             <View style={[styles.cardPill, { backgroundColor: c.bg }]}>
               <ThemedText style={[styles.cardPillText, { color: c.text }]} maxFontSizeMultiplier={1.2} numberOfLines={1}>
-                FIND · {DIFFICULTY_LABEL[word.difficulty].toUpperCase()}
+                {t('camera.findLevel', { level: fmt.difficultyLabel(word.difficulty) }).toLocaleUpperCase(i18n.language)}
               </ThemedText>
             </View>
             <ThemedText
@@ -72,16 +80,16 @@ export function CameraCapture({ word, cameraRef, ready, onReady, onError, onCapt
               adjustsFontSizeToFit
               minimumFontScale={0.6}
               maxFontSizeMultiplier={1.2}>
-              {displayWord(word.word)}
+              {fmt.displayWord(word.word)}
             </ThemedText>
             <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} maxFontSizeMultiplier={1.2}>
-              up to {formatNumber(word.maxPoints)} pts · {formatNumber(word.foundCount)} found today
+              {t('camera.meta', { count: word.maxPoints, points: fmt.formatNumber(word.maxPoints), found: fmt.formatNumber(word.foundCount) })}
             </ThemedText>
           </View>
           <View style={styles.side}>
             <Pressable
               accessibilityRole="switch"
-              accessibilityLabel="Flash"
+              accessibilityLabel={t('camera.flash')}
               accessibilityState={{ checked: flash }}
               hitSlop={8}
               onPress={() => setFlash((f) => !f)}
@@ -105,7 +113,7 @@ export function CameraCapture({ word, cameraRef, ready, onReady, onError, onCapt
           {/* Two lines tall either way, so the shutter never moves when the hint changes. */}
           <View style={styles.hintBox}>
             <ThemedText style={styles.hint} numberOfLines={2} maxFontSizeMultiplier={1.1}>
-              {ready ? `Fill the frame with the real ${word.word}` : 'Camera starting…'}
+              {ready ? t('camera.fillFrame', { word: word.word }) : t('camera.starting')}
             </ThemedText>
           </View>
           {ready ? (
@@ -115,7 +123,7 @@ export function CameraCapture({ word, cameraRef, ready, onReady, onError, onCapt
               radius={SHUTTER / 2}
               edge={SHUTTER_EDGE}
               onPress={onCapture}
-              accessibilityLabel="Take photo"
+              accessibilityLabel={t('camera.takePhoto')}
               style={styles.shutter}
               contentStyle={styles.shutterFace}>
               <HuntCameraIcon size={40} />
@@ -128,11 +136,11 @@ export function CameraCapture({ word, cameraRef, ready, onReady, onError, onCapt
               edge={SHUTTER_EDGE}
               accessible
               accessibilityRole="button"
-              accessibilityLabel="Take photo"
+              accessibilityLabel={t('camera.takePhoto')}
               accessibilityState={{ disabled: true, busy: true }}
               style={styles.shutter}
               contentStyle={styles.shutterFace}>
-              <Spinner color="#FFFFFF" size={36} accessibilityLabel="Camera starting" />
+              <Spinner color="#FFFFFF" size={36} accessibilityLabel={t('camera.starting')} />
             </Chunky>
           )}
         </View>

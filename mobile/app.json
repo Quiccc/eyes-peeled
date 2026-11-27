@@ -7,10 +7,28 @@
     "icon": "./assets/images/icon.png",
     "scheme": "eyespeeled",
     "userInterfaceStyle": "automatic",
+    "locales": {
+      "en": "./locales-native/en.json",
+      "es": "./locales-native/es.json",
+      "pt-BR": "./locales-native/pt-BR.json",
+      "fr": "./locales-native/fr.json",
+      "de": "./locales-native/de.json",
+      "it": "./locales-native/it.json",
+      "tr": "./locales-native/tr.json",
+      "ru": "./locales-native/ru.json",
+      "id": "./locales-native/id.json",
+      "hi": "./locales-native/hi.json",
+      "ja": "./locales-native/ja.json",
+      "ko": "./locales-native/ko.json",
+      "zh-Hans": "./locales-native/zh-Hans.json"
+    },
     "ios": {
       "bundleIdentifier": "com.eyespeeled.app",
       "usesAppleSignIn": true,
       "supportsTablet": false,
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true
+      },
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -65,6 +83,12 @@
     "plugins": [
       "expo-router",
       "./plugins/with-upload-signing",
+      [
+        "expo-localization",
+        {
+          "supportedLocales": ["en", "es", "pt-BR", "fr", "de", "it", "tr", "ru", "id", "hi", "ja", "ko", "zh-Hans"]
+        }
+      ],
       [
         "expo-splash-screen",
         {

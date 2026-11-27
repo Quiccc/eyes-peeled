@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import type { Daily, Difficulty } from '@/api/types';
@@ -9,7 +10,7 @@ import { Spacing } from '@/constants/theme';
 import { MAX_FONT_SCALE } from '@/features/today/layout';
 import { useTheme } from '@/hooks/use-theme';
 import { comboPointsOf } from '@/lib/combo';
-import { formatNumber } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 import { queryKeys } from '@/lib/query-client';
 
 const FREE_SLOTS: Difficulty[] = ['easy', 'medium', 'hard'];
@@ -26,6 +27,8 @@ type Props = {
  * It keeps the same shape while loading, with placeholders, so the trail below never shifts.
  */
 export function TodayScoreboard({ daily, premium }: Props) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
   const queryClient = useQueryClient();
 
@@ -35,7 +38,7 @@ export function TodayScoreboard({ daily, premium }: Props) {
   const points = words.reduce((sum, w) => sum + (w.submission?.points ?? 0), 0) + comboPointsOf(words);
   const slots = premium ? PREMIUM_SLOTS : FREE_SLOTS;
   const total = daily ? words.length : slots.length;
-  const summary = `${found} of ${total} words found${premium ? '' : ', Premium word locked'}`;
+  const summary = premium ? t('today.summary', { found, count: total }) : t('today.summaryLocked', { found, count: total });
 
   return (
     <View style={[styles.card, { backgroundColor: theme.scoreFace, borderColor: theme.scoreEdge }]}>
@@ -48,10 +51,10 @@ export function TodayScoreboard({ daily, premium }: Props) {
             minimumFontScale={0.6}
             maxFontSizeMultiplier={MAX_FONT_SCALE}
             style={[styles.shrink, { color: theme.scoreNumber }]}>
-            {daily ? formatNumber(points) : '–'}
+            {daily ? fmt.formatNumber(points) : '–'}
           </ThemedText>
           <ThemedText themeColor="textSecondary" numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE}>
-            pts today
+            {t('today.ptsToday')}
           </ThemedText>
         </View>
 
@@ -79,7 +82,7 @@ export function TodayScoreboard({ daily, premium }: Props) {
             )}
           </View>
           <ThemedText type="smallBold" numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE} importantForAccessibility="no">
-            {daily ? `${found}/${total} found` : ' '}
+            {daily ? t('today.foundOf', { found, total }) : ' '}
           </ThemedText>
         </View>
       </View>
@@ -101,7 +104,7 @@ export function TodayScoreboard({ daily, premium }: Props) {
           </ThemedText>
         )}
         <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE}>
-          until new words
+          {t('today.untilNewWords')}
         </ThemedText>
       </View>
     </View>

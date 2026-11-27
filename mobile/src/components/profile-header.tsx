@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import type { User } from '@/api/types';
@@ -7,7 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { difficultyColors, Radius, Spacing } from '@/constants/theme';
 import { usePressGuard } from '@/hooks/use-press-guard';
 import { useTheme } from '@/hooks/use-theme';
-import { displayName, joinedLabel } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
 const SIZE = 72;
 const CENTERED_SIZE = 96;
@@ -35,6 +36,8 @@ export function ProfileHeader({
   centered?: boolean;
   premium?: boolean;
 }) {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const theme = useTheme();
   const guard = usePressGuard();
   if (centered) {
@@ -50,10 +53,10 @@ export function ProfileHeader({
           numberOfLines={1}
           adjustsFontSizeToFit
           accessibilityRole="header">
-          {displayName(user)}
+          {fmt.displayName(user)}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          {joinedLabel(user.joinedAt)}
+          {fmt.joinedLabel(user.joinedAt)}
         </ThemedText>
       </View>
     );
@@ -66,7 +69,7 @@ export function ProfileHeader({
           onPress={guard(onEditAvatar)}
           disabled={avatarBusy}
           accessibilityRole="button"
-          accessibilityLabel={user.avatarUrl ? 'Change profile picture' : 'Add a profile picture'}
+          accessibilityLabel={user.avatarUrl ? t('profile.changePicture') : t('profile.addPicture')}
           accessibilityState={{ busy: avatarBusy }}
           hitSlop={8}
           style={({ pressed }) => pressed && styles.pressed}>
@@ -86,10 +89,10 @@ export function ProfileHeader({
       <View style={styles.text}>
         <View style={styles.nameRow}>
           <ThemedText type="title" style={[styles.name, styles.shrink]} numberOfLines={1} adjustsFontSizeToFit accessibilityRole="header">
-            {displayName(user)}
+            {fmt.displayName(user)}
           </ThemedText>
           {premium && (
-            <View style={[styles.chip, { backgroundColor: theme.expertBg }]} accessibilityLabel="Premium member">
+            <View style={[styles.chip, { backgroundColor: theme.expertBg }]} accessibilityLabel={t('profile.premiumMember')}>
               <ThemedText type="smallBold" style={[styles.chipText, { color: theme.expertText }]} maxFontSizeMultiplier={1.3}>
                 PREMIUM
               </ThemedText>
@@ -97,7 +100,7 @@ export function ProfileHeader({
           )}
         </View>
         <ThemedText type="small" themeColor="textSecondary">
-          {joinedLabel(user.joinedAt)}
+          {fmt.joinedLabel(user.joinedAt)}
         </ThemedText>
       </View>
     </View>

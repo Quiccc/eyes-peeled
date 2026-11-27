@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -12,7 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, ClipPath, Defs, G, Path, Rect, Text as SvgText } from 'react-native-svg';
 
-import { GOLD, INK, IRIS, LID, SHADOW } from '@/components/illustrations/art-kit';
+import { GOLD, INK, IRIS, LID, SHADOW, type ArtLabel } from '@/components/illustrations/art-kit';
 import { FontFamily } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -77,6 +78,8 @@ const LOOKOUT_H = 80;
  * sparkle. It sways gently, its eye drifts and the sparkle twinkles; all still under Reduce Motion.
  */
 export function LookoutMascot({ width = 120 }: { width?: number }) {
+  // `t` is the animation clock here, so the translator gets another name.
+  const { t: tr } = useTranslation();
   const theme = useTheme();
   const reduced = useReducedMotion();
   const scale = width / LOOKOUT_W;
@@ -106,7 +109,7 @@ export function LookoutMascot({ width = 120 }: { width?: number }) {
       style={{ width, height }}
       accessible
       accessibilityRole="image"
-      accessibilityLabel="Eyes Peeled mascot shading its eye and looking into the distance">
+      accessibilityLabel={tr('art.lookout')}>
       <Svg width={width} height={height} viewBox={`0 0 ${LOOKOUT_W} ${LOOKOUT_H}`} style={StyleSheet.absoluteFill}>
         <Circle cx={42} cy={42} r={40} fill={theme.backgroundSelected} />
       </Svg>
@@ -163,9 +166,10 @@ export function LookoutMascot({ width = 120 }: { width?: number }) {
 export const BADGE_WIDTH = 72;
 export const BADGE_HEIGHT = 76;
 
-function Sticker({ face, edge, ring = '#FFFFFF', label, children }: { face: string; edge: string; ring?: string; label: string; children: React.ReactNode }) {
+function Sticker({ face, edge, ring = '#FFFFFF', label, children }: { face: string; edge: string; ring?: string; label: ArtLabel; children: React.ReactNode }) {
+  const { t } = useTranslation();
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={label} style={{ width: BADGE_WIDTH, height: BADGE_HEIGHT }}>
+    <View accessible accessibilityRole="image" accessibilityLabel={t(`art.${label}`)} style={{ width: BADGE_WIDTH, height: BADGE_HEIGHT }}>
       <Svg width={BADGE_WIDTH} height={BADGE_HEIGHT} viewBox="0 0 72 76" stroke={INK} strokeLinecap="round" strokeLinejoin="round">
         <Circle cx={36} cy={40} r={33} fill={edge} stroke="none" />
         <Circle cx={36} cy={36} r={33} fill={face} stroke={ring} strokeWidth={3} />
@@ -211,7 +215,7 @@ function BadgeSparkle({ x, y, r }: { x: number; y: number; r: number }) {
 export function ThumbsUpBadge() {
   const theme = useTheme();
   return (
-    <Sticker face={theme.success} edge={theme.successEdge} label="Mascot giving a thumbs up">
+    <Sticker face={theme.success} edge={theme.successEdge} label="thumbsUp">
       <BadgeEye id="badge-happy" cx={29} cy={39}>
         <BadgeIris x={31.5} y={35} />
         <Path d="M10 47Q29 35 48 47V62H10z" fill={LID} strokeWidth={2.6} />
@@ -232,7 +236,7 @@ export function ThumbsUpBadge() {
 export function PuzzledBadge() {
   const theme = useTheme();
   return (
-    <Sticker face={theme.hard} edge={theme.hardEdge} label="Mascot squinting, puzzled">
+    <Sticker face={theme.hard} edge={theme.hardEdge} label="puzzled">
       <BadgeEye id="badge-puzzled" cx={38} cy={41}>
         <BadgeIris x={32} y={42} />
         <Path d="M10 18H50V36Q34 42 10 34z" fill={LID} strokeWidth={2.6} />
@@ -253,7 +257,7 @@ export function PuzzledBadge() {
 export function DizzyBadge() {
   const theme = useTheme();
   return (
-    <Sticker face={theme.backgroundElement} edge={theme.border} ring={theme.border} label="Mascot dizzy under a broken cloud">
+    <Sticker face={theme.backgroundElement} edge={theme.border} ring={theme.border} label="dizzy">
       <BadgeEye id="badge-dizzy" cx={38} cy={44}>
         <Path
           d="M38 44a1.5 1.5 0 0 1 3 0a3 3 0 0 1-6 0a4.5 4.5 0 0 1 9 0a6 6 0 0 1-12 0a7.5 7.5 0 0 1 15 0"
@@ -324,9 +328,10 @@ export function CameraEyeArt({ closed = false, width = 220 }: { closed?: boolean
 
 /** The word isn't active anymore: a sleepy alarm clock. */
 export function SleepyClockArt({ width = 220 }: { width?: number }) {
+  const { t } = useTranslation();
   const theme = useTheme();
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel="A sleepy alarm clock">
+    <View accessible accessibilityRole="image" accessibilityLabel={t('art.sleepyClock')}>
       <Svg width={width} height={width * 0.8} viewBox="0 0 200 160" stroke={INK} strokeLinecap="round" strokeLinejoin="round">
         <Circle cx={100} cy={84} r={70} fill={theme.backgroundSelected} stroke="none" />
         <Path d="M70 128l-8 10M130 128l8 10" fill="none" strokeWidth={5} />

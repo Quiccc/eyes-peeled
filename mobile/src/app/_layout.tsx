@@ -3,18 +3,21 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useColorScheme } from 'react-native';
 
 import { initAds, setAdsEnabled } from '@/ads/ads';
 import { AuthProvider, useAuth } from '@/auth/auth-provider';
 import { AnimatedSplash } from '@/components/animated-splash';
 import { ThemeTransitionOverlay } from '@/components/theme-transition';
+import { loadLanguage } from '@/i18n/language';
 import { loadAppearance } from '@/lib/appearance';
 import { queryClient } from '@/lib/query-client';
 
 SplashScreen.preventAutoHideAsync();
-// Apply the saved Light/Dark/System choice before the launch screen fades (no wrong-theme flash).
-const appearanceReady = loadAppearance();
+// Apply the saved Light/Dark/System and language choices before the launch screen fades (no flash of
+// the wrong theme or language).
+const appearanceReady = Promise.all([loadAppearance(), loadLanguage()]);
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -50,6 +53,7 @@ function LaunchSplash() {
 }
 
 function RootNavigator() {
+  const { t } = useTranslation();
   const { status, user } = useAuth();
   const signedIn = status === 'signedIn';
   const hasUsername = signedIn && !!user.username;
@@ -81,7 +85,8 @@ function RootNavigator() {
           options={{ presentation: 'fullScreenModal', headerShown: false, gestureEnabled: false }}
         />
         <Stack.Screen name="user/[userId]" options={{ headerShown: false }} />
-        <Stack.Screen name="blocked" options={{ title: 'Blocked users' }} />
+        <Stack.Screen name="blocked" options={{ title: t('blocked.title') }} />
+        <Stack.Screen name="language" options={{ title: t('language.title') }} />
         <Stack.Screen name="premium" options={{ presentation: 'modal', headerShown: false }} />
       </Stack.Protected>
     </Stack>

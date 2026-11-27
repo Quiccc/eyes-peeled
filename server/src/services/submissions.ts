@@ -6,12 +6,14 @@ import type { Daily, DailyWord, Submission } from '@shared/types';
 
 import type { Ctx } from '../context';
 import { submissions, type SubmissionRow, type UserRow } from '../db/schema';
+import { SUBMISSION_MESSAGES } from '../i18n/messages';
 import { HttpError, notFound } from '../lib/errors';
 import { isUniqueViolation } from '../lib/sql';
 import { toSubmission } from '../lib/present';
 import { existingId } from '../lib/validation';
 import { nextDayStartUtc, utcDate } from '../lib/time';
-import { wordsForDate } from './daily-words';
+import { wordName } from '../lib/words';
+import { dailyWordById, wordsForDate } from './daily-words';
 import { MAX_POINTS } from './scoring';
 import { decide } from './verification';
 
@@ -63,12 +65,12 @@ export async function getDaily(ctx: Ctx, user: UserRow): Promise<Daily> {
     return {
       id: w.dailyWordId,
       difficulty: w.difficulty,
-      word: w.label,
+      word: wordName(w),
       maxPoints: MAX_POINTS[w.difficulty],
       foundCount: foundCount.get(w.dailyWordId) ?? 0,
       firstFoundAt: firstFoundAt.get(w.dailyWordId) ?? null,
       status: valid ? 'found' : pending ? 'pending' : 'open',
-      submission: sub ? toSubmission(sub, ctx.storage) : null,
+      submission: sub ? toSubmission(sub, w, ctx.storage) : null,
     };
   });
 
@@ -103,7 +105,8 @@ export async function createSubmission(ctx: Ctx, user: UserRow, rawWordId: strin
     throw new HttpError(
       429,
       'rate_limited',
-      `That's ${MAX_ATTEMPTS_PER_WORD} tries for this word today. New words arrive at midnight UTC!`,
+      "That's {n} tries for this word today. New words arrive at midnight UTC!",
+      { n: MAX_ATTEMPTS_PER_WORD },
     );
   }
 
@@ -133,7 +136,8 @@ export async function createSubmission(ctx: Ctx, user: UserRow, rawWordId: strin
       userId: user.id,
       dailyWordId,
       status: isDupe ? 'invalid' : 'pending',
-      message: isDupe ? "We've seen this exact photo before. Snap a fresh one!" : null,
+      message: isDupe ? SUBMISSION_MESSAGES.duplicate_photo : null,
+      messageCode: isDupe ? 'duplicate_photo' : null,
       imageKey,
       imageSha256: sha,
       receivedAt,
@@ -146,7 +150,7 @@ export async function createSubmission(ctx: Ctx, user: UserRow, rawWordId: strin
       throw stillPending();
     });
   if (!row) throw new Error('insert failed');
-  if (isDupe) return toSubmission(row, ctx.storage);
+  if (isDupe) return toSubmission(row, word, ctx.storage);
 
   // Verify in the background; answer with the verdict if it's quick, otherwise 'pending'.
   const done = ctx.queue.run(id, () => decide(ctx, id, photo));
@@ -158,7 +162,9 @@ export async function createSubmission(ctx: Ctx, user: UserRow, rawWordId: strin
 
 export async function getSubmissionFor(ctx: Ctx, user: UserRow, id: string): Promise<Submission> {
   const row = await ownSubmission(ctx, user, id);
-  return toSubmission(row, ctx.storage);
+  const word = await dailyWordById(ctx, row.dailyWordId);
+  if (!word) throw new Error(`daily word ${row.dailyWordId} is missing`);
+  return toSubmission(row, word, ctx.storage);
 }
 
 async function ownSubmission(ctx: Ctx, user: UserRow, rawId: string): Promise<SubmissionRow> {

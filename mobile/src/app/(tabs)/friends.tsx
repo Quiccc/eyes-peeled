@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'expo-router';
 import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View, type TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -21,17 +22,20 @@ import { FriendsList } from '@/features/social/friends-list';
 import { useSendFriendRequest } from '@/features/social/use-friend-mutations';
 import { useDebounced } from '@/hooks/use-debounced';
 import { useTheme } from '@/hooks/use-theme';
-import { displayName, errorMessage, plural } from '@/lib/format';
+import { useFormat } from '@/lib/format';
 
-const STATUS_LABEL: Partial<Record<FriendStatus, string>> = {
-  friends: 'Friends',
-  outgoing: 'Requested',
-  blocked: 'Blocked',
-};
+/** Search results show these statuses as text instead of a button. */
+const STATUS_KEYS = {
+  friends: 'friends.status.friends',
+  outgoing: 'friends.status.requested',
+  blocked: 'friends.status.blocked',
+} as const satisfies Partial<Record<FriendStatus, string>>;
 
 type FriendsView = 'feed' | 'friends';
 
 export default function FriendsScreen() {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const theme = useTheme();
   const searchRef = useRef<ComponentRef<typeof TextInput>>(null);
@@ -47,18 +51,17 @@ export default function FriendsScreen() {
   const add = useSendFriendRequest();
 
   const statusAction = (userId: string, status: FriendStatus) => {
-    const label = STATUS_LABEL[status];
-    if (label) {
+    if (status in STATUS_KEYS) {
       return (
         <ThemedText type="smallBold" themeColor="textSecondary">
-          {label}
+          {t(STATUS_KEYS[status as keyof typeof STATUS_KEYS])}
         </ThemedText>
       );
     }
     return (
       <Button
         size="small"
-        title={status === 'incoming' ? 'Accept' : 'Add'}
+        title={status === 'incoming' ? t('friends.accept') : t('friends.add')}
         loading={add.isPending && add.variables === userId}
         onPress={() => add.mutate(userId)}
       />
@@ -68,19 +71,19 @@ export default function FriendsScreen() {
   const finds = feed.data?.length ?? 0;
   const pending = requests.data?.length ?? 0;
   const views: { value: FriendsView; label: string; badge?: number; accessibilityLabel?: string }[] = [
-    { value: 'feed', label: 'Feed' },
+    { value: 'feed', label: t('friends.feedTab') },
     {
       value: 'friends',
-      label: 'Friends',
+      label: t('friends.friendsTab'),
       badge: pending,
-      accessibilityLabel: pending ? `Friends, ${plural(pending, 'friend request')}` : 'Friends',
+      accessibilityLabel: pending ? t('friends.friendsTabPending', { count: pending }) : t('friends.friendsTab'),
     },
   ];
   const showFeed = !searching && view === 'feed';
   const header = (
     <View style={styles.headerBlock}>
       <ThemedText type="title" accessibilityRole="header">
-        Friends
+        {t('friends.title')}
       </ThemedText>
       <TextField
         ref={searchRef}
@@ -88,8 +91,8 @@ export default function FriendsScreen() {
         value={search}
         onChangeText={setSearch}
         accent={search.length > 0}
-        placeholder="Find hunters by username"
-        accessibilityLabel="Find hunters by username"
+        placeholder={t('friends.searchPlaceholder')}
+        accessibilityLabel={t('friends.searchPlaceholder')}
         autoCapitalize="none"
         autoCorrect={false}
         clearButtonMode="while-editing"
@@ -107,19 +110,19 @@ export default function FriendsScreen() {
         ) : (
           <EmptyState
             art={<SquintSearchArt />}
-            title="No hunters found"
-            hint={`Nobody goes by "${q}" yet. Check the spelling and try again.`}
+            title={t('friends.noResultsTitle')}
+            hint={t('friends.noResultsHint', { query: q })}
           />
         )
       ) : (
         <>
-          <SegmentedControl accessibilityLabel="Show" options={views} value={view} onChange={setView} height={40} />
+          <SegmentedControl accessibilityLabel={t('friends.viewA11y')} options={views} value={view} onChange={setView} height={40} />
           {view === 'feed' && (feed.isPending || finds > 0) && (
             <View style={styles.feedLabel}>
-              <SectionLabel>FRIENDS&apos; FINDS TODAY</SectionLabel>
+              <SectionLabel>{t('friends.feedLabel')}</SectionLabel>
               {finds > 0 && (
                 <ThemedText type="smallBold" themeColor="textSecondary">
-                  {plural(finds, 'find')}
+                  {t('friends.findsCount', { count: finds })}
                 </ThemedText>
               )}
             </View>
@@ -156,16 +159,16 @@ export default function FriendsScreen() {
             ) : feed.error ? (
               <EmptyState
                 art={<CrashedPlaneArt />}
-                title="Couldn't load finds"
-                hint={errorMessage(feed.error)}
-                action={<Button title="Try again" variant="secondary" onPress={() => feed.refetch()} />}
+                title={t('friends.feedError')}
+                hint={fmt.errorMessage(feed.error)}
+                action={<Button title={t('common.tryAgain')} variant="secondary" onPress={() => feed.refetch()} />}
               />
             ) : (
               <EmptyState
                 art={<PeekingPhotoArt />}
-                title="No finds yet today"
-                hint="When friends snap today's words, their photos land here."
-                action={<Button title="Find hunters" icon="person-add" onPress={() => searchRef.current?.focus()} />}
+                title={t('friends.feedEmptyTitle')}
+                hint={t('friends.feedEmptyHint')}
+                action={<Button title={t('friends.findHunters')} icon="person-add" onPress={() => searchRef.current?.focus()} />}
               />
             )
           }
@@ -178,6 +181,7 @@ export default function FriendsScreen() {
 
 /** A search result as a slice of one grouped card: avatar, name, and the friend status or action. */
 function SearchRow({ result, first, right }: { result: UserSearchResult; first: boolean; right: ReactNode }) {
+  const fmt = useFormat();
   const theme = useTheme();
   return (
     <View style={styles.searchRow}>
@@ -186,7 +190,7 @@ function SearchRow({ result, first, right }: { result: UserSearchResult; first: 
         <Pressable accessibilityRole="link" style={styles.searchUser}>
           <Avatar user={result.user} size={40} />
           <ThemedText style={styles.searchName} numberOfLines={1}>
-            {displayName(result.user)}
+            {fmt.displayName(result.user)}
           </ThemedText>
         </Pressable>
       </Link>

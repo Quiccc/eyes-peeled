@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,9 +10,11 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { errorMessage, USERNAME_RE } from '@/lib/format';
+import { useFormat, USERNAME_RE } from '@/lib/format';
 
 export default function ChooseUsernameScreen() {
+  const fmt = useFormat();
+  const { t } = useTranslation();
   const { setUsername, signOut } = useAuth();
   const theme = useTheme();
   const [value, setValue] = useState('');
@@ -28,7 +31,7 @@ export default function ChooseUsernameScreen() {
     try {
       await setUsername(clean);
     } catch (e) {
-      setError(errorMessage(e));
+      setError(fmt.errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -40,14 +43,12 @@ export default function ChooseUsernameScreen() {
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.top}>
             <ThemedText type="title" accessibilityRole="header">
-              Pick a username
+              {t('username.title')}
             </ThemedText>
-            <ThemedText themeColor="textSecondary">
-              Friends will find you by this name and it shows on the leaderboards.
-            </ThemedText>
+            <ThemedText themeColor="textSecondary">{t('username.intro')}</ThemedText>
             <View style={styles.fieldGroup}>
               <ThemedText type="smallBold" themeColor="textSecondary" style={styles.label} nativeID="username-label">
-                USERNAME
+                {t('username.label')}
               </ThemedText>
               <TextField
                 size="large"
@@ -60,20 +61,20 @@ export default function ChooseUsernameScreen() {
                 autoCorrect={false}
                 autoFocus
                 maxLength={20}
-                placeholder="username"
+                placeholder={t('username.placeholder')}
                 returnKeyType="done"
                 onSubmitEditing={() => valid && submit()}
-                accessibilityLabel="Username"
+                accessibilityLabel={t('username.a11y')}
                 accessibilityLabelledBy="username-label"
               />
               <ThemedText type="small" style={{ color: error ? theme.dangerText : theme.textSecondary }}>
-                {error ?? '3–20 characters: letters, numbers and underscores.'}
+                {error ?? t('username.rule')}
               </ThemedText>
             </View>
           </View>
           <View style={styles.actions}>
-            <Button title="Continue" disabled={!valid} loading={saving} onPress={submit} />
-            <Button title="Sign out" variant="ghost" onPress={signOut} />
+            <Button title={t('common.continue')} disabled={!valid} loading={saving} onPress={submit} />
+            <Button title={t('profile.signOut')} variant="ghost" onPress={signOut} />
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
