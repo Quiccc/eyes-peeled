@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "eval:photos": "tsx --env-file-if-exists=.env scripts/eval-photos.ts"
+    "eval:photos": "tsx --env-file-if-exists=.env scripts/eval-photos.ts",
+    "seed:dev": "tsx --env-file-if-exists=.env scripts/seed-dev.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.10.0",
