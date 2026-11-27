@@ -26,6 +26,16 @@ export function useSendFriendRequest() {
   });
 }
 
+/** Remove a friend, or cancel a request you sent: the server treats both the same. */
+export function useRemoveFriend() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => api.removeFriend(userId),
+    onSuccess: () => invalidateSocial(queryClient),
+    onError: (e) => Alert.alert('Something went wrong', errorMessage(e)),
+  });
+}
+
 /** Unblock a player. Pair it with confirmUnblock() from the safety menu. */
 export function useUnblockUser() {
   const queryClient = useQueryClient();

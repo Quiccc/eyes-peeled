@@ -21,7 +21,7 @@ import { Podium } from '@/features/leaderboard/podium';
 import { MyRankBar, RANK_ROW_HEIGHT, RankRow, UnrankedBar } from '@/features/leaderboard/rank-row';
 import { useTheme } from '@/hooks/use-theme';
 import { daysUntil, monthName } from '@/lib/format';
-import { passGoal } from '@/lib/leaderboard';
+import { isAlone, passGoal } from '@/lib/leaderboard';
 import { queryKeys } from '@/lib/query-client';
 
 const SCOPES = [
@@ -63,6 +63,8 @@ export default function LeaderboardScreen() {
   // Replay the podium entrance when the scope or the people on it change, not on every refetch.
   const podiumKey = `${scope}:${top.map((e) => e.user.id).join(',')}`;
   const meOnPodium = !!me && top.some((e) => e.user.id === me.user.id);
+  // The friends board always includes you, so "no friends" is a board with only you on it.
+  const empty = scope === 'friends' ? isAlone(entries, user?.id, !!query.hasNextPage) : entries.length === 0;
   /** Load pages until the player's own row is in the list, then scroll it to the middle of the screen. */
   const jumpToMe = async () => {
     if (!me || jumping) return;
@@ -85,7 +87,7 @@ export default function LeaderboardScreen() {
     }
   };
 
-  const showPinned = !!first && entries.length > 0 && !meOnPodium && !(me && visibleIds.includes(me.user.id));
+  const showPinned = !!first && !empty && !meOnPodium && !(me && visibleIds.includes(me.user.id));
 
   return (
     <ThemedView style={styles.flex}>
@@ -116,7 +118,7 @@ export default function LeaderboardScreen() {
           errorTitle="Couldn't load the leaderboard"
           errorArt={<UnpluggedTrophyArt />}>
           {() =>
-            entries.length === 0 ? (
+            empty ? (
               scope === 'friends' ? (
                 <EmptyState
                   art={<RaceFriendsArt />}

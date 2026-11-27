@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app';
 
-import type { Daily } from '@shared/types';
+import type { Daily, FriendsList } from '@shared/types';
 
 import type { WordDayStats } from '../src/dto/admin';
 import { jpeg, startTestServer, type TestServer } from './helpers';
@@ -129,5 +129,27 @@ describe('moderation', () => {
 
     expect((await t.http().post(`/admin/users/${b.id}/unban`).set(ADMIN)).status).toBe(204);
     expect((await t.http().get('/me').set(b.auth)).status).toBe(200);
+  });
+
+  it('banned players drop out of friends lists and come back when unbanned', async () => {
+    await start();
+    const a = await t.signIn('alex');
+    const b = await t.signIn('bob');
+    const c = await t.signIn('cara');
+    await t.http().post('/friends/requests').set(a.auth).send({ userId: b.id });
+    await t.http().post('/friends/requests').set(b.auth).send({ userId: a.id });
+    await t.http().post('/friends/requests').set(a.auth).send({ userId: c.id });
+    const names = async () => {
+      const l = (await t.http().get('/friends').set(a.auth)).body as FriendsList;
+      return { friends: l.friends.map((f) => f.user.username), sent: l.sent.map((s) => s.to.username) };
+    };
+    expect(await names()).toEqual({ friends: ['bob'], sent: ['cara'] });
+
+    await t.http().post(`/admin/users/${b.id}/ban`).set(ADMIN);
+    await t.http().post(`/admin/users/${c.id}/ban`).set(ADMIN);
+    expect(await names()).toEqual({ friends: [], sent: [] });
+
+    await t.http().post(`/admin/users/${b.id}/unban`).set(ADMIN);
+    expect(await names()).toEqual({ friends: ['bob'], sent: [] });
   });
 });

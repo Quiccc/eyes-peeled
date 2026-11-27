@@ -152,6 +152,7 @@ One non-consumable purchase, **Premium**: no ads + the daily Expert word. It is 
 | Method | Path | Body | Response |
 |---|---|---|---|
 | GET | `/feed/today` | — | `FeedItem[]`: accepted friends' **valid** submissions today, newest first |
+| GET | `/friends` | — | `FriendsList` `{ friends: Friend[], sent: SentRequest[] }`: accepted friends sorted by username (case-insensitive), and the caller's pending outgoing requests, newest first. Exclude banned users and blocks in either direction. |
 | GET | `/friends/requests` | — | `FriendRequest[]` (incoming, pending) |
 | POST | `/friends/requests` | `{ userId }` | 204. If that user already sent a request to the caller, accept it instead. |
 | POST | `/friends/requests/:id/accept` | — | 204 |

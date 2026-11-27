@@ -22,7 +22,7 @@ export const queryClient = new QueryClient({
 
 /**
  * Every query key in the app. Keys are hierarchical, so a prefix invalidates a whole area:
- * `usersAll` covers profiles and search, `friendsAll` the requests and blocked players,
+ * `usersAll` covers profiles and search, `friendsAll` the friends list, requests and blocked players,
  * `leaderboardAll` both scopes.
  */
 export const queryKeys = {
@@ -31,6 +31,7 @@ export const queryKeys = {
   leaderboard: (scope: LeaderboardScope) => ['leaderboard', scope] as const,
   feed: ['feed', 'today'] as const,
   friendsAll: ['friends'] as const,
+  friendsList: ['friends', 'list'] as const,
   friendRequests: ['friends', 'requests'] as const,
   blockedUsers: ['friends', 'blocked'] as const,
   usersAll: ['users'] as const,

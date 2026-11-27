@@ -11,6 +11,10 @@ type Option<T extends string> = {
   label: string;
   /** A small glyph before the label, drawn for the selected (orange) or resting state. */
   icon?: (selected: boolean) => ReactNode;
+  /** A red count after the label (pending friend requests); hidden at 0. */
+  badge?: number;
+  /** Read instead of the label, e.g. to say what the badge counts. */
+  accessibilityLabel?: string;
 };
 
 type Props<T extends string> = {
@@ -36,6 +40,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, a
           <Pressable
             key={option.value}
             accessibilityRole="radio"
+            accessibilityLabel={option.accessibilityLabel}
             accessibilityState={{ selected }}
             onPress={() => {
               if (selected) return;
@@ -56,6 +61,11 @@ export function SegmentedControl<T extends string>({ options, value, onChange, a
               adjustsFontSizeToFit>
               {option.label}
             </ThemedText>
+            {!!option.badge && (
+              <View style={[styles.badge, { backgroundColor: theme.danger }]}>
+                <ThemedText style={styles.badgeText}>{option.badge}</ThemedText>
+              </View>
+            )}
           </Pressable>
         );
       })}
@@ -82,6 +92,20 @@ const styles = StyleSheet.create({
   },
   label: {
     flexShrink: 1,
+    fontWeight: 900,
+  },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    lineHeight: 14,
     fontWeight: 900,
   },
 });

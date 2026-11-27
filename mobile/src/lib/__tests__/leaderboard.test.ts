@@ -1,6 +1,6 @@
 import type { LeaderboardEntry } from '@/api/types';
 
-import { passGoal } from '../leaderboard';
+import { isAlone, passGoal } from '../leaderboard';
 
 const entry = (rank: number, username: string, points: number): LeaderboardEntry => ({
   rank,
@@ -26,5 +26,17 @@ describe('passGoal', () => {
 
   it('falls back to a nudge when the hunter above is not loaded', () => {
     expect(passGoal(board, entry(23, 'me', 6410))).toBe('Keep hunting to climb');
+  });
+});
+
+describe('isAlone', () => {
+  it('is true for an empty board or a board of just me', () => {
+    expect(isAlone([], 'me', false)).toBe(true);
+    expect(isAlone([entry(1, 'me', 0)], 'me', false)).toBe(true);
+  });
+
+  it('is false once anyone else is on it, or more pages may hold them', () => {
+    expect(isAlone([entry(1, 'alex', 10), entry(2, 'me', 0)], 'me', false)).toBe(false);
+    expect(isAlone([entry(1, 'me', 0)], 'me', true)).toBe(false);
   });
 });

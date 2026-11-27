@@ -10,6 +10,7 @@ import type {
   DeleteAccountRequest,
   FeedItem,
   FriendRequest,
+  FriendsList,
   Leaderboard,
   LeaderboardScope,
   ReportReason,
@@ -49,6 +50,7 @@ export type Api = {
 
   // social
   getFeedToday(): Promise<FeedItem[]>;
+  getFriends(): Promise<FriendsList>;
   getFriendRequests(): Promise<FriendRequest[]>;
   sendFriendRequest(userId: string): Promise<void>;
   respondFriendRequest(requestId: string, action: 'accept' | 'decline'): Promise<void>;
@@ -95,6 +97,7 @@ const httpApi: Api = {
   getLeaderboard: ({ scope, cursor }) => request('/leaderboard', { query: { scope, cursor } }),
 
   getFeedToday: () => request('/feed/today'),
+  getFriends: () => request('/friends'),
   getFriendRequests: () => request('/friends/requests'),
   sendFriendRequest: (userId) => request('/friends/requests', { method: 'POST', body: { userId } }),
   respondFriendRequest: (requestId, action) =>

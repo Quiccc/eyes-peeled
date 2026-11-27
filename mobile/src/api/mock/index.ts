@@ -176,6 +176,20 @@ export const mockApi: Api = {
       .flatMap(feedFor)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
+  async getFriends() {
+    await latency();
+    const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+    const visible = others.filter((o) => !state.blocked.has(o.id));
+    return {
+      friends: visible
+        .filter((o) => state.friends.has(o.id))
+        .sort((a, b) => (a.username ?? '').localeCompare(b.username ?? ''))
+        .map((user) => ({ user, since })),
+      sent: visible
+        .filter((o) => state.outgoing.has(o.id))
+        .map((to) => ({ id: state.outgoing.get(to.id)!, to, createdAt: new Date().toISOString() })),
+    };
+  },
   async getFriendRequests() {
     await latency();
     return state.incoming.filter((r) => !state.blocked.has(r.from.id));

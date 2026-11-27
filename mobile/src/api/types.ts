@@ -134,6 +134,27 @@ export type FriendRequest = {
   createdAt: string;
 };
 
+/** GET /friends: an accepted friend. */
+export type Friend = {
+  user: User;
+  /** ISO 8601 instant the friendship started */
+  since: string;
+};
+
+/** GET /friends: a request the current user sent that is still pending. */
+export type SentRequest = {
+  id: string;
+  to: User;
+  createdAt: string;
+};
+
+export type FriendsList = {
+  /** Sorted by username, case-insensitive */
+  friends: Friend[];
+  /** Newest first */
+  sent: SentRequest[];
+};
+
 /** GET /blocks: a player the current user blocked. */
 export type BlockedUser = {
   user: User;

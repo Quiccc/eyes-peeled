@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { BlockedUser, Daily, Leaderboard, UserProfile } from '@shared/types';
+import type { BlockedUser, Daily, FriendsList, Leaderboard, UserProfile } from '@shared/types';
 
 import { jpeg, startTestServer, type TestServer } from './helpers';
 
@@ -123,6 +123,95 @@ describe('friends', () => {
     expect((await t.http().get('/users/search').query({ q: 'alex' }).set(b.auth)).body).toEqual([]);
     expect((await t.http().get(`/users/${a.id}`).set(b.auth)).status).toBe(404);
     expect((await board(a, 'global')).entries.map((e) => e.user.username)).toEqual(['alex']);
+  });
+
+  it('lists friends A–Z and pending sent requests', async () => {
+    const a = await t.signIn('alex');
+    const b = await t.signIn('zed');
+    const c = await t.signIn('bea');
+    const d = await t.signIn('dana');
+    await befriend(a, b);
+    await befriend(a, c);
+    await t.http().post('/friends/requests').set(a.auth).send({ userId: d.id });
+
+    const list = async () => (await t.http().get('/friends').set(a.auth)).body as FriendsList;
+    const names = (l: FriendsList) => ({
+      friends: l.friends.map((f) => f.user.username),
+      sent: l.sent.map((s) => s.to.username),
+    });
+    const first = await list();
+    expect(names(first)).toEqual({ friends: ['bea', 'zed'], sent: ['dana'] });
+    expect(first.friends[0]!.since).toEqual(expect.any(String));
+    // The other side sees no sent requests, only the friendship.
+    expect(names((await t.http().get('/friends').set(c.auth)).body)).toEqual({ friends: ['alex'], sent: [] });
+
+    // Cancelling a request and removing a friend both drop them from the list; so does a block.
+    await t.http().delete(`/friends/${d.id}`).set(a.auth);
+    await t.http().delete(`/friends/${c.id}`).set(a.auth);
+    await t.http().post('/blocks').set(b.auth).send({ userId: a.id });
+    expect(names(await list())).toEqual({ friends: [], sent: [] });
+  });
+
+  it('friends list needs sign-in', async () => {
+    expect((await t.http().get('/friends')).status).toBe(401);
+  });
+
+  it('friends list starts empty, and incoming requests are not "sent"', async () => {
+    const a = await t.signIn('alex');
+    const b = await t.signIn('bob');
+    expect((await t.http().get('/friends').set(a.auth)).body).toEqual({ friends: [], sent: [] });
+    await t.http().post('/friends/requests').set(b.auth).send({ userId: a.id });
+    expect((await t.http().get('/friends').set(a.auth)).body).toEqual({ friends: [], sent: [] });
+    const bobs = (await t.http().get('/friends').set(b.auth)).body as FriendsList;
+    expect(bobs.sent).toEqual([
+      { id: expect.any(String), to: expect.objectContaining({ id: a.id, username: 'alex' }), createdAt: expect.any(String) },
+    ]);
+  });
+
+  it('a sent request moves to friends when accepted, and disappears when declined', async () => {
+    const a = await t.signIn('alex');
+    const b = await t.signIn('bob');
+    const c = await t.signIn('cara');
+    await t.http().post('/friends/requests').set(a.auth).send({ userId: b.id });
+    await t.http().post('/friends/requests').set(a.auth).send({ userId: c.id });
+    const sentIds = ((await t.http().get('/friends').set(a.auth)).body as FriendsList).sent.map((s) => s.to.username);
+    expect(sentIds).toEqual(['cara', 'bob']); // newest first
+
+    const [fromAlexToBob] = (await t.http().get('/friends/requests').set(b.auth)).body;
+    const [fromAlexToCara] = (await t.http().get('/friends/requests').set(c.auth)).body;
+    await t.http().post(`/friends/requests/${fromAlexToBob.id}/accept`).set(b.auth);
+    await t.http().post(`/friends/requests/${fromAlexToCara.id}/decline`).set(c.auth);
+
+    const list = (await t.http().get('/friends').set(a.auth)).body as FriendsList;
+    expect(list.friends.map((f) => f.user.username)).toEqual(['bob']);
+    expect(list.sent).toEqual([]);
+    expect(Date.parse(list.friends[0]!.since)).not.toBeNaN();
+  });
+
+  it('a sent request is hidden once they block you, and a friend you block is gone', async () => {
+    const a = await t.signIn('alex');
+    const b = await t.signIn('bob');
+    const c = await t.signIn('cara');
+    await t.http().post('/friends/requests').set(a.auth).send({ userId: b.id });
+    await befriend(a, c);
+    await t.http().post('/blocks').set(b.auth).send({ userId: a.id });
+    await t.http().post('/blocks').set(a.auth).send({ userId: c.id });
+    expect((await t.http().get('/friends').set(a.auth)).body).toEqual({ friends: [], sent: [] });
+    // Unblocking doesn't bring the friendship back.
+    await t.http().delete(`/blocks/${c.id}`).set(a.auth);
+    expect(((await t.http().get('/friends').set(a.auth)).body as FriendsList).friends).toEqual([]);
+  });
+
+  it('removing a friend from the list leaves the friends board with only you', async () => {
+    const a = await t.signIn('alex');
+    const b = await t.signIn('bob');
+    await befriend(a, b);
+    await find(b);
+    expect((await board(a, 'friends')).entries.map((e) => e.user.username)).toEqual(['bob', 'alex']);
+    await t.http().delete(`/friends/${b.id}`).set(a.auth);
+    const after = await board(a, 'friends');
+    expect(after.entries.map((e) => e.user.username)).toEqual(['alex']);
+    expect(after.nextCursor).toBeNull();
   });
 
   it('lists blocked players and unblocks them', async () => {

@@ -9,6 +9,7 @@ import { feedToday } from '../services/feed';
 import {
   block,
   blockedUsers,
+  friendsList,
   incomingRequests,
   removeFriend,
   respond,
@@ -28,6 +29,10 @@ export function socialRoutes(ctx: Ctx) {
 
   r.get('/feed/today', auth, async (req, res) => {
     res.json(await feedToday(ctx, me(req)));
+  });
+
+  r.get('/friends', auth, async (req, res) => {
+    res.json(await friendsList(ctx, me(req)));
   });
 
   r.get('/friends/requests', auth, async (req, res) => {

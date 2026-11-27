@@ -18,6 +18,10 @@ export function useMyProfile() {
   return useQuery({ queryKey: queryKeys.myProfile, queryFn: api.getMyProfile });
 }
 
+export function useFriendsList() {
+  return useQuery({ queryKey: queryKeys.friendsList, queryFn: api.getFriends });
+}
+
 export function useFriendRequests() {
   return useQuery({ queryKey: queryKeys.friendRequests, queryFn: api.getFriendRequests });
 }

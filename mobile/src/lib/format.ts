@@ -65,12 +65,21 @@ export function displayName(u: { username: string | null; displayName: string | 
   return u.username ?? u.displayName ?? 'Player';
 }
 
-/** "Hunting since November", with the year when it isn't this year: "Hunting since March 2025". */
-export function joinedLabel(iso: string) {
+/** "November", with the year when it isn't this year: "March 2025". */
+function sinceMonth(iso: string) {
   const d = new Date(iso);
   const sameYear = d.getFullYear() === new Date().getFullYear();
-  const when = d.toLocaleDateString(undefined, sameYear ? { month: 'long' } : { month: 'long', year: 'numeric' });
-  return `Hunting since ${when}`;
+  return d.toLocaleDateString(undefined, sameYear ? { month: 'long' } : { month: 'long', year: 'numeric' });
+}
+
+/** "Hunting since November", with the year when it isn't this year: "Hunting since March 2025". */
+export function joinedLabel(iso: string) {
+  return `Hunting since ${sinceMonth(iso)}`;
+}
+
+/** "Friends since November", with the year when it isn't this year. */
+export function friendsSinceLabel(iso: string) {
+  return `Friends since ${sinceMonth(iso)}`;
 }
 
 export function errorMessage(e: unknown) {

@@ -4,7 +4,7 @@ import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View, type TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { invalidateSocial, MIN_SEARCH_LENGTH, useFeedToday, useFriendRequests, useUserSearch } from '@/api/queries';
+import { invalidateSocial, MIN_SEARCH_LENGTH, useFeedToday, useFriendRequests, useFriendsList, useUserSearch } from '@/api/queries';
 import type { FriendStatus, UserSearchResult } from '@/api/types';
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
@@ -12,12 +12,13 @@ import { EmptyState, SkeletonRows } from '@/components/empty-state';
 import { FeedCard } from '@/components/feed-card';
 import { CrashedPlaneArt, PeekingPhotoArt, SquintSearchArt } from '@/components/illustrations/friends-art';
 import { SectionLabel } from '@/components/section-label';
+import { SegmentedControl } from '@/components/segmented-control';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, Edge, Radius, Spacing } from '@/constants/theme';
-import { FriendRequestsCard } from '@/features/social/friend-request-row';
-import { useRespondFriendRequest, useSendFriendRequest } from '@/features/social/use-friend-mutations';
+import { FriendsList } from '@/features/social/friends-list';
+import { useSendFriendRequest } from '@/features/social/use-friend-mutations';
 import { useDebounced } from '@/hooks/use-debounced';
 import { useTheme } from '@/hooks/use-theme';
 import { displayName, errorMessage, plural } from '@/lib/format';
@@ -28,6 +29,8 @@ const STATUS_LABEL: Partial<Record<FriendStatus, string>> = {
   blocked: 'Blocked',
 };
 
+type FriendsView = 'feed' | 'friends';
+
 export default function FriendsScreen() {
   const queryClient = useQueryClient();
   const theme = useTheme();
@@ -35,11 +38,12 @@ export default function FriendsScreen() {
   const [search, setSearch] = useState('');
   const q = useDebounced(search.trim(), 300);
   const searching = q.length >= MIN_SEARCH_LENGTH;
+  const [view, setView] = useState<FriendsView>('feed');
 
   const feed = useFeedToday();
   const requests = useFriendRequests();
+  const friendsList = useFriendsList();
   const results = useUserSearch(q);
-  const respond = useRespondFriendRequest();
   const add = useSendFriendRequest();
 
   const statusAction = (userId: string, status: FriendStatus) => {
@@ -62,6 +66,17 @@ export default function FriendsScreen() {
   };
 
   const finds = feed.data?.length ?? 0;
+  const pending = requests.data?.length ?? 0;
+  const views: { value: FriendsView; label: string; badge?: number; accessibilityLabel?: string }[] = [
+    { value: 'feed', label: 'Feed' },
+    {
+      value: 'friends',
+      label: 'Friends',
+      badge: pending,
+      accessibilityLabel: pending ? `Friends, ${plural(pending, 'friend request')}` : 'Friends',
+    },
+  ];
+  const showFeed = !searching && view === 'feed';
   const header = (
     <View style={styles.headerBlock}>
       <ThemedText type="title" accessibilityRole="header">
@@ -98,15 +113,8 @@ export default function FriendsScreen() {
         )
       ) : (
         <>
-          {!!requests.data?.length && (
-            <FriendRequestsCard
-              requests={requests.data}
-              pending={respond.isPending && respond.variables ? respond.variables : null}
-              disabled={respond.isPending}
-              onRespond={(id, action) => respond.mutate({ id, action })}
-            />
-          )}
-          {(feed.isPending || finds > 0) && (
+          <SegmentedControl accessibilityLabel="Show" options={views} value={view} onChange={setView} height={40} />
+          {view === 'feed' && (feed.isPending || finds > 0) && (
             <View style={styles.feedLabel}>
               <SectionLabel>FRIENDS&apos; FINDS TODAY</SectionLabel>
               {finds > 0 && (
@@ -125,22 +133,25 @@ export default function FriendsScreen() {
     <ThemedView style={styles.flex}>
       <SafeAreaView edges={['top']} style={styles.flex}>
         <FlatList
-          data={searching ? [] : (feed.data ?? [])}
+          data={showFeed ? (feed.data ?? []) : []}
           keyExtractor={(item) => item.submissionId}
           ListHeaderComponent={header}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
-              refreshing={feed.isRefetching}
+              refreshing={view === 'feed' ? feed.isRefetching : friendsList.isRefetching}
               onRefresh={() => {
-                feed.refetch();
+                if (view === 'feed') feed.refetch();
+                else friendsList.refetch();
                 requests.refetch();
               }}
             />
           }
           ListEmptyComponent={
-            searching ? undefined : feed.isPending ? (
+            searching ? undefined : view === 'friends' ? (
+              <FriendsList requests={requests.error ? [] : requests.data} onFindHunters={() => searchRef.current?.focus()} />
+            ) : feed.isPending ? (
               <SkeletonRows count={2} height={340} />
             ) : feed.error ? (
               <EmptyState

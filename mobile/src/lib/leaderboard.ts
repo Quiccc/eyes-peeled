@@ -13,3 +13,11 @@ export function passGoal(entries: readonly LeaderboardEntry[], me: LeaderboardEn
   const gap = Math.max(1, above.points - me.points + 1);
   return `${formatNumber(gap)} ${gap === 1 ? 'pt' : 'pts'} to pass ${displayName(above.user)}`;
 }
+
+/**
+ * Nobody else on the board: the friends scope always includes the player, so a player with no friends
+ * gets a board of one. True when every loaded entry is the player and there are no more pages.
+ */
+export function isAlone(entries: readonly LeaderboardEntry[], myId: string | undefined, hasMore: boolean): boolean {
+  return !hasMore && entries.every((e) => e.user.id === myId);
+}
